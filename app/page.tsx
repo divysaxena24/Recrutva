@@ -5,10 +5,23 @@ import { ArrowRight, Mic, Users, Calendar, BarChart3, Bot, Sparkles, CheckCircle
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs";
+import { SignInButton, SignUpButton, UserButton, useAuth, useClerk } from "@clerk/nextjs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { LogOut } from "lucide-react";
 
 export default function Home() {
   const { userId } = useAuth();
+  const { signOut } = useClerk();
   return (
     <div className="min-h-screen bg-black text-slate-50 selection:bg-indigo-500/30 overflow-hidden">
       {/* Background ambient light effects */}
@@ -40,7 +53,43 @@ export default function Home() {
               </SignUpButton>
             </>
           ) : (
-            <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }} />
+            <div className="flex items-center gap-4">
+              <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }} />
+              
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                      title="Logout"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </Button>
+                  }
+                />
+                <AlertDialogContent className="bg-[#0a0a0f] border-slate-800 text-white rounded-3xl ring-1 ring-white/5">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-xl font-bold">Sign Out?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-slate-400">
+                      Are you sure you want to log out of Recrutva? You will need to sign in again to access your candidate pipeline.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="pt-4">
+                    <AlertDialogCancel className="rounded-xl border-slate-800 bg-transparent text-slate-400 hover:bg-white/5 hover:text-white">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => signOut()}
+                      className="rounded-xl bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_20px_rgba(225,29,72,0.2)]"
+                    >
+                      Logout
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           )}
         </div>
       </nav>

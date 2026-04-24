@@ -126,5 +126,43 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: oklch(1 0 0 / 10%);
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.585 0.233 277.117 / 50%);
+    background-clip: content-box;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(1 0 0 / 10%) transparent;
+  }
+}
+
+/* Clerk Overrides */
+.cl-socialButtonsBlockButtonBadge,
+.cl-socialButtonsBlockButtonBadgeText,
+.cl-badge {
+  color: white !important;
+  opacity: 1 !important;
 }
