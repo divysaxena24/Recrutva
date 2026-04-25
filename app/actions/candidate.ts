@@ -5,6 +5,7 @@ import { applicants, jobs } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
+import { sendInterviewInviteEmail } from "@/lib/interview-email";
 
 export async function createCandidate(data: {
   name: string;
@@ -74,6 +75,24 @@ export async function createCandidate(data: {
     if (newCandidate[0].id) {
        const { calculateMatchScore } = await import("./matching");
        await calculateMatchScore(newCandidate[0].id);
+
+       try {
+         await sendInterviewInviteEmail({
+           candidateId: newCandidate[0].id,
+           candidateName: newCandidate[0].name,
+           candidateEmail: newCandidate[0].email,
+           jobTitle: finalJobTitle ?? null,
+           scheduledAt: newCandidate[0].scheduledAt,
+           emailType: "invite",
+         });
+
+         await db
+           .update(applicants)
+           .set({ lastNotifiedAt: new Date() })
+           .where(eq(applicants.id, newCandidate[0].id));
+       } catch (emailError) {
+         console.error("Error sending interview invite email:", emailError);
+       }
     }
 
     revalidatePath("/dashboard");

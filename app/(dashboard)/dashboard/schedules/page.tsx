@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Calendar, Clock, MapPin, User, Video, ChevronRight, Filter, CheckCircle2, AlertCircle, CalendarClock, Link as LinkIcon, Check } from "lucide-react";
+import { Calendar, Clock, User, Video, CheckCircle2, AlertCircle, CalendarClock, Link as LinkIcon, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,10 +72,6 @@ export default function SchedulesPage() {
             View upcoming sessions and past screening intelligence.
           </p>
         </motion.div>
-        
-        <Button variant="outline" className="h-12 px-6 border-slate-800 bg-[#0a0a0f] text-slate-400 rounded-xl">
-           <Filter className="w-4 h-4 mr-2" /> All Events
-        </Button>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">

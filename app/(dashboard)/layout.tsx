@@ -11,7 +11,6 @@ import {
   Menu, 
   X,
   Bell,
-  Search,
   Briefcase,
   ArrowLeftRight
 } from "lucide-react";
@@ -19,7 +18,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const sidebarItems = [
   { name: "Home", icon: Home, href: "/dashboard" },
@@ -123,7 +121,7 @@ export default function DashboardLayout({
         
         {/* Top Header (Desktop & Mobile) */}
         <header className="h-20 flex items-center justify-between px-6 lg:px-10 bg-[#050505] border-b border-slate-800/40">
-          {/* Left: Search Bar (Desktop) / App Name (Mobile) */}
+          {/* Left: App Name / Mobile Menu */}
           <div className="flex items-center gap-4 flex-1">
             <Button 
               variant="ghost" 
@@ -133,14 +131,10 @@ export default function DashboardLayout({
             >
               <Menu className="w-6 h-6" />
             </Button>
-            
-            <div className="hidden lg:flex items-center gap-3 bg-slate-900/50 border border-slate-800/60 rounded-xl px-4 py-2 w-full max-w-md focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
-              <Search className="w-4 h-4 text-slate-500" />
-              <input 
-                type="text" 
-                placeholder="Search candidates, jobs, or schedules..." 
-                className="bg-transparent border-none text-sm text-slate-300 focus:outline-none w-full placeholder:text-slate-600"
-              />
+
+            <div className="hidden lg:flex items-center gap-3">
+              <Bot className="w-6 h-6 text-indigo-400" />
+              <span className="font-bold text-lg">Recrutva</span>
             </div>
 
             <div className="lg:hidden flex items-center gap-2">

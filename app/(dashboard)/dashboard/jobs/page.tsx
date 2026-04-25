@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Plus, Briefcase, MapPin, Calendar, Search, Filter, Sparkles, Trash2, MoreVertical, Globe } from "lucide-react";
+import { Briefcase, MapPin, Calendar, Search, Trash2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ export default function JobsPage() {
   const { user } = useUser();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -26,6 +27,18 @@ export default function JobsPage() {
   useEffect(() => {
     fetchJobs();
   }, []);
+
+  const filteredJobs = jobs.filter((job) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) return true;
+
+    return (
+      job.title.toLowerCase().includes(query) ||
+      job.location.toLowerCase().includes(query) ||
+      job.description.toLowerCase().includes(query)
+    );
+  });
 
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this job?")) {
@@ -65,9 +78,19 @@ export default function JobsPage() {
         </motion.div>
       </section>
 
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search jobs by title or location..."
+          className="pl-10 h-12 bg-[#0a0a0f] border-slate-800/60 rounded-2xl text-sm focus:ring-indigo-500/50"
+        />
+      </div>
+
       {/* Jobs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {jobs.map((job, i) => (
+        {filteredJobs.map((job, i) => (
           <motion.div
             key={job.id}
             initial={{ opacity: 0, y: 20 }}
@@ -134,10 +157,12 @@ export default function JobsPage() {
           </motion.div>
         ))}
 
-        {jobs.length === 0 && !loading && (
+        {filteredJobs.length === 0 && !loading && (
           <Card className="col-span-full h-64 border-dashed border-slate-800 bg-transparent flex flex-col items-center justify-center text-slate-500">
             <Briefcase className="w-12 h-12 mb-4 opacity-20" />
-            <p className="font-medium italic">No job roles created yet. Start by posting a new opportunity.</p>
+            <p className="font-medium italic">
+              {jobs.length === 0 ? "No job roles created yet. Start by posting a new opportunity." : "No jobs match your search."}
+            </p>
           </Card>
         )}
       </div>

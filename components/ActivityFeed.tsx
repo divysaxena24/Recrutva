@@ -44,10 +44,6 @@ export default function ActivityFeed() {
           </motion.div>
         ))}
       </div>
-      
-      <button className="w-full py-3 rounded-xl border border-slate-800 text-[11px] font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest">
-        View Full Intelligence Log
-      </button>
     </div>
   );
 }

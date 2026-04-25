@@ -1,10 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Calendar, Search, Sparkles, ArrowRight, Globe } from "lucide-react";
+import { Briefcase, MapPin, Calendar, Search, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { getAllJobs } from "@/app/actions/job";
@@ -15,6 +14,7 @@ export default function PublicJobsPage() {
   const router = useRouter();
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     getAllJobs().then(data => {
@@ -22,6 +22,18 @@ export default function PublicJobsPage() {
       setLoading(false);
     });
   }, []);
+
+  const filteredJobs = jobs.filter((job) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) return true;
+
+    return (
+      job.title.toLowerCase().includes(query) ||
+      job.location.toLowerCase().includes(query) ||
+      job.description.toLowerCase().includes(query)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-50 font-sans pb-20">
@@ -48,27 +60,20 @@ export default function PublicJobsPage() {
         </button>
       </div>
 
-      {/* Hero */}
-      <section className="pt-20 pb-12 px-6 text-center max-w-4xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-          <Badge className="bg-indigo-500/10 text-indigo-400 border-none px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest">Open Opportunities</Badge>
-          <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight">Shape the future <br /> with <span className="text-indigo-500">Recrutva.</span></h1>
-          <p className="text-slate-400 text-xl max-w-2xl mx-auto">Browse our latest job openings and apply to start your AI-powered screening journey.</p>
-        </motion.div>
-      </section>
-
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 space-y-12">
+      <main className="max-w-6xl mx-auto px-6 pt-12 space-y-12">
         <div className="relative max-w-2xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
           <Input 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by role or location..." 
             className="pl-12 h-16 bg-[#0a0a0f] border-slate-800 rounded-2xl text-lg focus:ring-indigo-500/50 shadow-2xl"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {jobs.map((job, i) => (
+          {filteredJobs.map((job, i) => (
             <motion.div
               key={job.id}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -106,10 +111,10 @@ export default function PublicJobsPage() {
           ))}
         </div>
 
-        {jobs.length === 0 && !loading && (
+        {filteredJobs.length === 0 && !loading && (
           <div className="text-center py-20">
              <Briefcase className="w-16 h-16 text-slate-800 mx-auto mb-6 opacity-20" />
-             <p className="text-slate-500 text-xl italic font-medium">No open roles at the moment. Check back soon!</p>
+             <p className="text-slate-500 text-xl italic font-medium">No jobs match your search right now.</p>
           </div>
         )}
       </main>
