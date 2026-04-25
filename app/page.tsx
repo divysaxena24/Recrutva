@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { LogOut } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const { userId } = useAuth();
@@ -38,6 +39,7 @@ export default function Home() {
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
           <a href="#features" className="hover:text-white transition-colors">Features</a>
           <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
+          <Link href="/jobs" className="hover:text-white transition-colors">Browse Jobs</Link>
           <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
         </div>
         <div className="flex items-center gap-4">
@@ -134,13 +136,21 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center gap-4 pt-4"
           >
-            <Button size="lg" className="h-14 px-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-lg font-medium shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group">
-              Start Hiring with AI
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 rounded-full border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-200 text-lg font-medium backdrop-blur-md">
-              Book Demo
-            </Button>
+            {!userId ? (
+              <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
+                <Button size="lg" className="h-16 px-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group cursor-pointer">
+                  Get Started
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </SignUpButton>
+            ) : (
+              <Link href="/onboarding">
+                <Button size="lg" className="h-16 px-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group">
+                  Go to Dashboard
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+            )}
           </motion.div>
 
           {/* Voice Visualization Mockup */}

@@ -1,83 +1,125 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db"; // Assuming db is exported from @/db
-import { candidates } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { applicants } from "@/db/schema";
+import { and, eq, ne } from "drizzle-orm";
+import Groq from "groq-sdk";
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
-    const { interviewId, transcript, candidateName } = await req.json();
-    const transcriptText = transcript.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+    const { id, transcript, questions } = await req.json();
+    const candidateId = Number.parseInt(id, 10);
 
-    // 1. Define Blueprints for analysis
-    const blueprints: Record<string, string[]> = {
-      "introduction": ["background", "experience", "tech stack", "software"],
-      "strength": ["technical", "projects", "problem-solving", "skills"],
-      "challenge": ["problem", "solution", "technical difficulty", "resolution"],
-      "learning": ["new technology", "documentation", "learning", "growth"],
-      "goals": ["career", "future", "long-term", "contribution"]
-    };
+    if (!id || Number.isNaN(candidateId) || !transcript) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
 
-    const questionKeys = ["introduction", "strength", "challenge", "learning", "goals"];
-    
-    // 2. Perform Question-wise Analysis
-    const interviewData = [];
-    let aiQuestionIdx = 0;
-    
-    for (let i = 0; i < transcript.length; i++) {
-      if (transcript[i].role === 'user') {
-        const question = transcript[i-1]?.content || "Unknown Question";
-        const answer = transcript[i].content;
-        const key = questionKeys[aiQuestionIdx] || "general";
-        
-        const blueprintKeywords = blueprints[key] || [];
-        const isApproved = blueprintKeywords.some(keyword => 
-          answer.toLowerCase().includes(keyword.toLowerCase())
-        );
+    const [existingCandidate] = await db
+      .select({
+        id: applicants.id,
+        status: applicants.status,
+        analysis: applicants.analysis,
+      })
+      .from(applicants)
+      .where(eq(applicants.id, candidateId))
+      .limit(1);
 
-        interviewData.push({
-          question,
-          answer,
-          status: isApproved ? "Approved" : "Not Approved",
-          blueprint: blueprintKeywords.join(", ")
-        });
-        
-        aiQuestionIdx++;
+    if (!existingCandidate) {
+      return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+    }
+
+    if (existingCandidate.status === "Completed") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Interview already completed",
+          evaluation: existingCandidate.analysis,
+        },
+        { status: 409 }
+      );
+    }
+
+    // 1. Prepare Interview Context
+    const transcriptText = Array.isArray(transcript) 
+      ? transcript.map((m: any) => `${m.role === 'ai' ? 'Sarah' : 'Candidate'}: ${m.content}`).join("\n")
+      : transcript;
+
+    const questionsContext = Array.isArray(questions)
+      ? questions.map((q: any, i: number) => `Q${i+1}: ${q.question}\nIdeal Answer Blueprint: ${q.blueprint}`).join("\n\n")
+      : "No blueprint available.";
+
+    // 2. Generate Evaluation with Groq
+    const prompt = `
+      You are an expert technical recruiter analyzing a completed interview screening.
+      
+      Questions Asked & Ideal Blueprints:
+      ${questionsContext}
+      
+      Full Interview Transcript:
+      ${transcriptText}
+      
+      Evaluation Requirements:
+      1. Analyze each of the 10 questions and the candidate's corresponding response from the transcript.
+      2. For each question, award marks from 0 to 10 based on how well the candidate's answer matches the 'Ideal Answer Blueprint'.
+      3. Sum these marks for a total score out of 100.
+      4. Provide a 2-3 sentence executive summary for the recruiter.
+      
+      Return ONLY a JSON object:
+      {
+        "totalScore": 85,
+        "executiveSummary": "...",
+        "breakdown": [
+          {
+            "question": "...",
+            "expectedAnswer": "...",
+            "userAnswer": "...",
+            "marks": 8,
+            "feedback": "..."
+          }
+        ]
       }
-    }
+    `;
 
-    // 3. Generate 5-line Summary
-    const summaryLines = [
-      `Overall Performance: The candidate provided structured responses across all ${interviewData.length} modules.`,
-      `Technical Depth: Demonstrated strong alignment with key requirements in ${interviewData.filter(d => d.status === 'Approved').length} out of 5 areas.`,
-      `Communication: Responses were clear, though some areas could benefit from more specific technical examples.`,
-      `Cultural Fit: Showed high enthusiasm and a clear vision for their long-term growth within the team.`,
-      `Final Verdict: A strong candidate who meets the core blueprints for the Senior Frontend role.`
-    ];
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile", // Using 70b model for better reasoning in evaluation
+      temperature: 0.3,
+      response_format: { type: "json_object" }
+    });
     
-    const finalSummary = {
-      breakdown: interviewData,
-      executiveSummary: summaryLines.join('\n'),
-      score: `${(interviewData.filter(d => d.status === 'Approved').length / 5) * 100}/100`
-    };
+    const text = chatCompletion.choices[0]?.message?.content || "";
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const evaluation = jsonMatch ? JSON.parse(jsonMatch[0]) : { totalScore: 0, executiveSummary: "Analysis failed", breakdown: [] };
 
-    // 4. Update the candidate in DB
-    const candidateId = parseInt(interviewId);
-    if (isNaN(candidateId)) {
-      return NextResponse.json({ error: "Invalid interview ID" }, { status: 400 });
-    }
-
-    await db.update(candidates)
+    // 3. Update Candidate Status
+    const updatedCandidate = await db.update(applicants)
       .set({
         status: "Completed",
         transcript: transcriptText,
-        summary: JSON.stringify(finalSummary),
-        score: finalSummary.score,
+        summary: evaluation.executiveSummary,
+        score: evaluation.totalScore.toString(),
+        matchScore: evaluation.totalScore.toString(),
+        analysis: evaluation, // Save the full breakdown to the DB
       })
-      .where(eq(candidates.id, candidateId));
+      .where(and(eq(applicants.id, candidateId), ne(applicants.status, "Completed")))
+      .returning({ id: applicants.id });
 
-    return NextResponse.json({ success: true, analysis: finalSummary });
+    if (updatedCandidate.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Interview already completed",
+          evaluation,
+        },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json({ success: true, evaluation });
   } catch (error) {
-    console.error("Interview Completion Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Evaluation Error:", error);
+    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
   }
 }

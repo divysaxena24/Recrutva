@@ -1,0 +1,71 @@
+import Groq from "groq-sdk";
+import { db } from "@/db";
+import { applicants, jobs } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+export async function GET(req: NextRequest) {
+  try {
+    const candidateId = req.nextUrl.searchParams.get("candidateId");
+    if (!candidateId) return NextResponse.json({ error: "Missing candidateId" }, { status: 400 });
+
+    // 1. Fetch Candidate and Job
+    const candidateData = await db.select().from(applicants).where(eq(applicants.id, parseInt(candidateId))).limit(1);
+    const candidate = candidateData[0];
+    
+    if (!candidate) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+
+    let jobContext = `Role: ${candidate.jobTitle || "Software Engineer"}`;
+    if (candidate.targetJobId) {
+      const jobData = await db.select().from(jobs).where(eq(jobs.id, candidate.targetJobId)).limit(1);
+      if (jobData[0]) {
+        jobContext = `Role: ${jobData[0].title}. Description: ${jobData[0].description}. Requirements: ${jobData[0].requirements}`;
+      }
+    }
+
+    // 2. Generate Questions with Groq
+    const prompt = `
+      You are Sarah, an AI Technical Interviewer at Recrutva.
+      Your goal is to conduct a highly personalized interview.
+      
+      Job Context:
+      ${jobContext}
+      
+      Candidate Name: ${candidate.name}
+      Candidate Resume Content:
+      ${candidate.resumeText || "No resume provided"}
+      
+      Requirements for Questions:
+      1. Generate EXACTLY 10 questions.
+      2. The questions must be purely based on the technical and behavioral requirements of the target Job Role. Do NOT base the core technical questions on the candidate's resume.
+      3. First question: Professional introduction greeting the candidate by name.
+      4. Technical questions: Ask challenging, role-specific technical questions to assess their competence for this specific job.
+      5. Behavioral questions: Ask about scenarios they would face in this role.
+      6. For each question, provide a 'blueprint' which is a brief summary of what a high-quality (10/10) answer should include.
+      
+      Return ONLY a JSON array of objects with 'question' and 'blueprint' keys:
+      [
+        {"question": "...", "blueprint": "..."},
+        ... 10 items ...
+      ]
+    `;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.1-8b-instant", // Fast and capable for this instruction
+      temperature: 0.7,
+    });
+    
+    const text = chatCompletion.choices[0]?.message?.content || "";
+    
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const questionsData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    return NextResponse.json(questionsData);
+  } catch (error) {
+    console.error("Questions Generation Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

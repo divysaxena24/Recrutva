@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as googleTTS from "google-tts-api";
 
 export async function GET(req: NextRequest) {
   const text = req.nextUrl.searchParams.get("text");
@@ -15,37 +16,28 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function handleTts(text: string, voiceId: string = "en-US-natalie") {
+async function handleTts(text: string) {
   try {
-    const response = await fetch("https://global.api.murf.ai/v1/speech/stream", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": process.env.NEXT_MURF_API || "",
-      },
-      body: JSON.stringify({
-        voiceId,
-        text,
-        model: "FALCON",
-        sampleRate: 24000,
-        format: "MP3",
-      }),
+    // 1. Get the base64 audio string from Google TTS
+    const base64Audio = await googleTTS.getAudioBase64(text, {
+      lang: "en",
+      slow: false,
+      host: "https://translate.google.com",
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Murf API Error:", errorText);
-      return NextResponse.json({ error: "Failed to stream TTS" }, { status: response.status });
-    }
+    // 2. Convert base64 string to a binary Buffer
+    const audioBuffer = Buffer.from(base64Audio, "base64");
 
-    // Proxy the stream back to the client
-    return new NextResponse(response.body, {
+    // 3. Return as standard MP3 audio stream
+    return new NextResponse(audioBuffer, {
       headers: {
         "Content-Type": "audio/mpeg",
+        "Content-Length": audioBuffer.length.toString(),
+        "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
   } catch (error) {
-    console.error("TTS Stream Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Google TTS Error:", error);
+    return NextResponse.json({ error: "Failed to generate TTS" }, { status: 500 });
   }
 }

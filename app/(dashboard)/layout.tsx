@@ -7,12 +7,13 @@ import {
   Users, 
   Settings, 
   Home, 
-  Briefcase, 
   Calendar,
   Menu, 
   X,
   Bell,
-  Search
+  Search,
+  Briefcase,
+  ArrowLeftRight
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -25,7 +26,6 @@ const sidebarItems = [
   { name: "Jobs", icon: Briefcase, href: "/dashboard/jobs" },
   { name: "Candidates", icon: Users, href: "/dashboard/candidates" },
   { name: "Schedules", icon: Calendar, href: "/dashboard/schedules" },
-  { name: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
 export default function DashboardLayout({
@@ -65,8 +65,7 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto scrollbar-hide py-4">
+          <div className="flex-1 px-4 space-y-1.5 overflow-y-auto scrollbar-hide py-4">
             {sidebarItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -91,46 +90,29 @@ export default function DashboardLayout({
                 </Link>
               );
             })}
-          </nav>
-
-          {/* AI Agent Status Card */}
-          <div className="px-4 py-4">
-            <div className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-5 ring-1 ring-white/5 backdrop-blur-md">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center ring-1 ring-indigo-500/30">
-                    <Bot className="w-5 h-5 text-indigo-400" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#0a0a0f] animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white leading-tight">Sarah AI</h4>
-                  <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Ready to Call</p>
-                </div>
-              </div>
-              <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 w-[75%] rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-[10px] text-slate-500 font-medium">Monthly Quota</p>
-                <p className="text-[10px] text-slate-300 font-bold">750 / 1000</p>
-              </div>
-            </div>
           </div>
 
           {/* Sidebar Footer: User Profile */}
-          <div className="p-4 border-t border-slate-800/60">
+          <div className="p-4 space-y-3 border-t border-slate-800/60">
+            {/* Role Switcher */}
+            <Link href="/candidate-dashboard" className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 transition-all group">
+              <ArrowLeftRight className="w-4 h-4 text-emerald-400 group-hover:rotate-180 transition-transform duration-500" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Switch to</span>
+                <span className="text-sm font-bold text-white">Candidate</span>
+              </div>
+            </Link>
+
             <div className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] transition-all rounded-2xl p-3 ring-1 ring-white/5 group cursor-pointer">
               <UserButton appearance={{ elements: { userButtonAvatarBox: "w-9 h-9" } }} />
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-sm font-bold text-white truncate">
                   {user?.fullName || "Recruiter"}
                 </span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
-                  Settings
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                  Hiring Manager
                 </span>
               </div>
-              <Settings className="w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:rotate-45 transition-all" />
             </div>
           </div>
         </div>
@@ -169,9 +151,6 @@ export default function DashboardLayout({
 
           {/* Right: Notifications & User Profile Icon */}
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white hover:bg-white/5 rounded-xl hidden sm:flex">
-              <Bell className="w-5 h-5" />
-            </Button>
             <div className="h-8 w-px bg-slate-800/60 mx-2 hidden sm:block"></div>
             <div className="flex items-center gap-3">
               <div className="hidden md:flex flex-col items-end mr-1">
@@ -189,6 +168,21 @@ export default function DashboardLayout({
             {children}
           </div>
         </main>
+      </div>
+    </div>
+  );
+}
+
+function NotificationItem({ title, desc, time, dot }: { title: string, desc: string, time: string, dot: string }) {
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-2xl hover:bg-white/[0.03] transition-colors cursor-pointer group/item">
+      <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${dot}`} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] font-bold text-white uppercase tracking-tight">{title}</p>
+          <span className="text-[9px] text-slate-600 font-bold">{time}</span>
+        </div>
+        <p className="text-[10px] text-slate-400 truncate mt-0.5 group-hover/item:text-slate-300 transition-colors">{desc}</p>
       </div>
     </div>
   );

@@ -16,13 +16,14 @@ import {
   MicOff,
   PhoneOff,
   Send,
-  Loader2
+  Loader2,
+  ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 // --- Types ---
 interface Message {
@@ -40,10 +41,12 @@ const INTERVIEW_QUESTIONS = [
 
 export default function InterviewPortal() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [view, setView] = useState<'join' | 'interview'>('join');
   const [name, setName] = useState("");
   const [step, setStep] = useState(1);
   const [isJoining, setIsJoining] = useState(false);
+  const requestedView = searchParams.get("view");
 
   if (view === 'join') {
     return (
@@ -53,6 +56,8 @@ export default function InterviewPortal() {
         step={step}
         setStep={setStep}
         isJoining={isJoining}
+        interviewId={params.id as string}
+        requestedView={requestedView}
         onStart={() => {
           setIsJoining(true);
           setTimeout(() => {
@@ -68,11 +73,56 @@ export default function InterviewPortal() {
 }
 
 // --- Join Page Component ---
-function InterviewJoinPage({ name, setName, step, setStep, isJoining, onStart }: any) {
+function InterviewJoinPage({ name, setName, step, setStep, isJoining, onStart, interviewId, requestedView }: any) {
+  const [candidate, setCandidate] = useState<any>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch(`/api/candidate/${interviewId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.candidate) {
+          setCandidate(data.candidate);
+          setName(data.candidate.name);
+        }
+      });
+  }, [interviewId, setName]);
+
   const handleNext = () => {
     if (step === 1) setStep(2);
     else onStart();
   };
+
+  const displayJobTitle = candidate?.jobTitle || candidate?.linkedJobTitle || "Senior Developer";
+
+  if (candidate?.status === "Completed") {
+    if (requestedView === "summary") {
+      return <InterviewSummaryViewer analysis={candidate.analysis} name={candidate.name} />;
+    }
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center space-y-6">
+        <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/30">
+          <ShieldAlert className="w-10 h-10 text-rose-500" />
+        </div>
+        <h2 className="text-3xl font-black text-white">Interview Already Completed</h2>
+        <p className="text-slate-400 max-w-md">This interview has already been submitted and cannot be accessed again. The schedules page will show it as completed.</p>
+        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+          <Button
+            onClick={() => router.push(`/interview/${interviewId}?view=summary`)}
+            className="bg-emerald-600 hover:bg-emerald-500 rounded-2xl h-12 px-8 font-bold"
+          >
+            View Summary
+          </Button>
+          <Button
+            onClick={() => router.push('/dashboard')}
+            className="bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-12 px-8 font-bold"
+          >
+            Return Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -91,8 +141,8 @@ function InterviewJoinPage({ name, setName, step, setStep, isJoining, onStart }:
               <div className="space-y-6">
                 <Badge variant="outline" className="px-4 py-1.5 rounded-full border-indigo-500/30 bg-indigo-500/10 text-indigo-300 font-bold uppercase text-[10px]">AI Screening Session</Badge>
                 <div>
-                  <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">Senior Frontend Developer <br /><span className="text-slate-400 text-2xl">at InnovateTech Solutions</span></h1>
-                  <p className="text-slate-400 leading-relaxed max-w-md">Join your AI-powered voice interview. Sarah will guide you through technical and behavioral questions.</p>
+                  <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">{displayJobTitle} <br /><span className="text-slate-400 text-2xl">at Recrutva Partner</span></h1>
+                  <p className="text-slate-400 leading-relaxed max-w-md">Join your AI-powered voice interview. Sarah will guide you through technical and behavioral questions tailored to your profile.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <InfoItem icon={<Clock className="w-4 h-4 text-amber-400" />} label="Duration" value="~15-20 Mins" />
@@ -142,28 +192,68 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
   const [isSTTActive, setIsSTTActive] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
+  const [manualInput, setManualInput] = useState("");
+  const [isAccessBlocked, setIsAccessBlocked] = useState(false);
+  const [blockedCandidateName, setBlockedCandidateName] = useState(name);
+  const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const manualInputRef = useRef("");
+  const [interviewQuestions, setInterviewQuestions] = useState<any[]>([]);
+  const interviewQuestionsRef = useRef<any[]>([]);
   const hasStartedRef = useRef(false);
   const currentTranscriptRef = useRef("");
   const currentQuestionIndexRef = useRef(-1);
 
-  // Initialize Media & First Question
+  // Initialize Media & Fetch Questions
   useEffect(() => {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
 
-    startMedia();
-    initSTT();
+    fetch(`/api/candidate/${interviewId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.candidate) {
+          if (data.candidate.status === "Completed") {
+            setBlockedCandidateName(data.candidate.name || name);
+            setIsAccessBlocked(true);
+            return;
+          }
 
-    // Start after a short delay
-    setTimeout(() => {
-      askQuestion(0);
-    }, 2000);
+          startMedia();
+          initSTT();
+
+          fetch(`/api/interview/questions?candidateId=${interviewId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (Array.isArray(data)) {
+                setInterviewQuestions(data);
+                interviewQuestionsRef.current = data;
+                setTimeout(() => {
+                  askQuestion(0, data);
+                }, 2000);
+              }
+            })
+            .catch(err => {
+              console.error("Failed to fetch questions:", err);
+              const fallback = [
+                "Hello! Could you please introduce yourself?",
+                "Tell me about your technical experience.",
+                "What is your biggest challenge in development?",
+                "How do you stay updated with tech?",
+                "What are your career goals?"
+              ];
+              setInterviewQuestions(fallback);
+              interviewQuestionsRef.current = fallback;
+              setTimeout(() => askQuestion(0, fallback), 2000);
+            });
+        }
+      })
+      .catch(err => console.error("Failed to fetch candidate:", err));
 
     return () => {
       stopMedia();
@@ -177,77 +267,31 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
   }, [messages]);
 
   if (isFinished) {
+    return <InterviewSummaryViewer analysis={analysis} name={name} />;
+  }
+
+  if (isAccessBlocked) {
     return (
-      <div className="min-h-screen bg-[#050505] text-slate-50 flex flex-col items-center p-8 py-12 relative overflow-y-auto font-sans">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] opacity-20 pointer-events-none blur-[120px] bg-emerald-500 rounded-full" />
-        
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-3xl w-full space-y-10 relative z-10"
-        >
-          {/* Header Card */}
-          <div className="text-center space-y-4">
-            <div className="w-20 h-20 rounded-[2rem] bg-emerald-500/10 flex items-center justify-center mx-auto ring-1 ring-emerald-500/30 mb-6">
-              <ShieldCheck className="w-10 h-10 text-emerald-400" />
-            </div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">Interview Successfully Completed</h1>
-            <p className="text-slate-400">Great job, {name}. Here is a summary of your screening session.</p>
-          </div>
-
-          {/* executive summary */}
-          {analysis && (
-            <Card className="p-8 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl space-y-6">
-              <div className="flex items-center gap-3 border-b border-white/5 pb-4">
-                <Bot className="w-5 h-5 text-indigo-400" />
-                <h2 className="font-bold text-lg text-white">AI Executive Summary</h2>
-              </div>
-              <div className="space-y-3">
-                {analysis.executiveSummary.split('\n').map((line: string, i: number) => (
-                  <p key={i} className="text-slate-300 text-sm leading-relaxed flex gap-3">
-                    <span className="text-indigo-500 font-bold shrink-0">•</span>
-                    {line}
-                  </p>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Question-wise Breakdown */}
-          {analysis && (
-            <div className="space-y-6">
-              <h3 className="font-bold text-slate-400 uppercase tracking-widest text-xs px-4">Detailed Question Analysis</h3>
-              <div className="space-y-4">
-                {analysis.breakdown.map((item: any, i: number) => (
-                  <Card key={i} className="p-6 bg-slate-900/30 border-slate-800/40 rounded-[2rem] space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Question {i+1}</span>
-                        <p className="text-sm font-bold text-white">{item.question}</p>
-                      </div>
-                      <Badge className={item.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-none' : 'bg-red-500/10 text-red-400 border-none'}>
-                        {item.status}
-                      </Badge>
-                    </div>
-                    <div className="bg-black/20 rounded-2xl p-4 space-y-2">
-                      <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Your Answer</span>
-                      <p className="text-sm text-slate-400 italic">"{item.answer}"</p>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-4 pt-4 pb-12">
-            <Button 
-              onClick={() => window.location.href = '/dashboard'} 
-              className="flex-1 h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg shadow-xl shadow-indigo-500/20"
-            >
-              Return to Dashboard
-            </Button>
-          </div>
-        </motion.div>
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center space-y-6">
+        <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/30">
+          <ShieldAlert className="w-10 h-10 text-rose-500" />
+        </div>
+        <h2 className="text-3xl font-black text-white">Interview Already Completed</h2>
+        <p className="text-slate-400 max-w-md">This interview for {blockedCandidateName || "the candidate"} was already completed. It cannot be started again.</p>
+        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+          <Button
+            onClick={() => router.push(`/interview/${interviewId}?view=summary`)}
+            className="bg-emerald-600 hover:bg-emerald-500 rounded-2xl h-12 px-8 font-bold"
+          >
+            View Summary
+          </Button>
+          <Button
+            onClick={() => router.push("/dashboard")}
+            className="bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-12 px-8 font-bold"
+          >
+            Return Home
+          </Button>
+        </div>
       </div>
     );
   }
@@ -270,10 +314,22 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
   const resetSilenceTimeout = () => {
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
     silenceTimeoutRef.current = setTimeout(() => {
+      // If 5 seconds pass with NO typing or speaking...
+
+      // 1. If they typed something, auto-submit it
+      if (manualInputRef.current.trim().length > 0) {
+        const text = manualInputRef.current.trim();
+        setManualInput("");
+        manualInputRef.current = "";
+        handleUserResponse(text);
+        return;
+      }
+      
+      // 2. If they spoke something, auto-submit it
       if (currentTranscriptRef.current.trim()) {
         handleUserResponse(currentTranscriptRef.current);
       } else {
-        // If nothing was said for 5 seconds, we move on
+        // 3. If nothing was said or typed, auto-skip
         handleUserResponse("[No response recorded]");
       }
     }, 5000); // 5 seconds gap
@@ -309,18 +365,21 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
     }
   };
 
-  const askQuestion = async (index: number) => {
-    if (index >= INTERVIEW_QUESTIONS.length) {
+  const askQuestion = async (index: number, questionsOverride?: any[]) => {
+    const qs = questionsOverride || interviewQuestionsRef.current;
+    if (index >= qs.length) {
       completeInterview(messages);
       return;
     }
 
-    const question = INTERVIEW_QUESTIONS[index];
-    setMessages(prev => [...prev, { role: 'ai', content: question }]);
+    const questionItem = qs[index];
+    const questionText = typeof questionItem === 'string' ? questionItem : questionItem.question;
+
+    setMessages(prev => [...prev, { role: 'ai', content: questionText }]);
     setCurrentQuestionIndex(index);
     currentQuestionIndexRef.current = index;
 
-    await playAiVoice(question);
+    await playAiVoice(questionText);
   };
 
   const playAiVoice = async (text: string, onEnded?: () => void) => {
@@ -374,15 +433,18 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          interviewId,
+          id: interviewId, // Send 'id' as expected by the API
           candidateName: name,
-          transcript: updated
+          transcript: updated,
+          questions: interviewQuestions 
         })
       })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          setAnalysis(data.analysis);
+          setAnalysis(data.evaluation); // The API returns 'evaluation'
+        } else if (data.error === "Interview already completed") {
+          setAnalysis(data.evaluation ?? null);
         }
       })
       .catch(err => console.error("Failed to save interview:", err));
@@ -417,7 +479,7 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
 
     // Small delay before next question
     setTimeout(() => {
-      if (nextIndex >= INTERVIEW_QUESTIONS.length) {
+      if (nextIndex >= interviewQuestionsRef.current.length) {
         completeInterview(latestMessages);
       } else {
         askQuestion(nextIndex);
@@ -571,18 +633,43 @@ function InterviewRoom({ name, interviewId }: { name: string; interviewId: strin
           </div>
 
           <div className="p-6 border-t border-white/5 bg-black/20">
-            <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all opacity-50">
+            <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
               <Input
                 placeholder="Type your response..."
-                disabled
-                className="bg-transparent border-none focus:ring-0 text-sm h-auto p-0"
+                value={manualInput}
+                onChange={(e) => {
+                  setManualInput(e.target.value);
+                  manualInputRef.current = e.target.value;
+                  // Restart the 5-second auto-submit timer on every keystroke
+                  resetSilenceTimeout();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && manualInput.trim()) {
+                    const typedText = manualInput.trim();
+                    setManualInput("");
+                    manualInputRef.current = "";
+                    handleUserResponse(typedText);
+                  }
+                }}
+                className="bg-transparent border-none focus-visible:ring-0 text-sm h-auto p-0 text-white"
               />
-              <Button size="icon" disabled className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30">
+              <Button 
+                size="icon" 
+                onClick={() => {
+                  if (manualInput.trim()) {
+                    const typedText = manualInput.trim();
+                    setManualInput("");
+                    manualInputRef.current = "";
+                    handleUserResponse(typedText);
+                  }
+                }}
+                className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors"
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
-            <p className="text-[10px] text-slate-600 text-center mt-4 uppercase tracking-widest font-bold">
-              Speech-to-Text Enabled
+            <p className="text-[10px] text-slate-500 text-center mt-4 uppercase tracking-widest font-bold">
+              Speech-to-Text or Type to Answer
             </p>
           </div>
         </aside>
@@ -599,6 +686,183 @@ function InfoItem({ icon, label, value }: { icon: React.ReactNode, label: string
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
       </div>
       <p className="text-sm font-bold text-slate-200">{value}</p>
+    </div>
+  );
+}
+
+// --- Reusable Interview Summary Component ---
+function InterviewSummaryViewer({ analysis, name }: { analysis: any; name: string }) {
+  const totalScore = analysis?.totalScore ?? null;
+  const breakdown: any[] = analysis?.breakdown ?? [];
+  const summary = analysis?.executiveSummary ?? analysis?.summary ?? null;
+
+  const scoreColor = totalScore === null ? 'text-slate-400'
+    : totalScore >= 75 ? 'text-emerald-400'
+    : totalScore >= 50 ? 'text-amber-400'
+    : 'text-red-400';
+
+  const scoreBarColor = totalScore === null ? 'bg-slate-600'
+    : totalScore >= 75 ? 'bg-emerald-500'
+    : totalScore >= 50 ? 'bg-amber-500'
+    : 'bg-red-500';
+
+  return (
+    <div className="min-h-screen bg-[#050505] text-slate-50 flex flex-col items-center px-6 py-16 relative overflow-y-auto font-sans">
+      <div className="absolute top-0 left-1/4 w-[600px] h-[400px] opacity-10 pointer-events-none blur-[140px] bg-emerald-500 rounded-full" />
+      <div className="absolute top-1/2 right-0 w-[400px] h-[400px] opacity-10 pointer-events-none blur-[140px] bg-indigo-500 rounded-full" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-3xl w-full space-y-8 relative z-10"
+      >
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full">
+            <ShieldCheck className="w-3.5 h-3.5" /> Interview Complete
+          </div>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight mt-2">Your Results, {name}</h1>
+          <p className="text-slate-400">Here is your full AI-generated performance breakdown.</p>
+        </div>
+
+        {/* Score Card */}
+        <Card className="p-8 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl flex flex-col md:flex-row items-center gap-8">
+          <div className="text-center md:text-left shrink-0">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Final Score</p>
+            {totalScore !== null ? (
+              <div className={`text-8xl font-black tabular-nums leading-none ${scoreColor}`}>
+                {totalScore}<span className="text-3xl text-slate-600 font-bold">/100</span>
+              </div>
+            ) : (
+              <div className="text-4xl font-black text-slate-500">Pending Analysis</div>
+            )}
+          </div>
+          <div className="flex-1 w-full space-y-4">
+            {totalScore !== null && (
+              <div>
+                <div className="flex justify-between text-xs text-slate-500 font-bold mb-2 uppercase tracking-widest">
+                  <span>Score</span><span>{totalScore}%</span>
+                </div>
+                <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${totalScore}%` }}
+                    transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
+                    className={`h-full rounded-full ${scoreBarColor}`}
+                  />
+                </div>
+              </div>
+            )}
+            {summary && (
+              <p className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-indigo-500/40 pl-4">
+                &ldquo;{summary}&rdquo;
+              </p>
+            )}
+            {!analysis && (
+              <p className="text-sm text-slate-400">This interview was completed before detailed analysis was enabled. The breakdown will appear here for future interviews.</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Per-Question Breakdown */}
+        {breakdown.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-2">
+              Question-by-Question Breakdown
+            </h2>
+            {breakdown.map((item: any, i: number) => {
+              const marks = item.marks ?? 0;
+              const markColor = marks >= 7 ? 'text-emerald-400' : marks >= 4 ? 'text-amber-400' : 'text-red-400';
+              const markBarColor = marks >= 7 ? 'bg-emerald-500' : marks >= 4 ? 'bg-amber-500' : 'bg-red-500';
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.06 }}
+                >
+                  <Card className="bg-[#0c0c14] border-slate-800/50 rounded-[2rem] overflow-hidden">
+                    {/* Question header */}
+                    <div className="flex items-start justify-between gap-4 p-6 pb-4">
+                      <div className="space-y-1 flex-1">
+                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Question {i + 1}</span>
+                        <p className="text-sm font-semibold text-white leading-snug">{item.question}</p>
+                      </div>
+                      <div className="shrink-0 text-center min-w-[60px]">
+                        <div className={`text-2xl font-black tabular-nums leading-none ${markColor}`}>
+                          {marks}<span className="text-slate-600 text-sm font-bold">/10</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-white/5 rounded-full mt-2 overflow-hidden">
+                          <div className={`h-full rounded-full ${markBarColor}`} style={{ width: `${marks * 10}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-6 pb-6 space-y-3">
+                      {/* Expected Answer */}
+                      <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-2xl p-4 space-y-1.5">
+                        <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <Bot className="w-3 h-3" /> Expected Answer
+                        </span>
+                        <p className="text-sm text-indigo-100/80 leading-relaxed">{item.expectedAnswer}</p>
+                      </div>
+
+                      {/* User Answer */}
+                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-1.5">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <User className="w-3 h-3" /> Your Answer
+                        </span>
+                        <p className="text-sm text-slate-300 italic leading-relaxed">&ldquo;{item.userAnswer || '[No answer recorded]'}&rdquo;</p>
+                      </div>
+
+                      {/* Marks Awarded */}
+                      <div className={`rounded-2xl p-4 space-y-1.5 border ${marks >= 7 ? 'bg-emerald-500/5 border-emerald-500/15' : marks >= 4 ? 'bg-amber-500/5 border-amber-500/15' : 'bg-red-500/5 border-red-500/15'}`}>
+                        <span className={`text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 ${markColor}`}>
+                          <Sparkles className="w-3 h-3" /> Marks Awarded: {marks} / 10
+                        </span>
+                        <p className="text-sm text-slate-300 leading-relaxed">{item.feedback}</p>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Final Score Summary Banner */}
+        {totalScore !== null && (
+          <Card className="p-6 bg-[#0a0a0f] border-slate-800/60 rounded-[2rem] ring-1 ring-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Overall Performance</p>
+              <p className={`text-2xl font-extrabold ${scoreColor}`}>
+                {totalScore >= 75 ? '🌟 Excellent' : totalScore >= 50 ? '👍 Good' : '📚 Needs Improvement'}
+              </p>
+              <p className="text-slate-400 text-sm mt-1">
+                {totalScore >= 75
+                  ? 'Outstanding performance — highly recommended!'
+                  : totalScore >= 50
+                  ? 'Solid candidate with room to grow.'
+                  : 'Candidate may need more preparation.'}
+              </p>
+            </div>
+            <div className={`text-5xl font-black tabular-nums ${scoreColor}`}>
+              {totalScore}<span className="text-slate-600 text-2xl font-bold">/100</span>
+            </div>
+          </Card>
+        )}
+
+        {/* Return to Dashboard */}
+        <div className="pb-12">
+          <Button
+            onClick={() => window.location.href = '/dashboard'}
+            className="w-full h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all"
+          >
+            Return to Dashboard
+          </Button>
+        </div>
+      </motion.div>
     </div>
   );
 }

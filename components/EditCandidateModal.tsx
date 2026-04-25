@@ -8,16 +8,14 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger,
   DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2, FileText, Upload, X, CheckCircle2 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
-import { createCandidate } from "@/app/actions/candidate";
+import { Loader2, Edit2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { updateCandidate } from "@/app/actions/candidate";
 import { getJobs } from "@/app/actions/job";
 
 const formSchema = z.object({
@@ -30,17 +28,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AddCandidateModalProps {
+interface EditCandidateModalProps {
+  candidate: any;
   onSuccess?: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps) {
-  const [open, setOpen] = useState(false);
+export default function EditCandidateModal({ candidate, onSuccess, open, onOpenChange }: EditCandidateModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [jobs, setJobs] = useState<any[]>([]);
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
@@ -50,48 +46,39 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
   const selectedJobId = watch("targetJobId");
 
   useEffect(() => {
+    if (candidate) {
+      reset({
+        name: candidate.name,
+        email: candidate.email,
+        phone: candidate.phone,
+        targetJobId: candidate.targetJobId?.toString() || "",
+        scheduledAt: candidate.scheduledAt ? new Date(candidate.scheduledAt).toISOString().slice(0, 16) : "",
+      });
+    }
+  }, [candidate, reset]);
+
+  useEffect(() => {
     if (open) {
       getJobs().then(setJobs);
     }
   }, [open]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-
   const onSubmit = async (data: FormValues) => {
-    if (!file) {
-      alert("Please upload a resume document");
-      return;
-    }
-    
     setIsSubmitting(true);
-    
     try {
-      const selectedJob = jobs.find(j => j.id.toString() === data.targetJobId);
-      const jobTitle = selectedJob?.title || "Unknown Role";
-      
-      // Simulate file content extraction
-      const resumeText = `Extracted content from ${file.name}. Candidate ${data.name} is a specialist in ${jobTitle}.`;
-
-      const result = await createCandidate({
+      const result = await updateCandidate(candidate.id, {
         ...data,
         targetJobId: data.targetJobId ? parseInt(data.targetJobId) : undefined,
-        resumeText,
       });
 
       if (result.success) {
-        setOpen(false);
-        reset();
-        setFile(null);
+        onOpenChange(false);
         if (onSuccess) onSuccess();
       } else {
-        alert(result.error || "Failed to create candidate");
+        alert("Failed to update candidate");
       }
     } catch (error) {
-      console.error("Error creating candidate:", error);
+      console.error("Error updating candidate:", error);
       alert("Something went wrong");
     } finally {
       setIsSubmitting(false);
@@ -99,19 +86,13 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-6 h-12 font-bold shadow-lg shadow-indigo-500/20 group">
-          <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
-          Add Candidate
-        </Button>
-      } />
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[550px] rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/5 shadow-2xl">
         <div className="p-8 space-y-8">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold tracking-tight">Add New Candidate</DialogTitle>
+            <DialogTitle className="text-2xl font-bold tracking-tight">Edit Candidate</DialogTitle>
             <DialogDescription className="text-slate-400">
-              Import candidate details and upload their resume for AI matching.
+              Update details for {candidate?.name}.
             </DialogDescription>
           </DialogHeader>
 
@@ -121,7 +102,6 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
                 <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Full Name</Label>
                 <Input 
                   id="name" 
-                  placeholder="e.g. Divya Saxena" 
                   {...register("name")}
                   className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
                 />
@@ -131,7 +111,6 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
                 <Label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Phone Number</Label>
                 <Input 
                   id="phone" 
-                  placeholder="7024296567" 
                   {...register("phone")}
                   className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
                 />
@@ -144,62 +123,19 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="divysaxena2402@gmail.com" 
                 {...register("email")}
                 className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
               />
               {errors.email && <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">{errors.email.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Resume Document</Label>
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`
-                  border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer group
-                  ${file ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5'}
-                `}
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                  accept=".pdf,.doc,.docx"
-                />
-                {file ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                    <span className="text-sm font-bold text-white">{file.name}</span>
-                    <button 
-                      type="button" 
-                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                      className="text-[10px] text-slate-500 hover:text-rose-500 font-bold uppercase flex items-center gap-1"
-                    >
-                      <X className="w-3 h-3" /> Remove File
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-500/20 transition-all mb-4">
-                      <Upload className="w-6 h-6" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-400">Click to upload or drag & drop</p>
-                    <p className="text-[10px] text-slate-600 font-medium uppercase mt-2">PDF, DOC up to 10MB</p>
-                  </>
-                )}
-              </div>
-            </div>
-
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Select Job Role</Label>
+                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Linked Job Role</Label>
                 <select 
                   id="targetJobId"
                   {...register("targetJobId")}
-                  className="w-full bg-slate-950 border border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 px-4 appearance-none outline-none transition-all focus:border-indigo-500/50"
+                  className="w-full bg-slate-950 border border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 px-4 appearance-none outline-none transition-all"
                 >
                   <option value="">-- Select a Job Opening --</option>
                   {jobs.map(job => (
@@ -211,22 +147,21 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Schedule Interview Date & Time</Label>
+              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Interview Date & Time</Label>
               <Input 
                 id="scheduledAt" 
                 type="datetime-local"
                 {...register("scheduledAt")}
                 className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark]"
               />
-              {errors.scheduledAt && <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">{errors.scheduledAt.message}</p>}
             </div>
 
             <div className="pt-4 flex gap-4">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1 h-12 rounded-xl text-slate-400 hover:bg-white/5 font-bold">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 rounded-xl text-slate-400 hover:bg-white/5 font-bold">
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-xl shadow-indigo-500/20">
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Import Candidate"}
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Changes"}
               </Button>
             </div>
           </form>
