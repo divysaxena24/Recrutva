@@ -1,12 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, PhoneCall, CheckCircle2, Sparkles, BarChart3, TrendingUp } from "lucide-react";
+import { Users, PhoneCall, CheckCircle2, Sparkles, BarChart3, TrendingUp, Briefcase, Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import AddCandidateModal from "@/components/AddCandidateModal";
-import { getCandidates } from "@/app/actions/candidate";
-import ActivityFeed from "@/components/ActivityFeed";
+import { getDashboardStats } from "@/app/actions/candidate";
 import { useUser } from "@clerk/nextjs";
 import { 
   BarChart, 
@@ -19,32 +18,68 @@ import {
   Cell
 } from "recharts";
 
+interface DashboardStats {
+  activeJobs: number;
+  totalApplicants: number;
+  completedInterviews: number;
+  avgFitScore: string;
+  recentApplicants: {
+    id: number;
+    name: string;
+    status: string;
+    jobTitle: string | null;
+    createdAt: Date;
+    scheduledAt: Date | null;
+  }[];
+}
+
+function getStatusInfo(status: string) {
+  switch (status) {
+    case "Completed":
+      return { text: "completed their interview", icon: CheckCircle2, color: "text-emerald-400" };
+    case "Scheduled":
+      return { text: "has an interview scheduled", icon: Clock, color: "text-indigo-400" };
+    case "Calling":
+      return { text: "is on an active call", icon: PhoneCall, color: "text-amber-400" };
+    default:
+      return { text: "was added to the pipeline", icon: Users, color: "text-slate-400" };
+  }
+}
+
+function timeAgo(date: Date): string {
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const fetchCandidates = async () => {
-    const data = await getCandidates();
-    setCandidates(data);
+  const fetchStats = async () => {
+    setLoading(true);
+    const data = await getDashboardStats();
+    setStats(data);
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchCandidates();
+    fetchStats();
   }, []);
 
-  const missedCandidates = candidates.filter((candidate) => {
-    return (
-      candidate.status !== "Completed" &&
-      candidate.scheduledAt &&
-      new Date(candidate.scheduledAt) < new Date()
-    );
-  }).length;
-
-  const statusData = [
-    { name: "Completed", count: candidates.filter(c => c.status === "Completed").length, color: "#10b981" },
-    { name: "Scheduled", count: candidates.filter(c => c.status === "Scheduled").length, color: "#6366f1" },
-    { name: "Missed", count: missedCandidates, color: "#ef4444" },
-  ];
+  const statusData = stats
+    ? [
+        { name: "Completed", count: stats.completedInterviews, color: "#10b981" },
+        { name: "Active", count: stats.totalApplicants - stats.completedInterviews, color: "#6366f1" },
+      ]
+    : [];
 
   return (
     <div className="space-y-10 pb-20">
@@ -69,35 +104,31 @@ export default function DashboardPage() {
           transition={{ delay: 0.2 }}
           className="flex items-center gap-4"
         >
-          <AddCandidateModal onSuccess={fetchCandidates} />
+          <AddCandidateModal onSuccess={fetchStats} />
         </motion.div>
       </section>
 
       {/* Stats & Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
          <StatCard 
-            icon={<Users className="text-indigo-400" />} 
-            label="Total Pipeline" 
-            value={candidates.length.toString()} 
-            trend="+12% this week"
+            icon={<Briefcase className="text-indigo-400" />} 
+            label="Active Jobs" 
+            value={loading ? "—" : String(stats?.activeJobs ?? 0)}
           />
           <StatCard 
-            icon={<PhoneCall className="text-amber-400" />} 
-            label="Active Calls" 
-            value={candidates.filter(c => c.status === 'Calling').length.toString()} 
-            trend="Sarah is live"
+            icon={<Users className="text-amber-400" />} 
+            label="Total Applicants" 
+            value={loading ? "—" : String(stats?.totalApplicants ?? 0)}
           />
           <StatCard 
             icon={<CheckCircle2 className="text-emerald-400" />} 
-            label="Completed" 
-            value={candidates.filter(c => c.status === 'Completed').length.toString()} 
-            trend="95% Success"
+            label="Interviews Completed" 
+            value={loading ? "—" : String(stats?.completedInterviews ?? 0)}
           />
           <StatCard 
             icon={<TrendingUp className="text-purple-400" />} 
             label="Avg. Fit Score" 
-            value="8.4" 
-            trend="Top Talent"
+            value={loading ? "—" : stats && Number(stats.avgFitScore) > 0 ? `${stats.avgFitScore}/100` : "No data"}
           />
       </div>
 
@@ -107,35 +138,43 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-xl font-bold text-white tracking-tight">Candidate Distribution</h3>
-                <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Real-time pipeline analytics</p>
+                <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Pipeline status overview</p>
               </div>
               <BarChart3 className="w-5 h-5 text-slate-700" />
             </div>
             
             <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={statusData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
-                    dy={10}
-                  />
-                  <YAxis hide />
-                  <Tooltip 
-                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                    itemStyle={{ color: '#fff', fontSize: '12px' }}
-                  />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {loading || !stats || stats.totalApplicants === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-500">
+                  <BarChart3 className="w-10 h-10 mb-3 opacity-20" />
+                  <p className="text-sm font-medium">No candidates yet</p>
+                  <p className="text-xs text-slate-600 mt-1">Add candidates to see pipeline analytics</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={statusData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
+                      dy={10}
+                    />
+                    <YAxis hide />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                      itemStyle={{ color: '#fff', fontSize: '12px' }}
+                    />
+                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </Card>
         </div>
@@ -143,19 +182,68 @@ export default function DashboardPage() {
         {/* Right Column: Activity Feed */}
         <div className="lg:col-span-1 space-y-8">
           <Card className="p-8 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl h-fit">
-             <ActivityFeed />
+             {/* Activity Feed — now DB-driven */}
+             <div className="space-y-6">
+               <div className="flex items-center justify-between">
+                 <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                   <Clock className="w-4 h-4 text-indigo-400" />
+                   Recent Activity
+                 </h3>
+                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Latest</span>
+               </div>
+               
+               <div className="space-y-4">
+                 {loading || !stats ? (
+                   <p className="text-xs text-slate-500 italic">Loading...</p>
+                 ) : stats.recentApplicants.length === 0 ? (
+                   <p className="text-xs text-slate-500 italic">No activity yet. Add candidates to get started.</p>
+                 ) : (
+                   stats.recentApplicants.map((applicant, i) => {
+                     const info = getStatusInfo(applicant.status);
+                     const Icon = info.icon;
+                     return (
+                       <motion.div 
+                         key={applicant.id}
+                         initial={{ opacity: 0, x: -10 }}
+                         animate={{ opacity: 1, x: 0 }}
+                         transition={{ delay: i * 0.1 }}
+                         className="flex gap-4 p-3 rounded-xl hover:bg-white/[0.02] transition-colors border border-transparent hover:border-slate-800/60"
+                       >
+                         <div className={`mt-0.5 p-2 rounded-lg bg-white/[0.03] ring-1 ring-white/5 ${info.color}`}>
+                           <Icon className="w-4 h-4" />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <p className="text-sm text-slate-300 leading-snug">
+                             <span className="font-semibold text-white">{applicant.name}</span>{" "}
+                             {info.text}
+                             {applicant.jobTitle && (
+                               <> for <span className="text-indigo-400">{applicant.jobTitle}</span></>
+                             )}
+                           </p>
+                           <span className="text-[10px] text-slate-500 font-medium mt-1 inline-block">
+                             {timeAgo(applicant.createdAt)}
+                           </span>
+                         </div>
+                       </motion.div>
+                     );
+                   })
+                 )}
+               </div>
+             </div>
           </Card>
           
-          {/* Quick AI Tip */}
+          {/* Tip Card — neutral state, no fake data */}
           <Card className="p-6 bg-indigo-600/10 border-indigo-500/20 rounded-[2rem] ring-1 ring-indigo-500/20">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
               </div>
-              <span className="text-xs font-bold text-white uppercase tracking-widest">AI Recruiter Tip</span>
+              <span className="text-xs font-bold text-white uppercase tracking-widest">Quick Tip</span>
             </div>
             <p className="text-xs text-indigo-200/70 leading-relaxed">
-              Candidates for the <b>Senior React Role</b> are scoring 20% higher when asked about system design. Consider focusing your next batch on these skills.
+              {stats && stats.totalApplicants > 0
+                ? `You have ${stats.totalApplicants} applicant${stats.totalApplicants === 1 ? "" : "s"} across your jobs. Review completed interviews to identify top candidates.`
+                : "Create a job and add candidates to start building your hiring pipeline."}
             </p>
           </Card>
         </div>
@@ -165,14 +253,13 @@ export default function DashboardPage() {
   );
 }
 
-function StatCard({ icon, label, value, trend }: { icon: React.ReactNode, label: string, value: string, trend?: string }) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
   return (
     <Card className="p-6 bg-[#0a0a0f] border-slate-800/60 rounded-[2rem] ring-1 ring-white/5 flex flex-col gap-4 group hover:border-indigo-500/30 transition-all cursor-default shadow-xl">
       <div className="flex items-center justify-between">
         <div className="w-10 h-10 rounded-2xl bg-white/[0.03] flex items-center justify-center ring-1 ring-white/5 group-hover:scale-110 transition-transform">
           {icon}
         </div>
-        {trend && <span className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-tighter">{trend}</span>}
       </div>
       <div>
         <p className="text-xs text-slate-500 font-bold uppercase tracking-widest leading-none mb-2">{label}</p>

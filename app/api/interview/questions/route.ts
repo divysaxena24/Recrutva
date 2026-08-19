@@ -1,8 +1,9 @@
 import Groq from "groq-sdk";
 import { db } from "@/db";
 import { applicants, jobs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -11,12 +12,51 @@ export async function GET(req: NextRequest) {
     const candidateId = req.nextUrl.searchParams.get("candidateId");
     if (!candidateId) return NextResponse.json({ error: "Missing candidateId" }, { status: 400 });
 
-    // 1. Fetch Candidate and Job
-    const candidateData = await db.select().from(applicants).where(eq(applicants.id, parseInt(candidateId))).limit(1);
+    const parsedId = parseInt(candidateId);
+    if (isNaN(parsedId)) {
+      return NextResponse.json({ error: "Invalid candidateId" }, { status: 400 });
+    }
+
+    // 1. Fetch Candidate
+    const candidateData = await db
+      .select({
+        id: applicants.id,
+        userId: applicants.userId,
+        name: applicants.name,
+        email: applicants.email,
+        phone: applicants.phone,
+        status: applicants.status,
+        resumeText: applicants.resumeText,
+        jobTitle: applicants.jobTitle,
+        targetJobId: applicants.targetJobId,
+      })
+      .from(applicants)
+      .where(eq(applicants.id, parsedId))
+      .limit(1);
     const candidate = candidateData[0];
-    
+
     if (!candidate) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
 
+    // Auth check: if authenticated, verify recruiter owns this candidate.
+    // If not authenticated, allow access (public interview link flow).
+    const { userId } = await auth();
+
+    if (userId && candidate.userId !== userId) {
+      return NextResponse.json(
+        { error: "You do not have access to this candidate" },
+        { status: 403 }
+      );
+    }
+
+    // Prevent generating questions for already-completed interviews
+    if (candidate.status === "Completed") {
+      return NextResponse.json(
+        { error: "Interview already completed" },
+        { status: 409 }
+      );
+    }
+
+    // 2. Build job context
     let jobContext = `Role: ${candidate.jobTitle || "Software Engineer"}`;
     if (candidate.targetJobId) {
       const jobData = await db.select().from(jobs).where(eq(jobs.id, candidate.targetJobId)).limit(1);
@@ -25,7 +65,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 2. Generate Questions with Groq
+    // 3. Generate Questions with Groq
     const prompt = `
       You are Sarah, an AI Technical Interviewer at Recrutva.
       Your goal is to conduct a highly personalized interview.
@@ -54,7 +94,7 @@ export async function GET(req: NextRequest) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-8b-instant", // Fast and capable for this instruction
+      model: "llama-3.1-8b-instant",
       temperature: 0.7,
     });
     

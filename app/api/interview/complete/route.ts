@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { applicants } from "@/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import Groq from "groq-sdk";
+import { auth } from "@clerk/nextjs/server";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
     const [existingCandidate] = await db
       .select({
         id: applicants.id,
+        userId: applicants.userId,
         status: applicants.status,
         analysis: applicants.analysis,
       })
@@ -27,6 +29,17 @@ export async function POST(req: NextRequest) {
 
     if (!existingCandidate) {
       return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
+    }
+
+    // Auth check: if authenticated, verify recruiter owns this candidate.
+    // If not authenticated, allow access (public interview link flow).
+    const { userId } = await auth();
+
+    if (userId && existingCandidate.userId !== userId) {
+      return NextResponse.json(
+        { error: "You do not have access to this candidate" },
+        { status: 403 }
+      );
     }
 
     if (existingCandidate.status === "Completed") {
@@ -83,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile", // Using 70b model for better reasoning in evaluation
+      model: "llama-3.3-70b-versatile",
       temperature: 0.3,
       response_format: { type: "json_object" }
     });
@@ -101,7 +114,7 @@ export async function POST(req: NextRequest) {
         summary: evaluation.executiveSummary,
         score: evaluation.totalScore.toString(),
         matchScore: evaluation.totalScore.toString(),
-        analysis: evaluation, // Save the full breakdown to the DB
+        analysis: evaluation,
       })
       .where(and(eq(applicants.id, candidateId), ne(applicants.status, "Completed")))
       .returning({ id: applicants.id });

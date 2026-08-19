@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { jobs } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function createJob(data: {
   title: string;
@@ -37,6 +37,12 @@ export async function createJob(data: {
 }
 
 export async function getJobs() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return [];
+  }
+
   try {
     return await db.select({
       id: jobs.id,
@@ -46,7 +52,7 @@ export async function getJobs() {
       location: jobs.location,
       status: jobs.status,
       createdAt: jobs.createdAt,
-    }).from(jobs);
+    }).from(jobs).where(eq(jobs.userId, userId));
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return [];
@@ -61,7 +67,14 @@ export async function deleteJob(id: number) {
   }
 
   try {
-    await db.delete(jobs).where(eq(jobs.id, id));
+    const deleted = await db.delete(jobs)
+      .where(and(eq(jobs.id, id), eq(jobs.userId, userId)))
+      .returning({ id: jobs.id });
+
+    if (deleted.length === 0) {
+      return { success: false, error: "Job not found or access denied" };
+    }
+
     revalidatePath("/dashboard/jobs");
     return { success: true };
   } catch (error) {

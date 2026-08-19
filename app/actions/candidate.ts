@@ -4,8 +4,57 @@ import { db } from "@/db";
 import { applicants, jobs } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { sendInterviewInviteEmail } from "@/lib/interview-email";
+
+export async function getDashboardStats() {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    // 1. Count active jobs (scoped to this recruiter)
+    const [jobsRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(jobs)
+      .where(and(eq(jobs.userId, userId), eq(jobs.status, "Open")));
+
+    // 2. Count applicants and compute aggregates (scoped to this recruiter)
+    const [statsRow] = await db
+      .select({
+        totalApplicants: sql<number>`count(*)::int`,
+        completedInterviews: sql<number>`count(*) filter (where ${applicants.status} = 'Completed')::int`,
+        avgFitScore: sql<string>`coalesce(round(avg(${applicants.matchScore}::numeric), 1), '0')`,
+      })
+      .from(applicants)
+      .where(eq(applicants.userId, userId));
+
+    // 3. Get 5 most recent applicants for activity feed
+    const recentApplicants = await db
+      .select({
+        id: applicants.id,
+        name: applicants.name,
+        status: applicants.status,
+        jobTitle: applicants.jobTitle,
+        createdAt: applicants.createdAt,
+        scheduledAt: applicants.scheduledAt,
+      })
+      .from(applicants)
+      .where(eq(applicants.userId, userId))
+      .orderBy(desc(applicants.createdAt))
+      .limit(5);
+
+    return {
+      activeJobs: jobsRow?.count ?? 0,
+      totalApplicants: statsRow?.totalApplicants ?? 0,
+      completedInterviews: statsRow?.completedInterviews ?? 0,
+      avgFitScore: statsRow?.avgFitScore ?? "0",
+      recentApplicants,
+    };
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    return null;
+  }
+}
 
 export async function createCandidate(data: {
   name: string;
@@ -175,9 +224,14 @@ export async function rescheduleCandidate(id: number, newDate: string) {
   if (!userId) throw new Error("Unauthorized");
 
   try {
-    await db.update(applicants)
+    const updated = await db.update(applicants)
       .set({ scheduledAt: new Date(newDate) })
-      .where(eq(applicants.id, id));
+      .where(and(eq(applicants.id, id), eq(applicants.userId, userId)))
+      .returning({ id: applicants.id });
+
+    if (updated.length === 0) {
+      return { success: false, error: "Candidate not found or access denied" };
+    }
 
     revalidatePath("/dashboard/schedules");
     return { success: true };
@@ -209,13 +263,18 @@ export async function updateCandidate(id: number, data: {
       }
     }
 
-    await db.update(applicants)
+    const updated = await db.update(applicants)
       .set({
         ...data,
         jobTitle: finalJobTitle,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : undefined,
       })
-      .where(eq(applicants.id, id));
+      .where(and(eq(applicants.id, id), eq(applicants.userId, userId)))
+      .returning({ id: applicants.id });
+
+    if (updated.length === 0) {
+      return { success: false, error: "Candidate not found or access denied" };
+    }
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/candidates");
