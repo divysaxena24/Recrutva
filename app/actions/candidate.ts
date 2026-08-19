@@ -152,7 +152,7 @@ export async function createCandidate(data: {
   }
 }
 
-export async function getCandidates() {
+export async function getCandidates(jobId?: number) {
   const { userId } = await auth();
   
   if (!userId) {
@@ -160,6 +160,10 @@ export async function getCandidates() {
   }
 
   try {
+    const whereClause = jobId
+      ? and(eq(applicants.userId, userId), eq(applicants.targetJobId, jobId))
+      : eq(applicants.userId, userId);
+
     const data = await db.select({
       id: applicants.id,
       name: applicants.name,
@@ -176,7 +180,7 @@ export async function getCandidates() {
     })
     .from(applicants)
     .leftJoin(jobs, eq(applicants.targetJobId, jobs.id))
-    .where(eq(applicants.userId, userId));
+    .where(whereClause);
     
     // Dynamically update status to 'Missed' if past scheduledAt and not completed
     const now = new Date();

@@ -136,7 +136,7 @@ export default function JobsPage() {
                       </Button>
                       <Button 
                         size="sm" 
-                        onClick={() => window.location.href = '/dashboard/candidates'}
+                        onClick={() => window.location.href = `/dashboard/candidates?jobId=${job.id}`}
                         className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20"
                       >
                         View Candidates

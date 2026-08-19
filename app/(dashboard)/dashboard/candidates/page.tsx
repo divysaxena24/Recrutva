@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, Search, Filter, MoreVertical, Briefcase } from "lucide-react";
+import { Users, Search, Filter, MoreVertical, Briefcase, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +24,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import AddCandidateModal from "@/components/AddCandidateModal";
 import EditCandidateModal from "@/components/EditCandidateModal";
 import { getCandidates } from "@/app/actions/candidate";
+import { getJobById } from "@/app/actions/job";
 
 const STATUS_FILTERS = ["All", "Scheduled", "Completed", "Missed"] as const;
 
-export default function CandidatesPage() {
+export default function CandidatesPageWrapper() {
+  return (
+    <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-500 font-bold animate-pulse">Loading candidates...</div>}>
+      <CandidatesPage />
+    </Suspense>
+  );
+}
+
+function CandidatesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const jobIdParam = searchParams.get("jobId");
+  const jobId = jobIdParam ? parseInt(jobIdParam) : undefined;
+
   const [candidates, setCandidates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCandidate, setEditingCandidate] = useState<any>(null);
@@ -39,17 +54,32 @@ export default function CandidatesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
+  const [filteredJob, setFilteredJob] = useState<{ id: number; title: string } | null>(null);
 
   const fetchCandidates = async () => {
     setLoading(true);
-    const data = await getCandidates();
+    const data = await getCandidates(jobId);
     setCandidates(data);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchCandidates();
-  }, []);
+  }, [jobId]);
+
+  useEffect(() => {
+    if (jobId) {
+      getJobById(jobId).then((job) => {
+        if (job) setFilteredJob({ id: job.id, title: job.title });
+      });
+    } else {
+      setFilteredJob(null);
+    }
+  }, [jobId]);
+
+  const clearJobFilter = () => {
+    router.push("/dashboard/candidates");
+  };
 
   const filteredCandidates = candidates.filter((candidate) => {
     const query = searchQuery.trim().toLowerCase();
@@ -86,12 +116,34 @@ export default function CandidatesPage() {
             Candidate Pipeline
           </h1>
           <p className="text-slate-400 text-lg max-w-xl">
-            Track and manage every recruit in your ecosystem.
+            {filteredJob
+              ? `Showing candidates for "${filteredJob.title}"`
+              : "Track and manage every recruit in your ecosystem."}
           </p>
         </motion.div>
         
         <AddCandidateModal onSuccess={fetchCandidates} />
       </section>
+
+      {/* Job filter banner */}
+      {filteredJob && (
+        <Card className="p-4 bg-indigo-600/10 border-indigo-500/20 rounded-2xl ring-1 ring-indigo-500/20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Briefcase className="w-4 h-4 text-indigo-400" />
+            <span className="text-sm font-medium text-indigo-200">
+              Filtered by job: <span className="font-bold text-white">{filteredJob.title}</span>
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearJobFilter}
+            className="h-8 px-3 text-xs font-bold text-indigo-300 hover:text-white hover:bg-indigo-500/20 rounded-lg gap-1.5"
+          >
+            <X className="w-3.5 h-3.5" /> Clear filter
+          </Button>
+        </Card>
+      )}
 
       <Card className="bg-[#0a0a0f] border-slate-800/60 overflow-hidden rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl">
         <div className="p-8 border-b border-slate-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/[0.01]">
@@ -198,7 +250,9 @@ export default function CandidatesPage() {
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-white">No candidates found</p>
                     <p className="text-xs text-slate-500">
-                      Try a different name, email, role, or status filter.
+                      {jobId
+                        ? "No candidates have applied to this job yet."
+                        : "Try a different name, email, role, or status filter."}
                     </p>
                   </div>
                 </TableCell>
