@@ -10,12 +10,11 @@ import {
   DialogTitle, 
   DialogTrigger,
   DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2, FileText, Upload, X, CheckCircle2 } from "lucide-react";
+import { Plus, Loader2, Upload, X, CheckCircle2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { createCandidate } from "@/app/actions/candidate";
 import { getJobs } from "@/app/actions/job";
@@ -38,7 +37,6 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [jobs, setJobs] = useState<any[]>([]);
@@ -70,16 +68,31 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
     setIsSubmitting(true);
     
     try {
-      const selectedJob = jobs.find(j => j.id.toString() === data.targetJobId);
-      const jobTitle = selectedJob?.title || "Unknown Role";
+      // 1. Upload resume to Cloudinary via our API
+      const formData = new FormData();
+      formData.append("file", file);
       
-      // Simulate file content extraction
-      const resumeText = `Extracted content from ${file.name}. Candidate ${data.name} is a specialist in ${jobTitle}.`;
-
+      const uploadRes = await fetch("/api/upload/resume", {
+        method: "POST",
+        body: formData,
+      });
+      
+      const uploadData = await uploadRes.json();
+      
+      if (!uploadRes.ok) {
+        alert(uploadData.error || "Resume upload failed. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // 2. Create candidate with real resume data
       const result = await createCandidate({
         ...data,
         targetJobId: data.targetJobId ? parseInt(data.targetJobId) : undefined,
-        resumeText,
+        resumeText: uploadData.resumeText,
+        resumeUrl: uploadData.resumeUrl,
+        resumeFileName: uploadData.resumeFileName,
+        resumePublicId: uploadData.resumePublicId,
       });
 
       if (result.success) {

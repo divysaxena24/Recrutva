@@ -28,6 +28,9 @@ export const applicants = pgTable("applicants", {
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   resumeText: text("resume_text"),
+  resumeUrl: text("resume_url"), // Cloudinary download URL
+  resumeFileName: text("resume_file_name"), // Original uploaded file name
+  resumePublicId: text("resume_public_id"), // Cloudinary public_id for management
   status: varchar("status", { length: 50 }).default("Ready").notNull(), // Ready, Calling, Completed, Scheduled
   score: text("score"), // AI screening score/feedback
   matchScore: text("match_score"), // Match score with the job

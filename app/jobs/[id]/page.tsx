@@ -51,13 +51,32 @@ export default function JobApplyPage() {
     
     setSubmitting(true);
     try {
-      const resumeText = `Public application for ${job?.title}. Candidate ${name} uploaded ${file.name}.`;
+      // 1. Upload resume to Cloudinary via our API
+      const formData = new FormData();
+      formData.append("file", file);
       
+      const uploadRes = await fetch("/api/upload/resume", {
+        method: "POST",
+        body: formData,
+      });
+      
+      const uploadData = await uploadRes.json();
+      
+      if (!uploadRes.ok) {
+        setError(uploadData.error || "Resume upload failed. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+      
+      // 2. Create candidate with real resume data
       const res = await createCandidate({
         name,
         email,
         phone,
-        resumeText,
+        resumeText: uploadData.resumeText,
+        resumeUrl: uploadData.resumeUrl,
+        resumeFileName: uploadData.resumeFileName,
+        resumePublicId: uploadData.resumePublicId,
         targetJobId: job.id,
         // For public apps, we set a default schedule or leave it for recruiter
         scheduledAt: new Date(Date.now() + 86400000).toISOString(), // Default: Tomorrow

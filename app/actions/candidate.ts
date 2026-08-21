@@ -61,6 +61,9 @@ export async function createCandidate(data: {
   email: string;
   phone: string;
   resumeText: string;
+  resumeUrl?: string;
+  resumeFileName?: string;
+  resumePublicId?: string;
   jobTitle?: string;
   targetJobId?: number;
   scheduledAt?: string;
@@ -116,6 +119,9 @@ export async function createCandidate(data: {
       email: data.email,
       phone: data.phone,
       resumeText: data.resumeText,
+      resumeUrl: data.resumeUrl || null,
+      resumeFileName: data.resumeFileName || null,
+      resumePublicId: data.resumePublicId || null,
       status: "Ready",
       scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
     }).returning();
