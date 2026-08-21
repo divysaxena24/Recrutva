@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
-import { Readable } from "stream";
+// Import from lib directly to bypass index.js debug mode that tries to load test files
+import pdf from "pdf-parse/lib/pdf-parse.js";
 
 // Disable default body parser — we handle FormData manually
 export const runtime = "nodejs";
@@ -14,13 +15,11 @@ function getExtension(filename: string): string {
 }
 
 /**
- * Extract text from a PDF buffer using pdf-parse.
+ * Extract text from a PDF buffer using pdf-parse v1.1.1.
  */
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  const result = await parser.getText();
-  return result?.text || "";
+  const data = await pdf(buffer);
+  return data.text || "";
 }
 
 /**
@@ -33,30 +32,43 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
 }
 
 /**
- * Upload a file buffer to Cloudinary as a raw resource and return the result.
+ * Upload a file buffer to Cloudinary as a raw resource.
+ * Uses base64 data URI to avoid upload_stream issues with raw resources.
  */
-function uploadToCloudinary(
+async function uploadToCloudinary(
   buffer: Buffer,
   folder: string,
   filename: string
 ): Promise<{ secure_url: string; public_id: string }> {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: "raw",
-        public_id: `${folder}/${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`,
-        format: getExtension(filename).replace(".", "") || undefined,
-      },
-      (error, result) => {
-        if (error || !result) return reject(error || new Error("Upload failed"));
-        resolve({ secure_url: result.secure_url, public_id: result.public_id });
-      }
-    );
+  const ext = getExtension(filename).replace(".", "") || "bin";
+  const mimeType = ext === "pdf" ? "application/pdf"
+    : ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    : ext === "doc" ? "application/msword"
+    : "application/octet-stream";
 
-    const readable = Readable.from(buffer);
-    readable.pipe(uploadStream);
-  });
+  const dataUri = `data:${mimeType};base64,${buffer.toString("base64")}`;
+  const publicId = `${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+
+  try{
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder,
+      resource_type: "auto",
+      public_id: publicId,
+    });
+    return { secure_url: result.secure_url, public_id: result.public_id };
+  } catch (err: unknown) {
+    const cloudErr = err as { message?: string; http_code?: number; name?: string };
+    console.error("Cloudinary upload error:", {
+      message: cloudErr.message,
+      http_code: cloudErr.http_code,
+      name: cloudErr.name,
+      folder,
+      resource_type: "auto",
+      public_id: publicId,
+      format: ext,
+    });
+    throw err;
+  }
 }
 
 export async function POST(req: NextRequest) {

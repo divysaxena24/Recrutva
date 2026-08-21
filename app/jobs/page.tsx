@@ -1,39 +1,91 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Calendar, Search, ArrowRight } from "lucide-react";
+import { Briefcase, MapPin, Calendar, Search, ArrowRight, CheckCircle2, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { getAllJobs } from "@/app/actions/job";
+import { getAppliedJobIds } from "@/app/actions/applied-jobs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+type AppliedFilter = "all" | "applied" | "not-applied";
+type SortBy = "newest" | "oldest";
+type DateRange = "all" | "week" | "month" | "quarter";
+
 export default function PublicJobsPage() {
   const router = useRouter();
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Array<{ id: number; title: string; location: string | null; description: string; createdAt: Date }>>([]);
+  const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [appliedFilter, setAppliedFilter] = useState<AppliedFilter>("all");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<SortBy>("newest");
+  const [dateRange, setDateRange] = useState<DateRange>("all");
 
   useEffect(() => {
-    getAllJobs().then(data => {
-      setJobs(data);
+    Promise.all([getAllJobs(), getAppliedJobIds()]).then(([jobsData, appliedIds]) => {
+      setJobs(jobsData);
+      setAppliedJobIds(appliedIds);
       setLoading(false);
     });
   }, []);
 
+  // Derive unique locations for the filter dropdown
+  const uniqueLocations = [...new Set(jobs.map((j) => j.location).filter((loc): loc is string => Boolean(loc)))].sort();
+
+  // Lazy initializer: Date.now() runs once at mount, satisfies React purity lint
+  const [nowMs] = useState(() => Date.now());
+
   const filteredJobs = jobs.filter((job) => {
+    // 1. Text search
     const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      const matchesSearch =
+        job.title.toLowerCase().includes(query) ||
+        (job.location ?? "").toLowerCase().includes(query) ||
+        job.description.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
 
-    if (!query) return true;
+    // 2. Applied / Not-Applied filter
+    const isApplied = appliedJobIds.includes(job.id);
+    if (appliedFilter === "applied" && !isApplied) return false;
+    if (appliedFilter === "not-applied" && isApplied) return false;
 
-    return (
-      job.title.toLowerCase().includes(query) ||
-      job.location.toLowerCase().includes(query) ||
-      job.description.toLowerCase().includes(query)
-    );
+    // 3. Location filter
+    if (locationFilter !== "all" && job.location !== locationFilter) return false;
+
+    // 4. Date range filter
+    if (dateRange !== "all") {
+      const posted = new Date(job.createdAt).getTime();
+      const msPerDay = 86_400_000;
+      const cutoff =
+        dateRange === "week"   ? nowMs - 7 * msPerDay :
+        dateRange === "month"  ? nowMs - 30 * msPerDay :
+        dateRange === "quarter"? nowMs - 90 * msPerDay : 0;
+      if (posted < cutoff) return false;
+    }
+
+    return true;
   });
+
+  // 5. Sort
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return sortBy === "newest" ? dateB - dateA : dateA - dateB;
+  });
+
+  const activeFilterCount =
+    (appliedFilter !== "all" ? 1 : 0) +
+    (locationFilter !== "all" ? 1 : 0) +
+    (dateRange !== "all" ? 1 : 0) +
+    (sortBy !== "newest" ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-[#050505] text-slate-50 font-sans pb-20">
@@ -72,8 +124,82 @@ export default function PublicJobsPage() {
           />
         </div>
 
+        {/* ── Filters ─────────────────────────────────────── */}
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <Badge variant="secondary" className="ml-1 bg-indigo-500/20 text-indigo-300 border-none text-[10px]">
+                {activeFilterCount}
+              </Badge>
+            )}
+            {activeFilterCount > 0 && (
+              <button
+                onClick={() => { setAppliedFilter("all"); setLocationFilter("all"); setDateRange("all"); setSortBy("newest"); }}
+                className="ml-2 text-indigo-400 hover:text-indigo-300 underline underline-offset-2 cursor-pointer"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* ── Applied filter (pills) ───────────────────── */}
+            <div className="flex rounded-xl bg-[#0a0a0f] border border-slate-800/60 p-1">
+              {(["all", "applied", "not-applied"] as const).map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setAppliedFilter(opt)}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    appliedFilter === opt
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
+                      : "text-slate-500 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {opt === "all" ? "All Jobs" : opt === "applied" ? "Applied" : "Not Applied"}
+                </button>
+              ))}
+            </div>
+
+            {/* ── Location filter ──────────────────────────── */}
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="h-10 px-4 rounded-xl bg-[#0a0a0f] border border-slate-800/60 text-xs font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:border-indigo-500/40 transition-colors appearance-none outline-none"
+            >
+              <option value="all">All Locations</option>
+              {uniqueLocations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+
+            {/* ── Date range filter ────────────────────────── */}
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value as DateRange)}
+              className="h-10 px-4 rounded-xl bg-[#0a0a0f] border border-slate-800/60 text-xs font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:border-indigo-500/40 transition-colors appearance-none outline-none"
+            >
+              <option value="all">Any Time</option>
+              <option value="week">Past Week</option>
+              <option value="month">Past Month</option>
+              <option value="quarter">Past Quarter</option>
+            </select>
+
+            {/* ── Sort ─────────────────────────────────────── */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortBy)}
+              className="h-10 px-4 rounded-xl bg-[#0a0a0f] border border-slate-800/60 text-xs font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:border-indigo-500/40 transition-colors appearance-none outline-none"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredJobs.map((job, i) => (
+          {sortedJobs.map((job, i) => (
             <motion.div
               key={job.id}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -99,6 +225,13 @@ export default function PublicJobsPage() {
                   </p>
                 </div>
 
+                {appliedJobIds.includes(job.id) && (
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Applied
+                  </div>
+                )}
+
                 <div className="mt-10 pt-6 border-t border-white/5">
                   <Link href={`/jobs/${job.id}`}>
                     <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold group shadow-xl shadow-indigo-500/20">
@@ -111,7 +244,7 @@ export default function PublicJobsPage() {
           ))}
         </div>
 
-        {filteredJobs.length === 0 && !loading && (
+        {sortedJobs.length === 0 && !loading && (
           <div className="text-center py-20">
              <Briefcase className="w-16 h-16 text-slate-800 mx-auto mb-6 opacity-20" />
              <p className="text-slate-500 text-xl italic font-medium">No jobs match your search right now.</p>

@@ -55,6 +55,7 @@ function CandidatesPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
   const [filteredJob, setFilteredJob] = useState<{ id: number; title: string } | null>(null);
+  const [topN, setTopN] = useState("");
 
   const fetchCandidates = async () => {
     setLoading(true);
@@ -81,25 +82,32 @@ function CandidatesPage() {
     router.push("/dashboard/candidates");
   };
 
-  const filteredCandidates = candidates.filter((candidate) => {
-    const query = searchQuery.trim().toLowerCase();
-    const roleQuery = roleFilter.trim().toLowerCase();
-    const matchesSearch =
-      query.length === 0 ||
-      candidate.name.toLowerCase().includes(query) ||
-      candidate.email.toLowerCase().includes(query) ||
-      (candidate.jobTitle || "").toLowerCase().includes(query) ||
-      (candidate.phone || "").toLowerCase().includes(query);
+  const filteredCandidates = candidates
+    .filter((candidate) => {
+      const query = searchQuery.trim().toLowerCase();
+      const roleQuery = roleFilter.trim().toLowerCase();
+      const matchesSearch =
+        query.length === 0 ||
+        candidate.name.toLowerCase().includes(query) ||
+        candidate.email.toLowerCase().includes(query) ||
+        (candidate.jobTitle || "").toLowerCase().includes(query) ||
+        (candidate.phone || "").toLowerCase().includes(query);
 
-    const matchesRole =
-      roleQuery.length === 0 ||
-      (candidate.jobTitle || "").toLowerCase().includes(roleQuery) ||
-      (candidate.linkedJobTitle || "").toLowerCase().includes(roleQuery);
+      const matchesRole =
+        roleQuery.length === 0 ||
+        (candidate.jobTitle || "").toLowerCase().includes(roleQuery) ||
+        (candidate.linkedJobTitle || "").toLowerCase().includes(roleQuery);
 
-    const matchesStatus = statusFilter === "All" || candidate.status === statusFilter;
+      const matchesStatus = statusFilter === "All" || candidate.status === statusFilter;
 
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+      return matchesSearch && matchesRole && matchesStatus;
+    })
+    .sort((a, b) => {
+      const scoreA = a.matchScore ? parseInt(a.matchScore) : -1;
+      const scoreB = b.matchScore ? parseInt(b.matchScore) : -1;
+      return scoreB - scoreA;
+    })
+    .slice(0, topN && parseInt(topN) > 0 ? parseInt(topN) : undefined);
 
   return (
     <div className="space-y-10 pb-20">
@@ -163,6 +171,14 @@ function CandidatesPage() {
               placeholder="Assigned role..."
               className="h-10 flex-1 min-w-[150px] bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
             />
+            <Input
+              type="number"
+              min="1"
+              value={topN}
+              onChange={(e) => setTopN(e.target.value)}
+              placeholder="Top N"
+              className="h-10 w-24 bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -196,6 +212,7 @@ function CandidatesPage() {
             <TableRow className="border-slate-800/60 hover:bg-transparent uppercase tracking-wider text-[10px]">
               <TableHead className="text-slate-500 font-bold py-6 px-8">Candidate</TableHead>
               <TableHead className="text-slate-500 font-bold">Assigned Role</TableHead>
+              <TableHead className="text-slate-500 font-bold">ATS Score</TableHead>
               <TableHead className="text-slate-500 font-bold">Status</TableHead>
               <TableHead className="text-slate-500 font-bold text-right px-8">Actions</TableHead>
             </TableRow>
@@ -227,6 +244,18 @@ function CandidatesPage() {
                   </div>
                 </TableCell>
                 <TableCell>
+                  {candidate.matchScore ? (
+                    <Badge
+                      variant="outline"
+                      className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-3 py-1 rounded-full text-[11px] font-bold"
+                    >
+                      {candidate.matchScore}%
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-slate-600">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
                    <StatusBadge status={candidate.status} />
                 </TableCell>
                 <TableCell className="text-right px-8">
@@ -246,7 +275,7 @@ function CandidatesPage() {
             ))}
             {!loading && filteredCandidates.length === 0 && (
               <TableRow className="border-slate-800/40 hover:bg-transparent">
-                <TableCell colSpan={4} className="px-8 py-14 text-center">
+                <TableCell colSpan={5} className="px-8 py-14 text-center">
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-white">No candidates found</p>
                     <p className="text-xs text-slate-500">

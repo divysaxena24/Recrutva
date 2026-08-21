@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { applicants } from "@/db/schema";
 import { and, eq, ne } from "drizzle-orm";
-import Groq from "groq-sdk";
 import { auth } from "@clerk/nextjs/server";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+import { groq, AI_MODELS } from "@/lib/ai";
 
 export async function POST(req: NextRequest) {
   try {
@@ -96,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.3-70b-versatile",
+      model: AI_MODELS.evaluation,
       temperature: 0.3,
       response_format: { type: "json_object" }
     });
@@ -132,7 +130,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, evaluation });
   } catch (error) {
-    console.error("Evaluation Error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("AI Failure:", {
+      feature: "interview-evaluation",
+      model: AI_MODELS.evaluation,
+      promptSizeBytes: 0, // prompt built from DB fields, length not tracked here
+      error: message,
+    });
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
   }
 }

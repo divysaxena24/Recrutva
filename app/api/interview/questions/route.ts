@@ -1,11 +1,9 @@
-import Groq from "groq-sdk";
 import { db } from "@/db";
 import { applicants, jobs } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+import { groq, AI_MODELS } from "@/lib/ai";
 
 export async function GET(req: NextRequest) {
   try {
@@ -94,7 +92,7 @@ export async function GET(req: NextRequest) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-8b-instant",
+      model: AI_MODELS.interview,
       temperature: 0.7,
     });
     
@@ -105,7 +103,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(questionsData);
   } catch (error) {
-    console.error("Questions Generation Error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("AI Failure:", {
+      feature: "interview-questions",
+      model: AI_MODELS.interview,
+      promptSizeBytes: 0, // prompt built from DB fields, length not tracked here
+      error: message,
+    });
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

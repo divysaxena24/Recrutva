@@ -1,8 +1,6 @@
-import Groq from "groq-sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+import { groq, AI_MODELS } from "@/lib/ai";
 
 export async function POST(req: NextRequest) {
   // Require authentication — only recruiters can generate job descriptions
@@ -35,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "llama-3.1-8b-instant", 
+      model: AI_MODELS.jobGeneration,
       temperature: 0.6,
     });
 
@@ -43,7 +41,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ description: text });
   } catch (error) {
-    console.error("AI Generation Error:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("AI Failure:", {
+      feature: "job-description-generation",
+      model: AI_MODELS.jobGeneration,
+      promptSizeBytes: 0, // prompt built from user input, length not tracked here
+      error: message,
+    });
     return NextResponse.json({ error: "Failed to generate job description" }, { status: 500 });
   }
 }
