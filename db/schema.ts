@@ -41,3 +41,37 @@ export const applicants = pgTable("applicants", {
   lastNotifiedAt: timestamp("last_notified_at"), // Last reminder sent
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ─── Pipeline Tables ───────────────────────────────────────────────
+
+export const pipelines = pgTable("pipelines", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id).notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const pipelineRounds = pgTable("pipeline_rounds", {
+  id: serial("id").primaryKey(),
+  pipelineId: integer("pipeline_id").references(() => pipelines.id).notNull(),
+  name: text("name").notNull(),
+  type: varchar("type", { length: 50 }).notNull(),
+  order: integer("order").notNull(),
+  configuration: jsonb("configuration").default({}).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const candidateRounds = pgTable("candidate_rounds", {
+  id: serial("id").primaryKey(),
+  candidateId: integer("candidate_id").references(() => applicants.id).notNull(),
+  roundId: integer("round_id").references(() => pipelineRounds.id).notNull(),
+  status: varchar("status", { length: 50 }).default("PENDING").notNull(),
+  score: integer("score"),
+  feedback: text("feedback"),
+  evaluation: jsonb("evaluation"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

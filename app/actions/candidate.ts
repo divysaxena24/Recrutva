@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { applicants, jobs } from "@/db/schema";
+import { applicants, jobs, pipelines, pipelineRounds, candidateRounds } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and, sql, desc } from "drizzle-orm";
@@ -147,6 +147,38 @@ export async function createCandidate(data: {
            .where(eq(applicants.id, newCandidate[0].id));
        } catch (emailError) {
          console.error("Error sending interview invite email:", emailError);
+       }
+
+       // Enroll candidate in the first pipeline round (if pipeline exists)
+       if (data.targetJobId) {
+         try {
+           const [pipeline] = await db
+             .select({ id: pipelines.id })
+             .from(pipelines)
+             .where(eq(pipelines.jobId, data.targetJobId))
+             .limit(1);
+
+           if (pipeline) {
+             const [firstRound] = await db
+               .select({ id: pipelineRounds.id })
+               .from(pipelineRounds)
+               .where(eq(pipelineRounds.pipelineId, pipeline.id))
+               .orderBy(pipelineRounds.order)
+               .limit(1);
+
+             if (firstRound) {
+               await db.insert(candidateRounds).values({
+                 candidateId: newCandidate[0].id,
+                 roundId: firstRound.id,
+                 status: "ACTIVE",
+                 startedAt: new Date(),
+               });
+             }
+           }
+         } catch (enrollError) {
+           // Pipeline enrollment failure should not block candidate creation
+           console.error("Error enrolling candidate in pipeline:", enrollError);
+         }
        }
     }
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { jobs } from "@/db/schema";
+import { jobs, pipelines, pipelineRounds } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
@@ -27,6 +27,27 @@ export async function createJob(data: {
       location: data.location || "Remote",
       status: "Open",
     }).returning();
+
+    // Auto-create a hiring pipeline with default first round
+    try {
+      const [pipeline] = await db
+        .insert(pipelines)
+        .values({
+          jobId: newJob[0].id,
+          name: `${data.title} Pipeline`,
+        })
+        .returning();
+
+      await db.insert(pipelineRounds).values({
+        pipelineId: pipeline.id,
+        name: "Resume Screening",
+        type: "RESUME_SCREENING",
+        order: 1,
+      });
+    } catch (pipelineError) {
+      // Pipeline creation failure should not block job creation
+      console.error("Error auto-creating pipeline:", pipelineError);
+    }
 
     revalidatePath("/dashboard/jobs");
     return { success: true, job: newJob[0] };
