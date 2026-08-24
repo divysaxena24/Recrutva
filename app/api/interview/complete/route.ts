@@ -128,6 +128,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 4. Update pipeline AI_INTERVIEW round (if pipeline exists)
+    try {
+      const { completeAIRound } = await import("@/app/actions/candidate-pipeline");
+      await completeAIRound({
+        candidateId,
+        score: evaluation.totalScore,
+        summary: evaluation.executiveSummary,
+        evaluation,
+      });
+    } catch (pipelineError) {
+      // Pipeline update failure must not block interview completion
+      console.error("Pipeline round update failed (non-critical):", pipelineError);
+    }
+
     return NextResponse.json({ success: true, evaluation });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

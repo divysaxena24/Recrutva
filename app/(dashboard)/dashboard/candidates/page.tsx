@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, Search, Filter, MoreVertical, Briefcase, X } from "lucide-react";
+import { Users, Search, Filter, MoreVertical, Briefcase, X, ChevronRight } from "lucide-react";
+import CandidatePipelineCard from "@/components/CandidatePipelineCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import AddCandidateModal from "@/components/AddCandidateModal";
 import EditCandidateModal from "@/components/EditCandidateModal";
@@ -56,6 +57,7 @@ function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("All");
   const [filteredJob, setFilteredJob] = useState<{ id: number; title: string } | null>(null);
   const [topN, setTopN] = useState("");
+  const [expandedCandidateId, setExpandedCandidateId] = useState<number | null>(null);
 
   const fetchCandidates = async () => {
     setLoading(true);
@@ -215,12 +217,13 @@ function CandidatesPage() {
               <TableHead className="text-slate-500 font-bold">ATS Score</TableHead>
               <TableHead className="text-slate-500 font-bold">Status</TableHead>
               <TableHead className="text-slate-500 font-bold text-right px-8">Actions</TableHead>
+              <TableHead className="text-slate-500 font-bold w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredCandidates.map((candidate) => (
+              <React.Fragment key={candidate.id}>
               <TableRow 
-                key={candidate.id}
                 className="border-slate-800/40 hover:bg-white/[0.02] transition-colors group cursor-default"
               >
                 <TableCell className="py-6 px-8">
@@ -271,11 +274,43 @@ function CandidatesPage() {
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </TableCell>
+
+                {/* Pipeline Toggle */}
+                <TableCell className="pr-8">
+                  <button
+                    onClick={() =>
+                      setExpandedCandidateId(
+                        expandedCandidateId === candidate.id ? null : candidate.id
+                      )
+                    }
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                      expandedCandidateId === candidate.id
+                        ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20"
+                        : "text-slate-600 hover:text-slate-400 hover:bg-white/5"
+                    }`}
+                  >
+                    <ChevronRight
+                      className={`w-4 h-4 transition-transform ${
+                        expandedCandidateId === candidate.id ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+                </TableCell>
               </TableRow>
+
+              {/* Expanded Pipeline Row */}
+              {expandedCandidateId === candidate.id && (
+                <TableRow className="border-slate-800/40 hover:bg-transparent">
+                  <TableCell colSpan={6} className="px-8 py-4 bg-white/[0.01]">
+                    <CandidatePipelineCard candidateId={candidate.id} />
+                  </TableCell>
+                </TableRow>
+              )}
+              </React.Fragment>
             ))}
             {!loading && filteredCandidates.length === 0 && (
               <TableRow className="border-slate-800/40 hover:bg-transparent">
-                <TableCell colSpan={5} className="px-8 py-14 text-center">
+                <TableCell colSpan={6} className="px-8 py-14 text-center">
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-white">No candidates found</p>
                     <p className="text-xs text-slate-500">

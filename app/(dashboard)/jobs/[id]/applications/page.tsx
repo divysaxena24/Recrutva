@@ -12,7 +12,9 @@ import {
   Phone,
   AlertCircle,
   Search,
+  ChevronRight,
 } from "lucide-react";
+import CandidatePipelineCard from "@/components/CandidatePipelineCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import { getApplicationsByJobId } from "@/app/actions/application";
 import Link from "next/link";
 
@@ -62,6 +64,7 @@ export default function ApplicationsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCandidateId, setExpandedCandidateId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -232,12 +235,13 @@ export default function ApplicationsPage({
               <TableHead className="text-slate-500 font-bold text-right px-8">
                 Applied
               </TableHead>
+              <TableHead className="text-slate-500 font-bold w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredApplications.map((app) => (
+              <React.Fragment key={app.id}>
               <TableRow
-                key={app.id}
                 className="border-slate-800/40 hover:bg-white/[0.02] transition-colors group"
               >
                 {/* Candidate Name */}
@@ -332,12 +336,44 @@ export default function ApplicationsPage({
                     </span>
                   </div>
                 </TableCell>
+
+                {/* Pipeline Toggle */}
+                <TableCell className="pr-8">
+                  <button
+                    onClick={() =>
+                      setExpandedCandidateId(
+                        expandedCandidateId === app.id ? null : app.id
+                      )
+                    }
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                      expandedCandidateId === app.id
+                        ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20"
+                        : "text-slate-600 hover:text-slate-400 hover:bg-white/5"
+                    }`}
+                  >
+                    <ChevronRight
+                      className={`w-4 h-4 transition-transform ${
+                        expandedCandidateId === app.id ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+                </TableCell>
               </TableRow>
+
+              {/* Expanded Pipeline Row */}
+              {expandedCandidateId === app.id && (
+                <TableRow className="border-slate-800/40 hover:bg-transparent">
+                  <TableCell colSpan={7} className="px-8 py-4 bg-white/[0.01]">
+                    <CandidatePipelineCard candidateId={app.id} />
+                  </TableCell>
+                </TableRow>
+              )}
+              </React.Fragment>
             ))}
 
             {filteredApplications.length === 0 && (
               <TableRow className="border-slate-800/40 hover:bg-transparent">
-                <TableCell colSpan={6} className="px-8 py-14 text-center">
+                <TableCell colSpan={7} className="px-8 py-14 text-center">
                   <div className="space-y-2">
                     <p className="text-sm font-bold text-white">
                       No applications yet
