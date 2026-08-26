@@ -10,6 +10,7 @@ export const AI_MODELS = {
   interview: "qwen/qwen3.6-27b",
   evaluation: "openai/gpt-oss-120b",
   jobGeneration: "qwen/qwen3.6-27b",
+  stt: "whisper-large-v3-turbo",
 } as const;
 
 /**

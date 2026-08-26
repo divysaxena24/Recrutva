@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as googleTTS from "google-tts-api";
 
-const MAX_TEXT_LENGTH = 500;
+const MAX_TEXT_LENGTH = 1000;
 
 export async function GET(req: NextRequest) {
   const text = req.nextUrl.searchParams.get("text");
