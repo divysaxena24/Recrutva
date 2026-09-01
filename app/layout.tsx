@@ -3,6 +3,7 @@ import { DM_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import SessionTimeout from "@/components/SessionTimeout";
 
 const syne = Syne({
   variable: "--font-display",
@@ -80,11 +81,11 @@ export default function RootLayout({
         }
       }}
     >
-      <html
-        lang="en"
-        className={`${syne.variable} ${dmSans.variable} ${jetBrainsMono.variable} h-full antialiased dark`}
-      >
-        <body className="min-h-full flex flex-col">{children}</body>
+      <html lang="en" className={`${syne.variable} ${dmSans.variable} ${jetBrainsMono.variable} h-full antialiased dark`}>
+        <body className="min-h-full flex flex-col">
+          <SessionTimeout />
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );
