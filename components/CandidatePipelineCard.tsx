@@ -457,6 +457,13 @@ export default function CandidatePipelineCard({
                   )}
                 </div>
 
+                {/* Screening Evaluation Detail */}
+                {round.type === "RESUME_SCREENING" &&
+                  round.evaluation &&
+                  (round.status === "PASSED" || round.status === "FAILED") ? (
+                  <ScreeningEvaluation evaluation={round.evaluation as Record<string, unknown>} />
+                ) : null}
+
                 {/* Connector line */}
                 {!isLast && (
                   <div className="flex items-center ml-[10px] py-0">
@@ -662,3 +669,188 @@ export default function CandidatePipelineCard({
     </Card>
   );
 }
+
+// ─── Screening Evaluation Detail Component ──────────────────────
+type ScreeningEvaluationProps = {
+  evaluation: Record<string, unknown>;
+};
+
+type SkillEntry = {
+  skill: string;
+  level: string;
+  match: "match" | "partial" | "missing";
+};
+
+type ScreeningEvaluationData = {
+  score: number;
+  decision: string;
+  summary: string;
+  strengths: string[];
+  missingRequirements: string[];
+  skillAnalysis: SkillEntry[];
+  educationMatch: string;
+  experienceMatch: string;
+};
+
+const ScreeningEvaluation: React.FC<ScreeningEvaluationProps> = ({ evaluation }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  // Safely parse evaluation data
+  const data = evaluation as ScreeningEvaluationData | null;
+  if (!data) return null;
+
+  const strengths = Array.isArray(data.strengths) ? data.strengths : [];
+  const missing = Array.isArray(data.missingRequirements) ? data.missingRequirements : [];
+  const skills = Array.isArray(data.skillAnalysis) ? data.skillAnalysis : [];
+
+  return (
+    <div className="ml-16 mt-1 mb-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors"
+      >
+        <ChevronDown
+          className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+        {expanded ? "Hide" : "Show"} Screening Details
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-4 bg-white/[0.02] rounded-xl p-4 ring-1 ring-white/5">
+          {/* Summary */}
+          {data.summary && (
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Summary
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {data.summary}
+              </p>
+            </div>
+          )}
+
+          {/* Score Bar */}
+          {typeof data.score === "number" && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Score
+                </span>
+                <span className="text-xs font-bold text-white">
+                  {data.score}/100
+                </span>
+              </div>
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    data.score >= 70
+                      ? "bg-emerald-500"
+                      : data.score >= 50
+                      ? "bg-amber-500"
+                      : "bg-rose-500"
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(0, data.score))}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Strengths */}
+          {strengths.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+                Strengths
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {strengths.map((s, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Missing Requirements */}
+          {missing.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
+                Missing Requirements
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {missing.map((m, i) => (
+                  <span
+                    key={i}
+                    className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-medium"
+                  >
+                    {m}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Skill Analysis */}
+          {skills.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Skill Analysis
+              </span>
+              <div className="space-y-1">
+                {skills.map((skill, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-[10px]"
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        skill.match === "match"
+                          ? "bg-emerald-400"
+                          : skill.match === "partial"
+                          ? "bg-amber-400"
+                          : "bg-rose-400"
+                      }`}
+                    />
+                    <span className="text-slate-300 font-medium min-w-[100px]">
+                      {skill.skill}
+                    </span>
+                    <span className="text-slate-500">
+                      {skill.level}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Education & Experience */}
+          <div className="grid grid-cols-2 gap-3">
+            {data.educationMatch && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Education
+                </span>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  {data.educationMatch}
+                </p>
+              </div>
+            )}
+            {data.experienceMatch && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Experience
+                </span>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  {data.experienceMatch}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

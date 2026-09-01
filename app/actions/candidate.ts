@@ -179,6 +179,15 @@ export async function createCandidate(data: {
            // Pipeline enrollment failure should not block candidate creation
            console.error("Error enrolling candidate in pipeline:", enrollError);
          }
+
+         // Trigger automated Resume Screening (fire-and-forget)
+         // Screening failure must never block candidate creation
+         try {
+           const { completeScreeningRound } = await import("./candidate-pipeline");
+           await completeScreeningRound({ candidateId: newCandidate[0].id });
+         } catch (screeningError) {
+           console.error("Error running automated resume screening:", screeningError);
+         }
        }
     }
 
