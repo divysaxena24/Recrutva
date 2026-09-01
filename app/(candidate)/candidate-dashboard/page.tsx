@@ -9,7 +9,8 @@ import {
   ArrowRight, 
   FileText,
   AlertCircle,
-  Play
+  Play,
+  ClipboardCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -115,11 +116,32 @@ export default function CandidateDashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 ml-auto">
+                      <div className="flex items-center gap-3 ml-auto flex-wrap justify-end">
                         <Badge className={`px-3 py-1 rounded-full border ${getStatusColor(app.status)}`}>
                           {app.status}
                         </Badge>
-                        
+
+                        {app.assessmentAvailable && (
+                          <Link href={`/assessment/${app.id}`}>
+                            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center gap-2">
+                              <ClipboardCheck className="w-3.5 h-3.5" /> Take Assessment
+                            </Button>
+                          </Link>
+                        )}
+
+                        {app.assessmentCompleted && app.assessmentStatus && (
+                          <Badge
+                            variant="outline"
+                            className={
+                              app.assessmentStatus === "PASSED"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+                                : "bg-rose-500/10 text-rose-400 border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+                            }
+                          >
+                            Assessment {app.assessmentStatus === "PASSED" ? "Passed" : "Failed"}
+                          </Badge>
+                        )}
+
                         {app.status === 'Scheduled' && (
                           <Link href={`/interview/${app.id}`}>
                             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-2">

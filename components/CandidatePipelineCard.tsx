@@ -464,6 +464,13 @@ export default function CandidatePipelineCard({
                   <ScreeningEvaluation evaluation={round.evaluation as Record<string, unknown>} />
                 ) : null}
 
+                {/* Assessment Evaluation Detail */}
+                {round.type === "ASSESSMENT" &&
+                  round.evaluation &&
+                  (round.status === "PASSED" || round.status === "FAILED") ? (
+                  <AssessmentEvaluation evaluation={round.evaluation as Record<string, unknown>} />
+                ) : null}
+
                 {/* Connector line */}
                 {!isLast && (
                   <div className="flex items-center ml-[10px] py-0">
@@ -849,6 +856,141 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps> = ({ evaluation })
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Assessment Evaluation Detail Component ─────────────────────
+type AssessmentEvaluationProps = {
+  evaluation: Record<string, unknown>;
+};
+
+type BreakdownEntry = {
+  questionId: number;
+  question: string;
+  candidateAnswer: string;
+  marks: number;
+  maxMarks: number;
+  feedback: string;
+};
+
+type GradingData = {
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  breakdown: BreakdownEntry[];
+  summary: string;
+};
+
+const AssessmentEvaluation: React.FC<AssessmentEvaluationProps> = ({
+  evaluation,
+}) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const grading = evaluation?.grading as GradingData | undefined;
+  const summary = evaluation?.summary as string | undefined;
+  const percentage = grading?.percentage;
+  const totalScore = grading?.totalScore;
+  const maxScore = grading?.maxScore;
+  const breakdown = Array.isArray(grading?.breakdown) ? grading.breakdown : [];
+
+  if (!grading) return null;
+
+  return (
+    <div className="ml-16 mt-1 mb-2">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors"
+      >
+        <ChevronDown
+          className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+        {expanded ? "Hide" : "Show"} Assessment Details
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-4 bg-white/[0.02] rounded-xl p-4 ring-1 ring-white/5">
+          {/* Summary */}
+          {(summary || grading.summary) && (
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Summary
+              </span>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                {summary || grading.summary}
+              </p>
+            </div>
+          )}
+
+          {/* Score Bar */}
+          {typeof percentage === "number" && (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Score
+                </span>
+                <span className="text-xs font-bold text-white">
+                  {totalScore}/{maxScore} ({percentage}%)
+                </span>
+              </div>
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    percentage >= 70
+                      ? "bg-emerald-500"
+                      : percentage >= 50
+                      ? "bg-amber-500"
+                      : "bg-rose-500"
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Question Breakdown */}
+          {breakdown.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Question Breakdown
+              </span>
+              <div className="space-y-2">
+                {breakdown.map((entry, i) => (
+                  <div
+                    key={i}
+                    className="bg-white/[0.02] rounded-lg p-3 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400">
+                        Q{i + 1}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold ${
+                          entry.marks >= entry.maxMarks * 0.7
+                            ? "text-emerald-400"
+                            : entry.marks >= entry.maxMarks * 0.4
+                            ? "text-amber-400"
+                            : "text-rose-400"
+                        }`}
+                      >
+                        {entry.marks}/{entry.maxMarks}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-2">
+                      {entry.question}
+                    </p>
+                    {entry.feedback && (
+                      <p className="text-[9px] text-slate-500 italic">
+                        {entry.feedback}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

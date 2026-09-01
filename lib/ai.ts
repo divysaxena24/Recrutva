@@ -8,6 +8,8 @@ import Groq from "groq-sdk";
 export const AI_MODELS = {
   matching: "openai/gpt-oss-120b",
   screening: "llama-3.3-70b-versatile",
+  assessment: "llama-3.3-70b-versatile",
+  assessmentGrading: "llama-3.3-70b-versatile",
   interview: "qwen/qwen3.6-27b",
   evaluation: "openai/gpt-oss-120b",
   jobGeneration: "qwen/qwen3.6-27b",
