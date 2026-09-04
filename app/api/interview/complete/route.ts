@@ -4,6 +4,7 @@ import { applicants } from "@/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,6 +40,14 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Rate limit — BEFORE the expensive Groq call
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "interview-complete", limit: 5, windowSeconds: 600 },
+      userId,
+    );
+    if (blocked) return blocked;
 
     if (existingCandidate.status === "Completed") {
       return NextResponse.json(

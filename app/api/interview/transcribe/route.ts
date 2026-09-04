@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { groq, AI_MODELS } from "@/lib/ai";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB (Groq Whisper limit)
 const ALLOWED_MIME_TYPES = [
@@ -41,10 +42,7 @@ export async function POST(req: NextRequest) {
 
     // Validate file is not empty
     if (audioFile.size === 0) {
-      return NextResponse.json(
-        { success: false, error: "Audio file is empty" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Audio file is empty" }, { status: 400 });
     }
 
     // Validate MIME type
@@ -65,6 +63,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Rate limit — BEFORE the expensive Groq Whisper call
+    // Transcription is high-volume (every speech segment), so we allow more requests
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "interview-transcribe", limit: 30, windowSeconds: 600 },
+      null, // No user ID — transcript is called during candidate interview
+    );
+    if (blocked) return blocked;
 
     // Convert File to a Buffer for the Groq SDK
     const arrayBuffer = await audioFile.arrayBuffer();

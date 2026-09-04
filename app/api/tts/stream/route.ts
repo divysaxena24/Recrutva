@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as googleTTS from "google-tts-api";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 const MAX_TEXT_LENGTH = 1000;
 
@@ -8,11 +9,16 @@ export async function GET(req: NextRequest) {
   if (!text) return NextResponse.json({ error: "No text provided" }, { status: 400 });
 
   if (text.length > MAX_TEXT_LENGTH) {
-    return NextResponse.json(
-      { error: `Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters` },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: `Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters` }, { status: 400 });
   }
+
+  // Rate limit
+  const blocked = await rateLimitOrReject(
+    req,
+    { endpoint: "tts", limit: 30, windowSeconds: 600 },
+    null,
+  );
+  if (blocked) return blocked;
 
   return handleTts(text);
 }
@@ -26,11 +32,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (text.length > MAX_TEXT_LENGTH) {
-      return NextResponse.json(
-        { error: `Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters` },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: `Text exceeds maximum length of ${MAX_TEXT_LENGTH} characters` }, { status: 400 });
     }
+
+    // Rate limit
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "tts", limit: 30, windowSeconds: 600 },
+      null,
+    );
+    if (blocked) return blocked;
 
     return handleTts(text);
   } catch (error) {

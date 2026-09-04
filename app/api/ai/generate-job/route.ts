@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   // Require authentication — only recruiters can generate job descriptions
@@ -16,6 +17,14 @@ export async function POST(req: NextRequest) {
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
+
+    // Rate limit — BEFORE the expensive Groq call
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "ai-generate-job", limit: 10, windowSeconds: 600 },
+      userId,
+    );
+    if (blocked) return blocked;
 
     const prompt = `
       You are an expert technical recruiter. Generate a professional and compelling job description for the role of "${title}".

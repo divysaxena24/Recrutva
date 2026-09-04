@@ -17,7 +17,7 @@ import {
  * Tests: PING, SET, GET, TTL/EXPIRE, DELETE.
  * Cleans up all test keys afterward.
  *
- * NOT meant for production use — keep behind auth if deploying.
+ * BLOCKED in production — returns 404.
  */
 
 interface TestStep {
@@ -27,6 +27,11 @@ interface TestStep {
 }
 
 export async function GET() {
+  // Block in production
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const steps: TestStep[] = [];
   const testKey = REDIS_KEYS.test(`healthcheck-${Date.now()}`);
 

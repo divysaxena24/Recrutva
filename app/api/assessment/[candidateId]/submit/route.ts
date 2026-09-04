@@ -12,6 +12,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { gradeAssessment } from "@/lib/assessment";
 import { parseAssessmentConfig, SubmissionSchema } from "@/lib/schemas/assessment";
 import type { AssessmentQuestion } from "@/lib/schemas/assessment";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function POST(
   req: NextRequest,
@@ -81,6 +82,14 @@ export async function POST(
       );
     }
 
+    // 4. Rate limit — BEFORE the expensive Groq grading call
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "assessment-submit", limit: 10, windowSeconds: 600 },
+      userId,
+    );
+    if (blocked) return blocked;
+
     if (!candidate.targetJobId) {
       return NextResponse.json(
         { error: "Candidate is not linked to a job" },
@@ -88,7 +97,7 @@ export async function POST(
       );
     }
 
-    // 4. Find the pipeline and ASSESSMENT round
+    // 5. Find the pipeline and ASSESSMENT round
     const [pipeline] = await db
       .select({ id: pipelines.id })
       .from(pipelines)
@@ -97,7 +106,7 @@ export async function POST(
 
     if (!pipeline) {
       return NextResponse.json(
-        { error: "No pipeline found" },
+        { error: "No pipeline found for this job" },
         { status: 400 }
       );
     }
@@ -124,7 +133,7 @@ export async function POST(
       );
     }
 
-    // 5. Find the candidate_round
+    // 6. Find the candidate_round
     const [candidateRound] = await db
       .select({
         id: candidateRounds.id,
@@ -147,7 +156,7 @@ export async function POST(
       );
     }
 
-    // 6. Duplicate prevention: block if already completed
+    // 7. Duplicate prevention: block if already completed
     if (
       candidateRound.status === "PASSED" ||
       candidateRound.status === "FAILED"
@@ -163,7 +172,7 @@ export async function POST(
       );
     }
 
-    // 7. Load persisted questions from evaluation field
+    // 8. Load persisted questions from evaluation field
     const evalData = candidateRound.evaluation as Record<string, unknown> | null;
     if (
       !evalData ||
@@ -178,7 +187,7 @@ export async function POST(
 
     const persistedQuestions = evalData.questions as AssessmentQuestion[];
 
-    // 8. Validate that submitted answer IDs match persisted questions
+    // 9. Validate that submitted answer IDs match persisted questions
     const validQuestionIds = new Set(persistedQuestions.map((q) => q.id));
     const invalidAnswers = answers.filter(
       (a) => !validQuestionIds.has(a.questionId)
@@ -193,7 +202,7 @@ export async function POST(
       );
     }
 
-    // 9. Load job details
+    // 10. Load job details
     const [job] = await db
       .select({
         title: jobs.title,
@@ -207,7 +216,7 @@ export async function POST(
       return NextResponse.json({ error: "Job not found" }, { status: 400 });
     }
 
-    // 10. Grade the assessment
+    // 11. Grade the assessment
     const config = parseAssessmentConfig(
       assessmentRound.configuration as Record<string, unknown> | null
     );
@@ -258,11 +267,11 @@ export async function POST(
 
     const grade = gradingResult.result;
 
-    // 11. Determine PASS/FAIL based on threshold
+    // 12. Determine PASS/FAIL based on threshold
     const roundStatus: "PASSED" | "FAILED" =
       grade.percentage >= config.passThreshold ? "PASSED" : "FAILED";
 
-    // 12. Update the candidate_round
+    // 13. Update the candidate_round
     const finalEvaluation = {
       questions: persistedQuestions,
       answers: answers.reduce(
@@ -284,7 +293,7 @@ export async function POST(
       })
       .where(eq(candidateRounds.id, candidateRound.id));
 
-    // 13. If PASSED, activate next round
+    // 14. If PASSED, activate next round
     let nextRoundActivated = false;
 
     if (roundStatus === "PASSED") {

@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   try {
@@ -46,6 +47,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // 2. Rate limit — BEFORE the expensive Groq call
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "interview-questions", limit: 10, windowSeconds: 600 },
+      userId,
+    );
+    if (blocked) return blocked;
+
     // Prevent generating questions for already-completed interviews
     if (candidate.status === "Completed") {
       return NextResponse.json(
@@ -54,7 +63,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2. Build job context
+    // 3. Build job context
     let jobContext = `Role: ${candidate.jobTitle || "Software Engineer"}`;
     if (candidate.targetJobId) {
       const jobData = await db.select().from(jobs).where(eq(jobs.id, candidate.targetJobId)).limit(1);
@@ -63,7 +72,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. Generate Questions with Groq
+    // 4. Generate Questions with Groq
     const prompt = `
       You are Sarah, an AI Technical Interviewer at Recrutva.
       Your goal is to conduct a highly personalized interview.

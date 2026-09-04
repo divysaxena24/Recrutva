@@ -12,6 +12,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { generateAssessmentQuestions } from "@/lib/assessment";
 import { parseAssessmentConfig } from "@/lib/schemas/assessment";
 import type { AssessmentQuestions } from "@/lib/schemas/assessment";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function GET(
   req: NextRequest,
@@ -64,6 +65,14 @@ export async function GET(
       );
     }
 
+    // 3. Rate limit — BEFORE the expensive question generation Groq call
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "assessment-load", limit: 10, windowSeconds: 600 },
+      userId,
+    );
+    if (blocked) return blocked;
+
     if (!candidate.targetJobId) {
       return NextResponse.json(
         { error: "Candidate is not linked to a job" },
@@ -71,7 +80,7 @@ export async function GET(
       );
     }
 
-    // 3. Find the pipeline and ASSESSMENT round
+    // 4. Find the pipeline and ASSESSMENT round
     const [pipeline] = await db
       .select({ id: pipelines.id })
       .from(pipelines)
@@ -106,7 +115,7 @@ export async function GET(
       );
     }
 
-    // 4. Find the candidate_round for this assessment
+    // 5. Find the candidate_round for this assessment
     const [candidateRound] = await db
       .select({
         id: candidateRounds.id,
@@ -130,7 +139,7 @@ export async function GET(
       );
     }
 
-    // 5. If already completed, return the result (no re-generation)
+    // 6. If already completed, return the result (no re-generation)
     if (
       candidateRound.status === "PASSED" ||
       candidateRound.status === "FAILED"
@@ -148,7 +157,7 @@ export async function GET(
       });
     }
 
-    // 6. Check if questions already exist in the evaluation field
+    // 7. Check if questions already exist in the evaluation field
     const evalData = candidateRound.evaluation as Record<string, unknown> | null;
     if (evalData && Array.isArray(evalData.questions) && evalData.questions.length > 0) {
       // Return existing questions (candidate refreshed the page)
@@ -170,7 +179,7 @@ export async function GET(
       });
     }
 
-    // 7. Generate questions (first time)
+    // 8. Generate questions (first time)
     const config = parseAssessmentConfig(
       assessmentRound.configuration as Record<string, unknown> | null
     );
@@ -209,7 +218,7 @@ export async function GET(
       );
     }
 
-    // 8. Persist questions in the evaluation JSONB field
+    // 9. Persist questions in the evaluation JSONB field
     const persistedData = {
       questions: questionResult.questions.questions,
       answers: {},
@@ -221,7 +230,7 @@ export async function GET(
       .set({ evaluation: persistedData })
       .where(eq(candidateRounds.id, candidateRound.id));
 
-    // 9. Return safe questions (no expectedAnswer)
+    // 10. Return safe questions (no expectedAnswer)
     const safeQuestions = questionResult.questions.questions.map((q) => ({
       id: q.id,
       question: q.question,
