@@ -5,6 +5,7 @@ import { jobs, pipelines, pipelineRounds } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
+import { cacheGet, cacheSet, cacheDelete, cacheDeletePattern, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 
 export async function createJob(data: {
   title: string;
@@ -49,6 +50,13 @@ export async function createJob(data: {
       console.error("Error auto-creating pipeline:", pipelineError);
     }
 
+    // Invalidate caches
+    try {
+      await cacheDelete(CACHE_KEYS.jobList(userId), CACHE_KEYS.allJobs());
+    } catch {
+      // Cache invalidation failure is non-critical
+    }
+
     revalidatePath("/dashboard/jobs");
     return { success: true, job: newJob[0] };
   } catch (error) {
@@ -65,7 +73,12 @@ export async function getJobs() {
   }
 
   try {
-    return await db.select({
+    // Check cache first
+    const cacheKey = CACHE_KEYS.jobList(userId);
+    const cached = await cacheGet(cacheKey);
+    if (cached && Array.isArray(cached)) return cached;
+
+    const result = await db.select({
       id: jobs.id,
       userId: jobs.userId,
       title: jobs.title,
@@ -74,6 +87,11 @@ export async function getJobs() {
       status: jobs.status,
       createdAt: jobs.createdAt,
     }).from(jobs).where(eq(jobs.userId, userId));
+
+    // Cache the result
+    await cacheSet(cacheKey, result, CACHE_TTL.jobList);
+
+    return result;
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return [];
@@ -96,6 +114,19 @@ export async function deleteJob(id: number) {
       return { success: false, error: "Job not found or access denied" };
     }
 
+    // Invalidate caches
+    try {
+      await cacheDelete(
+        CACHE_KEYS.job(id),
+        CACHE_KEYS.jobList(userId),
+        CACHE_KEYS.allJobs(),
+      );
+      // Also invalidate any interview questions cached for this job
+      await cacheDeletePattern(`recrutva:cache:interview-questions:${id}:*`);
+    } catch {
+      // Cache invalidation failure is non-critical
+    }
+
     revalidatePath("/dashboard/jobs");
     return { success: true };
   } catch (error) {
@@ -105,7 +136,17 @@ export async function deleteJob(id: number) {
 }
 export async function getAllJobs() {
   try {
-    return await db.select().from(jobs).where(eq(jobs.status, "Open"));
+    // Check cache first
+    const cacheKey = CACHE_KEYS.allJobs();
+    const cached = await cacheGet(cacheKey);
+    if (cached && Array.isArray(cached)) return cached;
+
+    const result = await db.select().from(jobs).where(eq(jobs.status, "Open"));
+
+    // Cache the result
+    await cacheSet(cacheKey, result, CACHE_TTL.allJobs);
+
+    return result;
   } catch (error) {
     console.error("Error fetching all jobs:", error);
     return [];
@@ -114,8 +155,29 @@ export async function getAllJobs() {
 
 export async function getJobById(id: number) {
   try {
+    // Check cache first
+    const cacheKey = CACHE_KEYS.job(id);
+    const cached = await cacheGet<{
+      id: number;
+      userId: string;
+      title: string;
+      description: string | null;
+      requirements: string | null;
+      location: string | null;
+      status: string;
+      createdAt: Date | null;
+    }>(cacheKey);
+    if (cached) return cached;
+
     const data = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1);
-    return data[0];
+    const job = data[0];
+
+    // Cache the result (even if null, to avoid repeated DB hits for missing jobs)
+    if (job) {
+      await cacheSet(cacheKey, job, CACHE_TTL.job);
+    }
+
+    return job ?? null;
   } catch (error) {
     console.error("Error fetching job by id:", error);
     return null;

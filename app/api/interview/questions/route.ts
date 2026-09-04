@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
 import { rateLimitOrReject } from "@/lib/rate-limit";
+import { cacheGet, cacheSet, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 
 export async function GET(req: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2. Rate limit — BEFORE the expensive Groq call
+    // 2. Rate limit — BEFORE cache lookup (prevents abuse of cached responses)
     const blocked = await rateLimitOrReject(
       req,
       { endpoint: "interview-questions", limit: 10, windowSeconds: 600 },
@@ -72,7 +73,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 4. Generate Questions with Groq
+    // 4. Cache lookup — personalized per candidate+job combination
+    const cacheKey = CACHE_KEYS.interviewQuestions(parsedId, candidate.targetJobId ?? null);
+    const cached = await cacheGet<Array<{ question: string; blueprint: string }>>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
+
+    // 5. Cache MISS — Generate Questions with Groq
     const prompt = `
       You are Sarah, an AI Technical Interviewer at Recrutva.
       Your goal is to conduct a highly personalized interview.
@@ -109,6 +117,11 @@ export async function GET(req: NextRequest) {
     
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const questionsData = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    // 6. Store in cache (fire-and-forget — don't fail the request if cache write fails)
+    if (questionsData.length > 0) {
+      await cacheSet(cacheKey, questionsData, CACHE_TTL.interviewQuestions);
+    }
 
     return NextResponse.json(questionsData);
   } catch (error) {

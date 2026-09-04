@@ -1,0 +1,99 @@
+# =============================================================================
+# Recrutva — Docker Compose (Development)
+# =============================================================================
+#
+# Usage:
+#   docker compose up --build        # Start with rebuild
+#   docker compose up                # Start without rebuild
+#   docker compose down              # Stop and remove containers
+#   docker compose logs -f app       # Follow app logs
+#   docker compose exec app sh       # Shell into app container
+#
+# Environment variables:
+#   Copy .env.example to .env and fill in the required values.
+#   Docker Compose reads .env automatically.
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Redis — local development instance
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: recrutva-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - recrutva
+
+  # ---------------------------------------------------------------------------
+  # Recrutva Next.js Application
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: recrutva-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Node.js
+      - NODE_ENV=${NODE_ENV:-development}
+
+      # Database (Neon — external, not containerized)
+      - DATABASE_URL=${DATABASE_URL}
+
+      # Clerk Authentication
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+
+      # Groq AI
+      - GROQ_API_KEY=${GROQ_API_KEY}
+
+      # Cloudinary
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+
+      # Redis — point to local Docker Redis container
+      - REDIS_URL=redis://redis:6379
+      # REDIS_TOKEN is not needed for local Redis (only for Upstash)
+
+      # Email
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - recrutva
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  redis-data:
+    driver: local
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  recrutva:
+    driver: bridge

@@ -8,8 +8,8 @@ import { Redis } from "@upstash/redis";
  * This module MUST NOT be imported in client components.
  *
  * Environment variables required:
- *   REDIS_URL      – Upstash Redis REST URL
- *   REDIS_TOKEN    – Upstash Redis REST token
+ *   REDIS_URL      – Upstash Redis REST URL (production) OR redis:// URL (local)
+ *   REDIS_TOKEN    – Upstash Redis REST token (production only, optional for local)
  *
  * Key Naming Convention:
  *   recrutva:cache:<resource>:<id>     – Caching keys
@@ -17,6 +17,14 @@ import { Redis } from "@upstash/redis";
  *   recrutva:session:<id>              – Temporary session data
  *   recrutva:assessment:<id>           – Assessment temporary data
  *   recrutva:test:<id>                 – Test keys (dev only)
+ *
+ * Local Development (Docker):
+ *   REDIS_URL=redis://redis:6379
+ *   REDIS_TOKEN is not required
+ *
+ * Production (Upstash):
+ *   REDIS_URL=https://xxx.upstash.io
+ *   REDIS_TOKEN=AXxx...
  */
 
 // ---------------------------------------------------------------------------
@@ -40,24 +48,36 @@ let redisInstance: Redis | null = null;
 
 /**
  * Returns a singleton Redis client.
- * If REDIS_URL / REDIS_TOKEN are not configured, returns null
+ * Supports both Upstash (production) and local Redis (Docker development).
+ *
+ * If REDIS_URL is not configured, returns null
  * so the rest of the application can gracefully degrade.
  */
 export function getRedis(): Redis | null {
   const url = process.env.REDIS_URL;
   const token = process.env.REDIS_TOKEN;
 
-  if (!url || !token) {
+  if (!url) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        "[Redis] REDIS_URL or REDIS_TOKEN not configured. Redis features are disabled.",
+        "[Redis] REDIS_URL not configured. Redis features are disabled.",
       );
     }
     return null;
   }
 
   if (!redisInstance) {
-    redisInstance = new Redis({ url, token });
+    // Upstash Redis SDK supports both REST API (with token) and standard Redis protocol (without token)
+    // For local Docker Redis: REDIS_URL=redis://redis:6379 (no token needed)
+    // For production Upstash: REDIS_URL=https://xxx.upstash.io + REDIS_TOKEN
+    if (token) {
+      // Upstash REST API mode (production)
+      redisInstance = new Redis({ url, token });
+    } else {
+      // Standard Redis protocol mode (local Docker)
+      // Use a dummy token since @upstash/redis requires it
+      redisInstance = new Redis({ url, token: "dummy-token-for-local-redis" });
+    }
   }
 
   return redisInstance;
@@ -185,13 +205,12 @@ export interface RedisHealthResult {
  */
 export async function checkRedisConnection(): Promise<RedisHealthResult> {
   const url = process.env.REDIS_URL;
-  const token = process.env.REDIS_TOKEN;
 
-  if (!url || !token) {
+  if (!url) {
     return {
       status: "unavailable",
       latencyMs: null,
-      message: "REDIS_URL or REDIS_TOKEN not configured",
+      message: "REDIS_URL not configured",
       configured: false,
     };
   }
