@@ -29,10 +29,10 @@ export const ScreeningResultSchema = z
       .string()
       .min(1)
       .describe("2-3 sentence summary of the screening evaluation"),
-    strengths: z
-      .array(z.string())
-      .min(1)
-      .describe("List of candidate strengths relevant to this role"),
+    // Strengths may legitimately be empty (e.g. a candidate with zero
+    // relevant strengths) — do not force a minimum or the screening round
+    // will never complete for clearly-unqualified candidates.
+    strengths: z.array(z.string()).describe("List of candidate strengths relevant to this role"),
     missingRequirements: z
       .array(z.string())
       .describe("Critical requirements the candidate is missing"),

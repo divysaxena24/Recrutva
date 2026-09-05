@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 // Import from lib directly to bypass index.js debug mode that tries to load test files
 import pdf from "pdf-parse/lib/pdf-parse.js";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 // Disable default body parser — we handle FormData manually
 export const runtime = "nodejs";
@@ -73,7 +74,36 @@ async function uploadToCloudinary(
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
+    // Rate limit — this endpoint is reachable by unauthenticated applicants
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "resume-upload", limit: 20, windowSeconds: 600 },
+      null,
+    );
+    if (blocked) return blocked;
+
+    // Reject oversized bodies up front (Content-Length) with a clean 413.
+    // req.formData() itself fails to parse bodies at/above ~10MB in the Next
+    // node runtime, so we must reject before parsing to return 413, not 400.
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size is 10MB." },
+        { status: 413 }
+      );
+    }
+
+    // Reject non-multipart requests with a clean 400 instead of crashing
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return NextResponse.json(
+        { error: "Expected multipart/form-data body" },
+        { status: 400 }
+      );
+    }
+
     const file = formData.get("file") as File | null;
 
     if (!file) {
@@ -92,11 +122,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Reject empty files
+    if (file.size === 0) {
+      return NextResponse.json(
+        { error: "File is empty" },
+        { status: 400 }
+      );
+    }
+
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "File too large. Maximum size is 10MB." },
-        { status: 400 }
+        { status: 413 }
       );
     }
 

@@ -45,10 +45,25 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
+      # NEXT_PUBLIC_* values are inlined during `next build`, so they must be
+      # available as build args (NOT only as runtime environment).
+      # The Clerk publishable key is browser-visible (non-secret); it is
+      # sourced from .env. NEXT_PUBLIC_APP_URL is fixed to the externally
+      # reachable URL of the containerized app (host port 3001).
+      args:
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be set in .env}
+        - NEXT_PUBLIC_APP_URL=http://localhost:3001
     container_name: recrutva-app
     restart: unless-stopped
     ports:
       - "3001:3000"
+    # Use public resolvers: Docker Desktop's embedded DNS can return only
+    # AAAA records for some hosts (e.g. Neon), and the bridge network has no
+    # IPv6 route, which makes database connections fail with ETIMEDOUT/
+    # ENETUNREACH. Public resolvers return A + AAAA so IPv4 is used.
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       # Node.js
       - NODE_ENV=${NODE_ENV:-development}
@@ -57,8 +72,14 @@ services:
       - DATABASE_URL=${DATABASE_URL}
 
       # Clerk Authentication
+      # NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is baked at build time (see build.args
+      # above); the runtime copy below also covers any non-inlined reads.
       - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+
+      # Public app URL — used server-side to build links (emails etc.). The
+      # containerized app is only reachable from the host at port 3001.
+      - NEXT_PUBLIC_APP_URL=http://localhost:3001
 
       # Groq AI
       - GROQ_API_KEY=${GROQ_API_KEY}
@@ -72,12 +93,13 @@ services:
       - REDIS_URL=redis://redis:6379
       # REDIS_TOKEN is not needed for local Redis (only for Upstash)
 
-      # Email
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - EMAIL_FROM=${EMAIL_FROM}
+      # Email (optional — sending emails requires these to be configured;
+      # empty defaults avoid Compose warnings when they are not set)
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
     depends_on:
       redis:
         condition: service_healthy

@@ -162,9 +162,10 @@ export async function generateAssessmentQuestions(
       model: AI_MODELS.assessment,
       error: error instanceof Error ? error.message : String(error),
     });
+    // Never leak AI provider internals to the client
     return {
       success: false,
-      error: `AI question generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error: "AI question generation failed. Please try again.",
     };
   }
 }
@@ -323,9 +324,10 @@ export async function gradeAssessment(
       model: AI_MODELS.assessmentGrading,
       error: error instanceof Error ? error.message : String(error),
     });
+    // Never leak AI provider internals to the client
     return {
       success: false,
-      error: `AI grading failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error: "AI grading failed. Please try again.",
     };
   }
 }

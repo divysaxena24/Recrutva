@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { applicants, jobs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
+import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function GET(
   req: NextRequest,
@@ -15,6 +16,14 @@ export async function GET(
     if (isNaN(candidateId)) {
       return NextResponse.json({ error: "Invalid candidate ID" }, { status: 400 });
     }
+
+    // Rate limit — this endpoint is reachable by unauthenticated visitors
+    const blocked = await rateLimitOrReject(
+      req,
+      { endpoint: "candidate-view", limit: 60, windowSeconds: 600 },
+      null,
+    );
+    if (blocked) return blocked;
 
     const data = await db
       .select({

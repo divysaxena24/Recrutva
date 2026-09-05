@@ -32,7 +32,10 @@ export type AssessmentQuestions = z.infer<typeof AssessmentQuestionsSchema>;
 
 export const CandidateAnswerSchema = z.object({
   questionId: z.number().min(1).describe("ID of the question being answered"),
-  answer: z.string().describe("Candidate's answer text (can be empty)"),
+  answer: z
+    .string()
+    .max(8000, "Answer is too long")
+    .describe("Candidate's answer text (can be empty)"),
 });
 
 export const SubmissionSchema = z
@@ -40,6 +43,7 @@ export const SubmissionSchema = z
     answers: z
       .array(CandidateAnswerSchema)
       .min(1)
+      .max(50)
       .describe("Candidate's answers to all questions"),
   })
   .strict();

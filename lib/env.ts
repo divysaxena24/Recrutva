@@ -30,6 +30,7 @@ const OPTIONAL_ENV_VARS = [
   "SMTP_PASS",
   "EMAIL_FROM",
   "NEXT_PUBLIC_APP_URL",
+  "CRON_SECRET",
 ] as const;
 
 // Sensitive variables that should NEVER be logged or exposed

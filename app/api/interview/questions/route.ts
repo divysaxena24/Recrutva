@@ -64,12 +64,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 3. Build job context
-    let jobContext = `Role: ${candidate.jobTitle || "Software Engineer"}`;
+    // 3. Build job context (bounded to keep prompts small)
+    const MAX_RESUME_CHARS = 8000;
+    const MAX_JOB_DESC_CHARS = 5000;
+    let jobContext = `Role: ${(candidate.jobTitle || "Software Engineer").slice(0, 200)}`;
     if (candidate.targetJobId) {
       const jobData = await db.select().from(jobs).where(eq(jobs.id, candidate.targetJobId)).limit(1);
       if (jobData[0]) {
-        jobContext = `Role: ${jobData[0].title}. Description: ${jobData[0].description}. Requirements: ${jobData[0].requirements}`;
+        jobContext = `Role: ${jobData[0].title.slice(0, 200)}. Description: ${(jobData[0].description || "").slice(0, MAX_JOB_DESC_CHARS)}. Requirements: ${(jobData[0].requirements || "").slice(0, MAX_JOB_DESC_CHARS)}`;
       }
     }
 
@@ -88,9 +90,9 @@ export async function GET(req: NextRequest) {
       Job Context:
       ${jobContext}
       
-      Candidate Name: ${candidate.name}
+      Candidate Name: ${candidate.name.slice(0, 120)}
       Candidate Resume Content:
-      ${candidate.resumeText || "No resume provided"}
+      ${(candidate.resumeText || "No resume provided").slice(0, MAX_RESUME_CHARS)}
       
       Requirements for Questions:
       1. Generate EXACTLY 10 questions.

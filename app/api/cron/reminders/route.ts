@@ -1,20 +1,72 @@
 import { db } from "@/db";
 import { applicants } from "@/db/schema";
 import { eq, and, isNull, lt, or } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-// Create reusable Gmail transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Use an App Password, not your real Gmail password
-  },
-});
+/**
+ * Build the SMTP transport.
+ * Prefers SMTP_* variables; falls back to legacy EMAIL_USER/EMAIL_PASS.
+ */
+function getTransporter() {
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = parseInt(process.env.SMTP_PORT || "465", 10);
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 
-// Triggered daily at 3:50 PM IST (10:20 UTC) via vercel.json cron
-export async function GET() {
+  if (!user || !pass) {
+    throw new Error(
+      "SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (or EMAIL_USER, EMAIL_PASS)."
+    );
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+}
+
+const SMTP_FROM =
+  process.env.EMAIL_FROM ||
+  process.env.SMTP_USER ||
+  process.env.EMAIL_USER ||
+  "Recrutva AI <no-reply@recrutva.ai>";
+
+/**
+ * GET /api/cron/reminders
+ *
+ * Triggered daily via vercel.json cron.
+ *
+ * Abuse protection: when CRON_SECRET is configured, callers must present it
+ * via the `Authorization: Bearer <secret>` header (or `x-cron-secret`).
+ * Vercel cron jobs can pass it via environment configuration; if CRON_SECRET
+ * is not set, the endpoint keeps working as before for backwards compatibility.
+ */
+export async function GET(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = req.headers.get("authorization") || "";
+    const xSecret = req.headers.get("x-cron-secret") || "";
+    const bearer = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : "";
+    const presented = bearer || xSecret;
+
+    // Constant-time comparison to avoid timing attacks
+    const a = Buffer.from(presented);
+    const b = Buffer.from(cronSecret);
+    const match =
+      a.length === b.length &&
+      a.length > 0 &&
+      a.reduce((acc, byte, i) => acc | (byte ^ b[i]), 0) === 0;
+
+    if (!match) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   try {
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -139,8 +191,8 @@ export async function GET() {
       `;
 
       try {
-        await transporter.sendMail({
-          from: `"Recrutva AI" <${process.env.EMAIL_USER}>`,
+        await getTransporter().sendMail({
+          from: SMTP_FROM.includes("<") ? SMTP_FROM : `"Recrutva AI" <${SMTP_FROM}>`,
           to: candidate.email,
           subject: `⏰ Reminder: Your AI Interview for "${candidate.jobTitle}" is Waiting`,
           html: htmlBody,

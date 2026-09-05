@@ -170,9 +170,10 @@ export async function runResumeScreening(
       model: AI_MODELS.screening,
       error: error instanceof Error ? error.message : String(error),
     });
+    // Never leak AI provider internals to the client
     return {
       success: false,
-      error: `AI screening failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      error: "AI screening failed. Please try again.",
     };
   }
 }

@@ -9,13 +9,31 @@ type InterviewInviteEmailParams = {
   emailType?: "invite" | "reminder";
 };
 
+/**
+ * Build the SMTP transport.
+ *
+ * Prefers the standardized SMTP_* variables (SMTP_HOST, SMTP_PORT, SMTP_USER,
+ * SMTP_PASS) that Docker Compose and production pass to the container.
+ * Falls back to the legacy EMAIL_USER/EMAIL_PASS Gmail-style variables for
+ * existing local development setups.
+ */
 function getTransporter() {
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = parseInt(process.env.SMTP_PORT || "465", 10);
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+
+  if (!user || !pass) {
+    throw new Error(
+      "SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (or EMAIL_USER, EMAIL_PASS)."
+    );
+  }
+
   return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+    host,
+    port,
+    secure: port === 465, // 465 = implicit TLS, 587 = STARTTLS
+    auth: { user, pass },
   });
 }
 
@@ -130,8 +148,14 @@ export async function sendInterviewInviteEmail(params: InterviewInviteEmailParam
   const transporter = getTransporter();
   const { subject, html } = buildInterviewEmail(params);
 
+  const from =
+    process.env.EMAIL_FROM ||
+    process.env.SMTP_USER ||
+    process.env.EMAIL_USER ||
+    "Recrutva AI <no-reply@recrutva.ai>";
+
   await transporter.sendMail({
-    from: `"Recrutva AI" <${process.env.EMAIL_USER}>`,
+    from: from.includes("<") ? from : `"Recrutva AI" <${from}>`,
     to: params.candidateEmail,
     subject,
     html,

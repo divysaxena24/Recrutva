@@ -29,6 +29,7 @@ export async function getApplicationsByJobId(jobId: number) {
     }
 
     // Fetch applicants for this job, ordered by most recent first
+    // Bound the result set to prevent unbounded queries
     const applications = await db
       .select({
         id: applicants.id,
@@ -44,7 +45,8 @@ export async function getApplicationsByJobId(jobId: number) {
       })
       .from(applicants)
       .where(eq(applicants.targetJobId, jobId))
-      .orderBy(desc(applicants.createdAt));
+      .orderBy(desc(applicants.createdAt))
+      .limit(500);
 
     return {
       success: true as const,

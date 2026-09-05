@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheDelete, cacheDeletePattern, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
+import { CreateJobSchema } from "@/lib/schemas/actions";
 
 export async function createJob(data: {
   title: string;
@@ -18,6 +19,14 @@ export async function createJob(data: {
   if (!userId) {
     throw new Error("Unauthorized");
   }
+
+  // Validate all input server-side (server actions are client-callable)
+  const validation = CreateJobSchema.safeParse(data);
+  if (!validation.success) {
+    const message = validation.error.issues[0]?.message ?? "Invalid input";
+    return { success: false, error: message };
+  }
+  data = validation.data as typeof data;
 
   try {
     const newJob = await db.insert(jobs).values({
@@ -141,7 +150,21 @@ export async function getAllJobs() {
     const cached = await cacheGet(cacheKey);
     if (cached && Array.isArray(cached)) return cached;
 
-    const result = await db.select().from(jobs).where(eq(jobs.status, "Open"));
+    // Public listing — never expose the recruiter's userId, and bound the
+    // result set so the query cannot grow without limits.
+    const result = await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        description: jobs.description,
+        requirements: jobs.requirements,
+        location: jobs.location,
+        status: jobs.status,
+        createdAt: jobs.createdAt,
+      })
+      .from(jobs)
+      .where(eq(jobs.status, "Open"))
+      .limit(200);
 
     // Cache the result
     await cacheSet(cacheKey, result, CACHE_TTL.allJobs);
@@ -159,7 +182,6 @@ export async function getJobById(id: number) {
     const cacheKey = CACHE_KEYS.job(id);
     const cached = await cacheGet<{
       id: number;
-      userId: string;
       title: string;
       description: string | null;
       requirements: string | null;
@@ -169,7 +191,20 @@ export async function getJobById(id: number) {
     }>(cacheKey);
     if (cached) return cached;
 
-    const data = await db.select().from(jobs).where(eq(jobs.id, id)).limit(1);
+    // Public job details — never expose the recruiter's userId
+    const data = await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        description: jobs.description,
+        requirements: jobs.requirements,
+        location: jobs.location,
+        status: jobs.status,
+        createdAt: jobs.createdAt,
+      })
+      .from(jobs)
+      .where(eq(jobs.id, id))
+      .limit(1);
     const job = data[0];
 
     // Cache the result (even if null, to avoid repeated DB hits for missing jobs)

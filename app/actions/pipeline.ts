@@ -5,6 +5,7 @@ import { jobs, pipelines, pipelineRounds, candidateRounds } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and, asc, sql } from "drizzle-orm";
+import { AddPipelineRoundSchema } from "@/lib/schemas/actions";
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -121,6 +122,13 @@ export async function addPipelineRound(data: {
 }) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  // Validate all input server-side (server actions are client-callable)
+  const validation = AddPipelineRoundSchema.safeParse(data);
+  if (!validation.success) {
+    return { success: false, error: "Invalid input" };
+  }
+  data = validation.data as typeof data;
 
   try {
     const ownership = await verifyPipelineOwnership(data.pipelineId, userId);

@@ -38,18 +38,19 @@ export default function RootLayout({
   return (
     <ClerkProvider
       appearance={{
-        baseTheme: dark,
-        layout: {
+        // Newer @clerk packages renamed baseTheme -> theme and layout -> options
+        theme: dark,
+        options: {
           socialButtonsVariant: "iconButton",
           socialButtonsPlacement: "top"
         },
         variables: {
           colorPrimary: "#3D6EFA",
           colorBackground: "#07090F",
-          colorInputBackground: "#141927",
-          colorInputText: "#EDF0F7",
-          colorText: "#EDF0F7",
-          colorTextSecondary: "#8A93A8",
+          colorForeground: "#EDF0F7", // default text color (was colorText)
+          colorMutedForeground: "#8A93A8", // secondary text (was colorTextSecondary)
+          colorInput: "#141927", // input background (was colorInputBackground)
+          colorInputForeground: "#EDF0F7", // input text (was colorInputText)
           borderRadius: "0.875rem",
         },
         elements: {

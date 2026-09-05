@@ -1,15 +1,19 @@
 import "server-only";
-import { Redis } from "@upstash/redis";
+import { Redis as UpstashRedis } from "@upstash/redis";
+import IORedis from "ioredis";
 
 /**
  * Recrutva Redis Module
  *
- * Server-only Redis client using Upstash Redis (HTTP-based, ideal for Vercel/serverless).
- * This module MUST NOT be imported in client components.
+ * Server-only Redis client supporting two transports:
+ *   - Upstash REST (production/serverless): REDIS_URL=https://xxx.upstash.io + REDIS_TOKEN
+ *   - Local TCP Redis (Docker development): REDIS_URL=redis://redis:6379 (no token needed)
  *
- * Environment variables required:
- *   REDIS_URL      – Upstash Redis REST URL (production) OR redis:// URL (local)
- *   REDIS_TOKEN    – Upstash Redis REST token (production only, optional for local)
+ * @upstash/redis only accepts https:// REST URLs, so local redis:// URLs are
+ * handled with ioredis (TCP). Both clients are adapted behind a common
+ * interface so the rest of the application is transport-agnostic.
+ *
+ * This module MUST NOT be imported in client components.
  *
  * Key Naming Convention:
  *   recrutva:cache:<resource>:<id>     – Caching keys
@@ -17,14 +21,6 @@ import { Redis } from "@upstash/redis";
  *   recrutva:session:<id>              – Temporary session data
  *   recrutva:assessment:<id>           – Assessment temporary data
  *   recrutva:test:<id>                 – Test keys (dev only)
- *
- * Local Development (Docker):
- *   REDIS_URL=redis://redis:6379
- *   REDIS_TOKEN is not required
- *
- * Production (Upstash):
- *   REDIS_URL=https://xxx.upstash.io
- *   REDIS_TOKEN=AXxx...
  */
 
 // ---------------------------------------------------------------------------
@@ -41,21 +37,41 @@ export const REDIS_KEYS = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// Unified client interface (subset of commands used across the codebase)
+// ---------------------------------------------------------------------------
+
+export interface RedisClient {
+  get(key: string): Promise<string | null>;
+  set(
+    key: string,
+    value: string | number | boolean,
+    opts?: { ex?: number }
+  ): Promise<unknown>;
+  incr(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<number>;
+  ttl(key: string): Promise<number>;
+  del(...keys: string[]): Promise<number>;
+  scan(
+    cursor: number | string,
+    opts?: { match?: string; count?: number }
+  ): Promise<[number, string[]]>;
+  ping(): Promise<string>;
+}
+
+// ---------------------------------------------------------------------------
 // Redis client singleton
 // ---------------------------------------------------------------------------
 
-let redisInstance: Redis | null = null;
+let redisInstance: RedisClient | null = null;
 
 /**
- * Returns a singleton Redis client.
- * Supports both Upstash (production) and local Redis (Docker development).
- *
- * If REDIS_URL is not configured, returns null
- * so the rest of the application can gracefully degrade.
+ * Returns a singleton Redis client (or null when not configured).
+ * Supports both Upstash REST (https://) and local TCP Redis (redis://).
+ * Never throws — configuration or construction errors return null so the
+ * rest of the application can gracefully degrade (fail-open).
  */
-export function getRedis(): Redis | null {
+export function getRedis(): RedisClient | null {
   const url = process.env.REDIS_URL;
-  const token = process.env.REDIS_TOKEN;
 
   if (!url) {
     if (process.env.NODE_ENV === "development") {
@@ -66,25 +82,144 @@ export function getRedis(): Redis | null {
     return null;
   }
 
-  if (!redisInstance) {
-    // Upstash Redis SDK supports both REST API (with token) and standard Redis protocol (without token)
-    // For local Docker Redis: REDIS_URL=redis://redis:6379 (no token needed)
-    // For production Upstash: REDIS_URL=https://xxx.upstash.io + REDIS_TOKEN
-    if (token) {
+  if (redisInstance) return redisInstance;
+
+  try {
+    if (url.startsWith("https://") || url.startsWith("http://")) {
       // Upstash REST API mode (production)
-      redisInstance = new Redis({ url, token });
+      const token = process.env.REDIS_TOKEN;
+      const client = new UpstashRedis({ url, token: token ?? "" });
+      redisInstance = adaptUpstash(client);
+    } else if (url.startsWith("redis://") || url.startsWith("rediss://")) {
+      // Local Docker Redis — TCP protocol via ioredis
+      const client = new IORedis(url, {
+        lazyConnect: true,
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: 2,
+        connectTimeout: 3000,
+        // Reconnect with capped backoff so the app recovers automatically
+        // after a Redis outage. Commands issued while disconnected fail fast
+        // (enableOfflineQueue=false) and callers degrade gracefully (fail-open).
+        retryStrategy: (times) => Math.min(times * 500, 5000),
+      });
+      // The adapter starts the connection immediately and awaits it before
+      // issuing commands, so the first request does not race the TCP connect.
+      redisInstance = adaptIORedis(client);
     } else {
-      // Standard Redis protocol mode (local Docker)
-      // Use a dummy token since @upstash/redis requires it
-      redisInstance = new Redis({ url, token: "dummy-token-for-local-redis" });
+      console.error(
+        `[Redis] Unsupported REDIS_URL scheme. Use https:// (Upstash) or redis:// (local).`,
+      );
+      return null;
     }
+  } catch (err) {
+    console.error("[Redis] Failed to initialize Redis client:", err);
+    redisInstance = null;
+    return null;
   }
 
   return redisInstance;
 }
 
 // ---------------------------------------------------------------------------
-// Convenience wrappers (fail-safe: return null on error)
+// Adapters
+// ---------------------------------------------------------------------------
+
+function adaptUpstash(client: UpstashRedis): RedisClient {
+  return {
+    get: (key) => client.get(key) as Promise<string | null>,
+    set: (key, value, opts) =>
+      opts?.ex !== undefined
+        ? client.set(key, value, { ex: opts.ex })
+        : client.set(key, value),
+    incr: (key) => client.incr(key) as Promise<number>,
+    expire: (key, seconds) => client.expire(key, seconds) as Promise<number>,
+    ttl: (key) => client.ttl(key) as Promise<number>,
+    del: (...keys) => client.del(...keys) as Promise<number>,
+    scan: async (cursor, opts) => {
+      const [next, keys] = await client.scan(Number(cursor), {
+        match: opts?.match,
+        count: opts?.count,
+      });
+      return [Number(next), keys as string[]];
+    },
+    ping: () => client.ping() as Promise<string>,
+  };
+}
+
+function adaptIORedis(client: IORedis): RedisClient {
+  // Connection failures are expected when Redis is down (fail-open design);
+  // without this listener an ioredis connection error would crash the process.
+  client.on("error", (err) => {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "[Redis] Local Redis connection error:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  });
+
+  const scanRaw = client.scan.bind(client) as unknown as (
+    cursor: string,
+    ...args: Array<string | number>
+  ) => Promise<[string, string[]]>;
+
+  // ioredis does not accept boolean values — encode them as strings
+  const encode = (value: string | number | boolean): string | number | Buffer =>
+    typeof value === "boolean" ? (value ? "1" : "0") : value;
+
+  const ready = client.connect().catch(() => undefined);
+  const whenReady = async () => {
+    await ready;
+  };
+
+  return {
+    get: async (key) => {
+      await whenReady();
+      return client.get(key);
+    },
+    set: async (key, value, opts) => {
+      await whenReady();
+      return opts?.ex
+        ? client.set(key, encode(value), "EX", opts.ex)
+        : client.set(key, encode(value));
+    },
+    incr: async (key) => {
+      await whenReady();
+      return client.incr(key);
+    },
+    expire: async (key, seconds) => {
+      await whenReady();
+      return client.expire(key, seconds);
+    },
+    ttl: async (key) => {
+      await whenReady();
+      return client.ttl(key);
+    },
+    del: async (...keys) => {
+      await whenReady();
+      return client.del(...keys);
+    },
+    scan: async (cursor, opts) => {
+      await whenReady();
+      const args: Array<string | number> = [];
+      if (opts?.match) {
+        args.push("MATCH", opts.match);
+      }
+      if (opts?.count) {
+        args.push("COUNT", opts.count);
+      }
+      const [next, keys] = await scanRaw(String(cursor), ...args);
+      return [Number(next), keys];
+    },
+    ping: async () => {
+      await whenReady();
+      return client.ping();
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Convenience wrappers (fail-safe: return null/false on error)
 // ---------------------------------------------------------------------------
 
 /** SET with optional TTL in seconds. */
@@ -102,11 +237,7 @@ export async function redisSet(
         ? value
         : JSON.stringify(value);
 
-    if (ttlSeconds && ttlSeconds > 0) {
-      await redis.set(key, serialized, { ex: ttlSeconds });
-    } else {
-      await redis.set(key, serialized);
-    }
+    await redis.set(key, serialized, ttlSeconds ? { ex: ttlSeconds } : undefined);
     return true;
   } catch (err) {
     console.error("[Redis] SET failed:", err);
@@ -120,8 +251,8 @@ export async function redisGet<T = string>(key: string): Promise<T | null> {
   if (!redis) return null;
 
   try {
-    const value = await redis.get<T>(key);
-    return value ?? null;
+    const value = await redis.get(key);
+    return (value as T | null) ?? null;
   } catch (err) {
     console.error("[Redis] GET failed:", err);
     return null;
@@ -135,10 +266,7 @@ export async function redisDel(...keys: string[]): Promise<number> {
 
   try {
     if (keys.length === 0) return 0;
-    if (keys.length === 1) {
-      return (await redis.del(keys[0])) as number;
-    }
-    return (await redis.del(...keys)) as number;
+    return await redis.del(...keys);
   } catch (err) {
     console.error("[Redis] DEL failed:", err);
     return 0;
@@ -168,7 +296,7 @@ export async function redisTTL(key: string): Promise<number> {
   if (!redis) return -2;
 
   try {
-    return (await redis.ttl(key)) as number;
+    return await redis.ttl(key);
   } catch (err) {
     console.error("[Redis] TTL failed:", err);
     return -2;
@@ -178,14 +306,14 @@ export async function redisTTL(key: string): Promise<number> {
 /** INCR a key (useful for rate limiting counters). Returns new value. */
 export async function redisIncr(key: string): Promise<number | null> {
   const redis = getRedis();
-  if (redis) {
-    try {
-      return (await redis.incr(key)) as number;
-    } catch (err) {
-      console.error("[Redis] INCR failed:", err);
-    }
+  if (!redis) return null;
+
+  try {
+    return await redis.incr(key);
+  } catch (err) {
+    console.error("[Redis] INCR failed:", err);
+    return null;
   }
-  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +361,8 @@ export async function checkRedisConnection(): Promise<RedisHealthResult> {
     return {
       status: result === "PONG" ? "ok" : "error",
       latencyMs,
-      message: result === "PONG" ? "Redis is healthy" : `Unexpected response: ${result}`,
+      message:
+        result === "PONG" ? "Redis is healthy" : `Unexpected response: ${result}`,
       configured: true,
     };
   } catch (err) {

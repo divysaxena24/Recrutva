@@ -19,7 +19,31 @@ const ALLOWED_MIME_TYPES = [
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
+    // Reject oversized bodies up front (Content-Length) with a clean 413.
+    // req.formData() itself fails to parse bodies at/above ~10MB in the Next
+    // node runtime, so we must reject before parsing to return 413, not 400.
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Audio file too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
+        },
+        { status: 413 }
+      );
+    }
+
+    // Reject non-multipart requests with a clean 400 instead of crashing
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Expected multipart/form-data body" },
+        { status: 400 }
+      );
+    }
+
     const audioFile = formData.get("audio") as File | null;
 
     if (!audioFile) {
@@ -36,7 +60,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: `Audio file too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`,
         },
-        { status: 400 }
+        { status: 413 }
       );
     }
 

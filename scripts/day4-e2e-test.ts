@@ -220,7 +220,7 @@ async function testPipelineIntegrity() {
 async function testCompleteAIRound() {
   try {
     // Import the function
-    const { completeAIRound } = await import("../app/actions/candidate-pipeline");
+    const { completeAIRound } = await import("../lib/pipeline-internal");
     
     if (!testCandidateId) {
       log("Test: completeAIRound", "SKIP", "No test candidate available");
@@ -328,7 +328,7 @@ async function testCompleteAIRound() {
 // ─── Test 6: completeAIRound FAIL Path ────────────────────────────
 async function testCompleteAIRoundFail() {
   try {
-    const { completeAIRound } = await import("../app/actions/candidate-pipeline");
+    const { completeAIRound } = await import("../lib/pipeline-internal");
     
     // Create a separate test candidate for fail path
     const [failCandidate] = await db.insert(applicants).values({
@@ -410,7 +410,7 @@ async function testCompleteAIRoundFail() {
 // ─── Test 7: Duplicate Prevention ─────────────────────────────────
 async function testDuplicatePrevention() {
   try {
-    const { completeAIRound } = await import("../app/actions/candidate-pipeline");
+    const { completeAIRound } = await import("../lib/pipeline-internal");
     
     if (!testCandidateId) {
       log("Test: Duplicate Prevention", "SKIP", "No test candidate");

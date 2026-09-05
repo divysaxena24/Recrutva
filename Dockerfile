@@ -37,6 +37,21 @@ COPY public/ ./public/
 COPY drizzle/ ./drizzle/
 COPY middleware.ts ./
 
+# ---------------------------------------------------------------------------
+# Public build-time configuration.
+#
+# NEXT_PUBLIC_* values are inlined by Next.js during `next build` into the
+# compiled bundles (client AND server). Values injected only at container
+# runtime (e.g. compose `environment:`) never reach already-compiled code,
+# which leaves the Clerk publishable key empty and breaks authentication.
+# These ARGs are fed from docker-compose build.args (sourced from .env).
+# Non-secret, browser-visible values only — secrets stay runtime-only.
+# ---------------------------------------------------------------------------
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
 # Build the Next.js application
 # Turbopack is default in Next.js 15+, use --turbopack for faster builds
 RUN npm run build
@@ -80,9 +95,11 @@ EXPOSE 3000
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
 
-# Health check — verify Next.js server is responding
+# Health check — verify Next.js server is responding.
+# Use 127.0.0.1 (not localhost) because the server binds IPv4 only and
+# busybox wget may resolve localhost to ::1 first.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1
 
 # Start the application with dumb-init for proper signal handling
 CMD ["dumb-init", "node", "server.js"]

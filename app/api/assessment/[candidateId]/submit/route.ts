@@ -299,7 +299,7 @@ export async function POST(
     if (roundStatus === "PASSED") {
       // Import the helper dynamically to avoid circular dependencies
       const { getNextPipelineRound } = await import(
-        "@/app/actions/candidate-pipeline"
+        "@/lib/pipeline-internal"
       );
       const nextRound = await getNextPipelineRound(
         pipeline.id,

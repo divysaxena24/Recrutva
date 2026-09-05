@@ -6,13 +6,95 @@ import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
 import { rateLimitOrReject } from "@/lib/rate-limit";
 
+const MAX_TRANSCRIPT_MESSAGES = 100;
+const MAX_MESSAGE_CHARS = 20000;
+const MAX_TRANSCRIPT_TOTAL_CHARS = 200000;
+const MAX_QUESTIONS = 25;
+const MAX_QUESTION_CHARS = 5000;
+const MAX_BLUEPRINT_CHARS = 5000;
+
 export async function POST(req: NextRequest) {
   try {
-    const { id, transcript, questions } = await req.json();
-    const candidateId = Number.parseInt(id, 10);
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    if (!id || Number.isNaN(candidateId) || !transcript) {
+    const { id, transcript, questions } = (body ?? {}) as {
+      id?: unknown;
+      transcript?: unknown;
+      questions?: unknown;
+    };
+    const candidateId =
+      typeof id === "string" ? Number.parseInt(id, 10) : Number.NaN;
+
+    if (!id || Number.isNaN(candidateId) || typeof transcript !== "string" && !Array.isArray(transcript)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Bound transcript input (AI cost + prompt size protection)
+    if (typeof transcript === "string") {
+      if (transcript.length > MAX_TRANSCRIPT_TOTAL_CHARS) {
+        return NextResponse.json(
+          { error: "Transcript is too large" },
+          { status: 413 }
+        );
+      }
+    } else {
+      if (transcript.length > MAX_TRANSCRIPT_MESSAGES) {
+        return NextResponse.json(
+          { error: "Too many transcript messages" },
+          { status: 413 }
+        );
+      }
+      let total = 0;
+      for (const m of transcript as Array<{ role?: unknown; content?: unknown }>) {
+        if (!m || (m.role !== "ai" && m.role !== "user") || typeof m.content !== "string") {
+          return NextResponse.json(
+            { error: "Invalid transcript message format" },
+            { status: 400 }
+          );
+        }
+        total += m.content.length;
+        if (m.content.length > MAX_MESSAGE_CHARS) {
+          return NextResponse.json(
+            { error: "Transcript message is too large" },
+            { status: 413 }
+          );
+        }
+      }
+      if (total > MAX_TRANSCRIPT_TOTAL_CHARS) {
+        return NextResponse.json(
+          { error: "Transcript is too large" },
+          { status: 413 }
+        );
+      }
+    }
+
+    // Bound the questions array (shape + size)
+    if (questions !== undefined && questions !== null) {
+      if (!Array.isArray(questions) || questions.length > MAX_QUESTIONS) {
+        return NextResponse.json(
+          { error: "Invalid questions payload" },
+          { status: 400 }
+        );
+      }
+      for (const q of questions as Array<{ question?: unknown; blueprint?: unknown }>) {
+        if (!q || typeof q.question !== "string" || typeof q.blueprint !== "string") {
+          return NextResponse.json(
+            { error: "Invalid questions payload" },
+            { status: 400 }
+          );
+        }
+        if (q.question.length > MAX_QUESTION_CHARS || q.blueprint.length > MAX_BLUEPRINT_CHARS) {
+          return NextResponse.json(
+            { error: "Question payload is too large" },
+            { status: 413 }
+          );
+        }
+      }
     }
 
     const [existingCandidate] = await db
@@ -60,10 +142,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Prepare Interview Context
-    const transcriptText = Array.isArray(transcript) 
+    // 1. Prepare Interview Context (bounded before prompt construction)
+    const transcriptText = (Array.isArray(transcript)
       ? transcript.map((m: any) => `${m.role === 'ai' ? 'Sarah' : 'Candidate'}: ${m.content}`).join("\n")
-      : transcript;
+      : transcript).slice(0, 150000);
 
     const questionsContext = Array.isArray(questions)
       ? questions.map((q: any, i: number) => `Q${i+1}: ${q.question}\nIdeal Answer Blueprint: ${q.blueprint}`).join("\n\n")
@@ -139,7 +221,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Update pipeline AI_INTERVIEW round (if pipeline exists)
     try {
-      const { completeAIRound } = await import("@/app/actions/candidate-pipeline");
+      const { completeAIRound } = await import("@/lib/pipeline-internal");
       await completeAIRound({
         candidateId,
         score: evaluation.totalScore,

@@ -12,10 +12,32 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { title, companyDetails } = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
 
-    if (!title) {
+    const { title, companyDetails } = (body ?? {}) as {
+      title?: unknown;
+      companyDetails?: unknown;
+    };
+
+    // Validate and bound inputs before any AI call
+    if (typeof title !== "string" || !title.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+    if (title.length > 200) {
+      return NextResponse.json({ error: "Title is too long" }, { status: 400 });
+    }
+    if (companyDetails !== undefined && companyDetails !== null) {
+      if (typeof companyDetails !== "string" || companyDetails.length > 3000) {
+        return NextResponse.json(
+          { error: "Company details must be a string of at most 3000 characters" },
+          { status: 400 }
+        );
+      }
     }
 
     // Rate limit — BEFORE the expensive Groq call

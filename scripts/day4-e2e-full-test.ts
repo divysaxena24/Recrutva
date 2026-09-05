@@ -322,7 +322,7 @@ async function testAIInterviewIntegration(candidateId: number) {
   log("Test 4: AI_INTERVIEW round exists", "PASS", `Round #${aiRound.id}: "${aiRound.name}" (${aiRound.type})`);
 
   // Test completeAIRound function
-  const { completeAIRound } = await import("../app/actions/candidate-pipeline");
+  const { completeAIRound } = await import("../lib/pipeline-internal");
 
   const result = await completeAIRound({
     candidateId,
@@ -440,7 +440,7 @@ async function testAIFailPath() {
   log("Test 5: Enrolled in AI_INTERVIEW", "PASS", `Round #${aiRound.id}`);
 
   // Test completeAIRound with failing score
-  const { completeAIRound } = await import("../app/actions/candidate-pipeline");
+  const { completeAIRound } = await import("../lib/pipeline-internal");
 
   const result = await completeAIRound({
     candidateId: failCandidate.id,
@@ -490,7 +490,7 @@ async function testDuplicatePrevention(candidateId: number) {
   console.log("\n📝 TEST 6: DUPLICATE PREVENTION");
   console.log("─────────────────────────────────────────────────────────────");
 
-  const { completeAIRound } = await import("../app/actions/candidate-pipeline");
+  const { completeAIRound } = await import("../lib/pipeline-internal");
 
   // Find the AI_INTERVIEW candidate_round (should already be completed)
   const [aiRound] = await db.select().from(pipelineRounds)

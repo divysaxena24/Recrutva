@@ -6,6 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { sendInterviewInviteEmail } from "@/lib/interview-email";
+import { CreateCandidateSchema, UpdateCandidateSchema } from "@/lib/schemas/actions";
 
 export async function getDashboardStats() {
   const { userId } = await auth();
@@ -68,6 +69,14 @@ export async function createCandidate(data: {
   targetJobId?: number;
   scheduledAt?: string;
 }) {
+  // Validate all input server-side (server actions are client-callable)
+  const validation = CreateCandidateSchema.safeParse(data);
+  if (!validation.success) {
+    const message = validation.error.issues[0]?.message ?? "Invalid input";
+    return { success: false, error: message };
+  }
+  data = validation.data as typeof data;
+
   let { userId } = await auth();
   
   // If no logged-in user (public application), we assign to the job's creator
@@ -183,7 +192,7 @@ export async function createCandidate(data: {
          // Trigger automated Resume Screening (fire-and-forget)
          // Screening failure must never block candidate creation
          try {
-           const { completeScreeningRound } = await import("./candidate-pipeline");
+           const { completeScreeningRound } = await import("@/lib/pipeline-internal");
            await completeScreeningRound({ candidateId: newCandidate[0].id });
          } catch (screeningError) {
            console.error("Error running automated resume screening:", screeningError);
@@ -251,6 +260,7 @@ export async function getCandidateById(id: number) {
   if (!userId) return null;
 
   try {
+    // Scope by userId so recruiters can only ever fetch their own candidates
     const data = await db.select({
       id: applicants.id,
       name: applicants.name,
@@ -260,10 +270,10 @@ export async function getCandidateById(id: number) {
     })
     .from(applicants)
     .leftJoin(jobs, eq(applicants.targetJobId, jobs.id))
-    .where(eq(applicants.id, id))
+    .where(and(eq(applicants.id, id), eq(applicants.userId, userId)))
     .limit(1);
     
-    return data[0];
+    return data[0] ?? null;
   } catch (error) {
     console.error("Error fetching candidate:", error);
     return null;
@@ -273,6 +283,10 @@ export async function getCandidateById(id: number) {
 export async function rescheduleCandidate(id: number, newDate: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
+
+  if (Number.isNaN(Date.parse(newDate))) {
+    return { success: false, error: "Invalid date" };
+  }
 
   try {
     const updated = await db.update(applicants)
@@ -303,12 +317,26 @@ export async function updateCandidate(id: number, data: {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  // Validate all input server-side (server actions are client-callable)
+  const validation = UpdateCandidateSchema.safeParse(data);
+  if (!validation.success) {
+    const message = validation.error.issues[0]?.message ?? "Invalid input";
+    return { success: false, error: message };
+  }
+  data = validation.data as typeof data;
+
   try {
     let finalJobTitle = data.jobTitle;
 
-    // If a targetJobId is provided, sync the jobTitle text field with the actual job title
+    // If a targetJobId is provided, sync the jobTitle text field with the actual job title.
+    // The job lookup is scoped to this recruiter so they cannot link a candidate
+    // to another recruiter's job.
     if (data.targetJobId) {
-      const jobData = await db.select({ title: jobs.title }).from(jobs).where(eq(jobs.id, data.targetJobId)).limit(1);
+      const jobData = await db
+        .select({ title: jobs.title })
+        .from(jobs)
+        .where(and(eq(jobs.id, data.targetJobId), eq(jobs.userId, userId)))
+        .limit(1);
       if (jobData[0]) {
         finalJobTitle = jobData[0].title;
       }

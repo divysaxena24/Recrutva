@@ -5,11 +5,14 @@ import Groq from "groq-sdk";
  * All Groq model references should use this file to avoid hardcoding
  * model names across the codebase.
  */
+// NOTE: llama-3.3-70b-versatile returned 404 model_not_found on the project's
+// Groq key during Phase 6 testing. These fields were switched to models
+// verified as available on that key (checked via GET /openai/v1/models).
 export const AI_MODELS = {
   matching: "openai/gpt-oss-120b",
-  screening: "llama-3.3-70b-versatile",
-  assessment: "llama-3.3-70b-versatile",
-  assessmentGrading: "llama-3.3-70b-versatile",
+  screening: "openai/gpt-oss-120b",
+  assessment: "openai/gpt-oss-120b",
+  assessmentGrading: "openai/gpt-oss-120b",
   interview: "qwen/qwen3.6-27b",
   evaluation: "openai/gpt-oss-120b",
   jobGeneration: "qwen/qwen3.6-27b",
