@@ -17,7 +17,28 @@ export const AI_MODELS = {
 } as const;
 
 /**
- * Shared Groq client instance.
+ * Shared Groq client instance (lazy).
  * Uses GROQ_API_KEY from environment variables.
+ * Only created when first accessed — avoids build-time failures.
  */
-export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let _groq: Groq | null = null;
+
+export const groq = new Proxy({} as Groq, {
+  get(_target, prop, _receiver) {
+    if (!_groq) {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        throw new Error(
+          "GROQ_API_KEY environment variable is not set. " +
+          "Please configure it in your .env file or environment."
+        );
+      }
+      _groq = new Groq({ apiKey });
+    }
+    const value = (_groq as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof value === "function") {
+      return value.bind(_groq);
+    }
+    return value;
+  },
+});

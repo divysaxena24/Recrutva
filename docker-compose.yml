@@ -48,7 +48,7 @@ services:
     container_name: recrutva-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       # Node.js
       - NODE_ENV=${NODE_ENV:-development}

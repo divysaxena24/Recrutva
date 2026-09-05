@@ -5,6 +5,11 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import SessionTimeout from "@/components/SessionTimeout";
 
+// NOTE: Environment validation removed from build time.
+// It is now validated lazily by lib/redis.ts, lib/ai.ts, and db/index.ts
+// when they are first accessed at runtime. This allows the Next.js build
+// to complete without requiring environment variables to be present.
+
 const syne = Syne({
   variable: "--font-display",
   subsets: ["latin"],

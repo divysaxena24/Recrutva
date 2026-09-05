@@ -37,9 +37,6 @@ COPY public/ ./public/
 COPY drizzle/ ./drizzle/
 COPY middleware.ts ./
 
-# Copy env example for type hints (not secrets)
-COPY .env.example .env.example 2>/dev/null || true
-
 # Build the Next.js application
 # Turbopack is default in Next.js 15+, use --turbopack for faster builds
 RUN npm run build
