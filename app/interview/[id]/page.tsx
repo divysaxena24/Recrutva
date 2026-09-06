@@ -47,6 +47,10 @@ type RecordingState = "idle" | "recording" | "transcribing" | "error";
 const TOTAL_QUESTIONS = 10;
 const QUESTION_DELAY_MS = 1500;
 const GREETING_DELAY_MS = 2000;
+// Small pause between recorder stop and creating the next recorder — creating
+// a MediaRecorder immediately after a stop can throw NotSupportedError on
+// some browsers (consecutive-question failures).
+const RECORDER_LIFECYCLE_DELAY_MS = 300;
 
 // ─── Entry Component ──────────────────────────────────────────────
 export default function InterviewPortal() {
@@ -348,7 +352,12 @@ function InterviewRoom({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  // Camera-preview stream (video only). Never used for audio recording.
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  // Dedicated audio-only stream for the CURRENT recording. Stopped and
+  // released on every exit path so no microphone tracks linger.
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const lastRecorderStopTimeRef = useRef(0);
   const recordingStartInProgressRef = useRef(false);
   const selectedMimeTypeRef = useRef<string | null>(null);
   const manualInputRef = useRef("");
@@ -371,10 +380,10 @@ function InterviewRoom({
 
   const startMedia = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      // Camera preview only. Audio for recording is requested separately as a
+      // dedicated audio-only stream per recording (see startRecording) so the
+      // shared preview stream is never relied on for audio.
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) videoRef.current.srcObject = stream;
       mediaStreamRef.current = stream;
     } catch (err) {
@@ -455,14 +464,20 @@ function InterviewRoom({
     return null;
   }, []);
 
-  // ─── Helper: Stop and cleanup a stream ───────────────────────
-  const cleanupStream = useCallback((stream: MediaStream | null) => {
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
+  // ─── Helper: Stop and release the dedicated recording stream ──
+  const cleanupAudioStream = useCallback(() => {
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach((t) => t.stop());
+      audioStreamRef.current = null;
     }
   }, []);
 
   // ─── MediaRecorder + Whisper STT ─────────────────────────────
+  // Each recording uses a FRESH dedicated audio-only stream (never the shared
+  // camera-preview stream). The audio stream is stopped and released on every
+  // exit path: successful recording, transcription failure, retry, recorder
+  // error, start failure, and unmount. A small lifecycle delay after each
+  // stop prevents NotSupportedError when creating the next recorder.
   const startRecording = useCallback(async () => {
     // Prevent duplicate starts
     if (recordingStartInProgressRef.current) {
@@ -482,6 +497,17 @@ function InterviewRoom({
     recordingStartInProgressRef.current = true;
 
     try {
+      // Small lifecycle delay after the previous recorder stopped — creating
+      // a new MediaRecorder on a just-released stream can throw
+      // NotSupportedError on some browsers.
+      const lastStop = lastRecorderStopTimeRef.current;
+      if (lastStop > 0) {
+        const elapsed = Date.now() - lastStop;
+        if (elapsed < RECORDER_LIFECYCLE_DELAY_MS) {
+          await new Promise((r) => setTimeout(r, RECORDER_LIFECYCLE_DELAY_MS - elapsed));
+        }
+      }
+
       // Step 1: Select MIME type
       const mimeType = selectMimeType();
       if (!mimeType) {
@@ -491,30 +517,22 @@ function InterviewRoom({
       }
       selectedMimeTypeRef.current = mimeType;
 
-      // Step 2: Get or validate microphone stream
-      let stream = mediaStreamRef.current;
-      if (stream) {
-        const hasLiveAudio = stream.getAudioTracks().some((t) => t.readyState === "live");
-        if (!hasLiveAudio || !stream.active) {
-          console.log("[STT] Existing stream invalid, getting fresh stream");
-          cleanupStream(stream);
-          stream = null;
-          mediaStreamRef.current = null;
-        }
-      }
+      // Step 2: Dedicated audio-only stream for THIS recording.
+      // Never reused or shared with the camera-preview stream.
+      cleanupAudioStream();
+      const stream = await getMicrophoneStream();
       if (!stream) {
-        stream = await getMicrophoneStream();
-        if (!stream) {
-          setRecordingState("error");
-          setErrorMessage("Could not access microphone. Please allow microphone permission and try again, or type your response.");
-          return;
-        }
-        mediaStreamRef.current = stream;
+        setRecordingState("error");
+        setErrorMessage("Could not access microphone. Please allow microphone permission and try again, or type your response.");
+        return;
       }
+      audioStreamRef.current = stream;
 
-      // Step 3: Stop existing recorder
+      // Step 3: Stop any existing recorder (defensive — should be inactive)
       if (mediaRecorderRef.current) {
-        try { if (mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop(); } catch { /* noop */ }
+        try {
+          if (mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop();
+        } catch { /* noop */ }
         mediaRecorderRef.current = null;
       }
 
@@ -531,8 +549,7 @@ function InterviewRoom({
           console.log("[STT] Recorder created with default type:", recorder.mimeType);
         } catch (fallbackErr) {
           console.error("[STT] MediaRecorder creation failed entirely:", fallbackErr);
-          cleanupStream(stream);
-          mediaStreamRef.current = null;
+          cleanupAudioStream();
           setRecordingState("error");
           setErrorMessage("Voice recording is not supported in this browser. Please type your answer.");
           return;
@@ -544,19 +561,29 @@ function InterviewRoom({
       // Step 5: Clear chunks and wire handlers
       audioChunksRef.current = [];
 
-      // Store handlers in refs so we can re-attach if needed
       const handleDataAvailable = (event: BlobEvent) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
       const handleStop = async () => {
+        lastRecorderStopTimeRef.current = Date.now();
+        mediaRecorderRef.current = null;
         console.log("[STT] Recorder stopped, chunks:", audioChunksRef.current.length);
-        if (audioChunksRef.current.length === 0) { setRecordingState("idle"); return; }
+        if (audioChunksRef.current.length === 0) {
+          cleanupAudioStream();
+          setRecordingState("idle");
+          return;
+        }
         setRecordingState("transcribing");
         try {
           const actualType = selectedMimeTypeRef.current || "audio/webm";
           const audioBlob = new Blob(audioChunksRef.current, { type: actualType });
           console.log(`[STT] Blob created: ${(audioBlob.size / 1024).toFixed(1)}KB, type: ${actualType}`);
-          if (audioBlob.size < 1000) { console.log("[STT] Recording too short, discarding"); setRecordingState("idle"); return; }
+          if (audioBlob.size < 1000) {
+            console.log("[STT] Recording too short, discarding");
+            cleanupAudioStream();
+            setRecordingState("idle");
+            return;
+          }
           let ext = "webm";
           if (actualType.includes("mp4")) ext = "mp4";
           else if (actualType.includes("ogg")) ext = "ogg";
@@ -568,26 +595,31 @@ function InterviewRoom({
           const data = await response.json();
           console.log("[STT] Whisper response:", data.success ? "success" : "error", data.text || "");
           if (data.success && data.text) {
+            cleanupAudioStream();
             manualInputRef.current = data.text;
             setRecordingState("idle");
             handleUserResponseRef.current(data.text);
           } else if (data.success && !data.text) {
+            cleanupAudioStream();
             setRecordingState("idle");
             setErrorMessage("Your answer was not detected. Please try again or type your response.");
           } else {
+            cleanupAudioStream();
             setRecordingState("error");
             setErrorMessage(data.error || "Failed to transcribe audio. Please try again.");
           }
         } catch (err) {
           console.error("[STT] Transcription error:", err);
+          cleanupAudioStream();
           setRecordingState("error");
           setErrorMessage("Network error during transcription. Please try again or type your response.");
         }
       };
       const handleError = (event: Event) => {
         console.error("[STT] Recorder error:", event);
-        cleanupStream(mediaStreamRef.current);
-        mediaStreamRef.current = null;
+        lastRecorderStopTimeRef.current = Date.now();
+        mediaRecorderRef.current = null;
+        cleanupAudioStream();
         setRecordingState("error");
         setErrorMessage("Recording failed. Please try again or type your response.");
       };
@@ -596,43 +628,7 @@ function InterviewRoom({
       recorder.onstop = handleStop;
       recorder.onerror = handleError;
 
-      // Step 6: Validate state and start
-      console.log("[STT] Recorder state before start:", recorder.state);
-      if (recorder.state !== "inactive") {
-        setRecordingState("error");
-        setErrorMessage("Recording system is in an unexpected state. Please try again.");
-        return;
-      }
-
-      // Validate tracks are live
-      const liveTracks = stream.getAudioTracks().filter((t) => t.readyState === "live");
-      if (liveTracks.length === 0) {
-        console.warn("[STT] No live audio tracks, getting fresh stream");
-        cleanupStream(stream);
-        const freshStream = await getMicrophoneStream();
-        if (!freshStream) {
-          setRecordingState("error");
-          setErrorMessage("Microphone is unavailable. Please check your microphone and try again.");
-          return;
-        }
-        mediaStreamRef.current = freshStream;
-        try {
-          recorder = new MediaRecorder(freshStream, { mimeType: selectedMimeTypeRef.current || undefined });
-          selectedMimeTypeRef.current = recorder.mimeType || selectedMimeTypeRef.current;
-        } catch {
-          try { recorder = new MediaRecorder(freshStream); selectedMimeTypeRef.current = recorder.mimeType; } catch {
-            cleanupStream(freshStream); mediaStreamRef.current = null;
-            setRecordingState("error"); setErrorMessage("Could not start voice recording. Please type your answer."); return;
-          }
-        }
-        audioChunksRef.current = [];
-        recorder.ondataavailable = handleDataAvailable;
-        recorder.onstop = handleStop;
-        recorder.onerror = handleError;
-        mediaRecorderRef.current = recorder;
-      }
-
-      // Step 7: Start
+      // Step 6: Start
       try {
         recorder.start();
         console.log("[STT] Recorder started, state:", recorder.state);
@@ -641,26 +637,25 @@ function InterviewRoom({
         setErrorMessage(null);
       } catch (startErr) {
         console.error("[STT] recorder.start() failed:", startErr);
+        lastRecorderStopTimeRef.current = Date.now();
         try { recorder.stop(); } catch { /* noop */ }
-        cleanupStream(mediaStreamRef.current);
-        mediaStreamRef.current = null;
         mediaRecorderRef.current = null;
+        cleanupAudioStream();
         audioChunksRef.current = [];
         setRecordingState("error");
         setErrorMessage("Could not start recording. Please try again or type your response.");
       }
     } catch (err) {
       console.error("[STT] Unexpected error:", err);
-      cleanupStream(mediaStreamRef.current);
-      mediaStreamRef.current = null;
       mediaRecorderRef.current = null;
+      cleanupAudioStream();
       audioChunksRef.current = [];
       setRecordingState("error");
       setErrorMessage("Could not access microphone. Please allow microphone permission and try again, or type your response.");
     } finally {
       recordingStartInProgressRef.current = false;
     }
-  }, [recordingState, selectMimeType, getMicrophoneStream, cleanupStream]);
+  }, [recordingState, selectMimeType, getMicrophoneStream, cleanupAudioStream]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current) {
@@ -684,16 +679,14 @@ function InterviewRoom({
       } catch { /* noop */ }
       mediaRecorderRef.current = null;
     }
-    if (mediaStreamRef.current) {
-      cleanupStream(mediaStreamRef.current);
-      mediaStreamRef.current = null;
-    }
+    // Release the dedicated recording stream (if any) before retrying
+    cleanupAudioStream();
     audioChunksRef.current = [];
     setErrorMessage(null);
     setRecordingState("idle");
-    // Fresh start after cleanup
+    // Fresh start after cleanup (startRecording also enforces the lifecycle delay)
     setTimeout(() => startRecording(), 300);
-  }, [startRecording, cleanupStream]);
+  }, [startRecording, cleanupAudioStream]);
 
   // handleUserResponse: use ref-based forwarding to break circular dep
   const handleUserResponseImpl = useCallback(
@@ -883,6 +876,11 @@ function InterviewRoom({
           }
         } catch { /* noop */ }
         mediaRecorderRef.current = null;
+      }
+      // Stop any in-flight dedicated recording stream on unmount
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach((t) => t.stop());
+        audioStreamRef.current = null;
       }
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((t) => t.stop());

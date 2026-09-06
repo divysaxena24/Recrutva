@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { applicants } from "@/db/schema";
+import { applicants, candidateRounds, pipelineRounds, pipelines } from "@/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
 import { rateLimitOrReject } from "@/lib/rate-limit";
+import { InterviewEvaluationSchema } from "@/lib/schemas/interview";
+import type { InterviewEvaluation } from "@/lib/schemas/interview";
 
 const MAX_TRANSCRIPT_MESSAGES = 100;
 const MAX_MESSAGE_CHARS = 20000;
@@ -103,6 +105,7 @@ export async function POST(req: NextRequest) {
         userId: applicants.userId,
         status: applicants.status,
         analysis: applicants.analysis,
+        targetJobId: applicants.targetJobId,
       })
       .from(applicants)
       .where(eq(applicants.id, candidateId))
@@ -137,6 +140,86 @@ export async function POST(req: NextRequest) {
           success: false,
           error: "Interview already completed",
           evaluation: existingCandidate.analysis,
+        },
+        { status: 409 }
+      );
+    }
+
+    // ── Verify an ACTIVE AI_INTERVIEW candidate round (P0-3) ─────────
+    // Completion is only allowed while the candidate currently has a live
+    // AI_INTERVIEW round. Applicant status alone is not sufficient. If the
+    // round is missing or not ACTIVE we reject BEFORE any AI call or state
+    // mutation. This also prevents completing an interview belonging to a
+    // different pipeline/application (rounds are scoped per candidate and
+    // matched to the candidate's job pipeline).
+    if (!existingCandidate.targetJobId) {
+      return NextResponse.json(
+        { success: false, error: "No active AI interview round found for this candidate" },
+        { status: 400 }
+      );
+    }
+
+    const [pipeline] = await db
+      .select({ id: pipelines.id })
+      .from(pipelines)
+      .where(eq(pipelines.jobId, existingCandidate.targetJobId))
+      .limit(1);
+
+    if (!pipeline) {
+      return NextResponse.json(
+        { success: false, error: "No active AI interview round found for this candidate" },
+        { status: 400 }
+      );
+    }
+
+    const [aiPipelineRound] = await db
+      .select({ id: pipelineRounds.id })
+      .from(pipelineRounds)
+      .where(
+        and(
+          eq(pipelineRounds.pipelineId, pipeline.id),
+          eq(pipelineRounds.type, "AI_INTERVIEW")
+        )
+      )
+      .limit(1);
+
+    if (!aiPipelineRound) {
+      return NextResponse.json(
+        { success: false, error: "No active AI interview round found for this candidate" },
+        { status: 400 }
+      );
+    }
+
+    const [candidateRound] = await db
+      .select({
+        id: candidateRounds.id,
+        status: candidateRounds.status,
+        evaluation: candidateRounds.evaluation,
+      })
+      .from(candidateRounds)
+      .where(
+        and(
+          eq(candidateRounds.candidateId, candidateId),
+          eq(candidateRounds.roundId, aiPipelineRound.id)
+        )
+      )
+      .limit(1);
+
+    if (!candidateRound) {
+      return NextResponse.json(
+        { success: false, error: "No active AI interview round found for this candidate" },
+        { status: 400 }
+      );
+    }
+
+    if (candidateRound.status !== "ACTIVE") {
+      // Round already completed/skipped — treat as duplicate completion and
+      // surface the stored evaluation (if any) without re-running the AI.
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Interview already completed",
+          evaluation: candidateRound.evaluation,
         },
         { status: 409 }
       );
@@ -189,13 +272,56 @@ export async function POST(req: NextRequest) {
       temperature: 0.3,
       response_format: { type: "json_object" }
     });
-    
-    const text = chatCompletion.choices[0]?.message?.content || "";
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const evaluation = jsonMatch ? JSON.parse(jsonMatch[0]) : { totalScore: 0, executiveSummary: "Analysis failed", breakdown: [] };
 
-    // 3. Update Candidate Status
+    // 3. Strictly validate the AI evaluation BEFORE persisting anything.
+    // Malformed output (bad types, NaN/Infinity, out-of-range marks, missing
+    // fields) is rejected with a safe error — no applicant/round mutation,
+    // no interview completion, and no raw provider errors exposed.
+    let evaluation: InterviewEvaluation;
+    try {
+      const text = chatCompletion.choices[0]?.message?.content || "";
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON object found in evaluation response");
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      const parsedResult = InterviewEvaluationSchema.safeParse(parsed);
+      if (!parsedResult.success) {
+        throw new Error("Evaluation failed schema validation");
+      }
+      evaluation = parsedResult.data;
+    } catch (validationError) {
+      console.error("Interview evaluation invalid:", {
+        feature: "interview-evaluation",
+        error:
+          validationError instanceof Error
+            ? validationError.message
+            : String(validationError),
+      });
+      return NextResponse.json(
+        { success: false, error: "Failed to generate evaluation. Please try again." },
+        { status: 502 }
+      );
+    }
+
+    // 4. Update the pipeline AI_INTERVIEW round FIRST (round -> PASSED/FAILED
+    // + activate next round), then mark the applicant Completed. Ordering it
+    // this way avoids the bad state of applicant=COMPLETED while the round is
+    // still ACTIVE. Pipeline failure stays non-blocking for the candidate.
+    try {
+      const { completeAIRound } = await import("@/lib/pipeline-internal");
+      await completeAIRound({
+        candidateId,
+        score: evaluation.totalScore,
+        summary: evaluation.executiveSummary,
+        evaluation: evaluation as unknown as Record<string, unknown>,
+      });
+    } catch (pipelineError) {
+      // Pipeline update failure must not block interview completion
+      console.error("Pipeline round update failed (non-critical):", pipelineError);
+    }
+
+    // 5. Update Candidate Status (atomic: only if not already Completed)
     const updatedCandidate = await db.update(applicants)
       .set({
         status: "Completed",
@@ -217,20 +343,6 @@ export async function POST(req: NextRequest) {
         },
         { status: 409 }
       );
-    }
-
-    // 4. Update pipeline AI_INTERVIEW round (if pipeline exists)
-    try {
-      const { completeAIRound } = await import("@/lib/pipeline-internal");
-      await completeAIRound({
-        candidateId,
-        score: evaluation.totalScore,
-        summary: evaluation.executiveSummary,
-        evaluation,
-      });
-    } catch (pipelineError) {
-      // Pipeline update failure must not block interview completion
-      console.error("Pipeline round update failed (non-critical):", pipelineError);
     }
 
     return NextResponse.json({ success: true, evaluation });
