@@ -4,58 +4,9 @@ import { db } from "@/db";
 import { applicants, jobs, pipelines, pipelineRounds, candidateRounds } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import { sendInterviewInviteEmail } from "@/lib/interview-email";
 import { CreateCandidateSchema, UpdateCandidateSchema } from "@/lib/schemas/actions";
-
-export async function getDashboardStats() {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  try {
-    // 1. Count active jobs (scoped to this recruiter)
-    const [jobsRow] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(jobs)
-      .where(and(eq(jobs.userId, userId), eq(jobs.status, "Open")));
-
-    // 2. Count applicants and compute aggregates (scoped to this recruiter)
-    const [statsRow] = await db
-      .select({
-        totalApplicants: sql<number>`count(*)::int`,
-        completedInterviews: sql<number>`count(*) filter (where ${applicants.status} = 'Completed')::int`,
-        avgFitScore: sql<string>`coalesce(round(avg(${applicants.matchScore}::numeric), 1), '0')`,
-      })
-      .from(applicants)
-      .where(eq(applicants.userId, userId));
-
-    // 3. Get 5 most recent applicants for activity feed
-    const recentApplicants = await db
-      .select({
-        id: applicants.id,
-        name: applicants.name,
-        status: applicants.status,
-        jobTitle: applicants.jobTitle,
-        createdAt: applicants.createdAt,
-        scheduledAt: applicants.scheduledAt,
-      })
-      .from(applicants)
-      .where(eq(applicants.userId, userId))
-      .orderBy(desc(applicants.createdAt))
-      .limit(5);
-
-    return {
-      activeJobs: jobsRow?.count ?? 0,
-      totalApplicants: statsRow?.totalApplicants ?? 0,
-      completedInterviews: statsRow?.completedInterviews ?? 0,
-      avgFitScore: statsRow?.avgFitScore ?? "0",
-      recentApplicants,
-    };
-  } catch (error) {
-    console.error("Error fetching dashboard stats:", error);
-    return null;
-  }
-}
 
 export async function createCandidate(data: {
   name: string;
@@ -158,6 +109,14 @@ export async function createCandidate(data: {
          console.error("Error sending interview invite email:", emailError);
        }
 
+       // Notify the recruiter about the new candidate (side effect only).
+       try {
+         const { notifyApplicationCreated } = await import("@/lib/notifications");
+         await notifyApplicationCreated(newCandidate[0].id);
+       } catch (notifyError) {
+         console.error("Error sending new-candidate notification:", notifyError);
+       }
+
        // Enroll candidate in the first pipeline round (if pipeline exists)
        if (data.targetJobId) {
          try {
@@ -238,16 +197,197 @@ export async function getCandidates(jobId?: number) {
     .leftJoin(jobs, eq(applicants.targetJobId, jobs.id))
     .where(whereClause);
     
+    // ─── Bulk pipeline enrichment (no N+1) ──────────────────────────
+    // Fetch pipelines, rounds, and candidate_rounds for ALL returned
+    // candidates in a few grouped queries, then assemble in JS.
+    const candidateIds = data.map((c) => c.id);
+    const jobIds = data
+      .map((c) => c.targetJobId)
+      .filter((id): id is number => id !== null);
+
+    const pipelineByJob = new Map<number, number>();
+    const roundsByPipeline = new Map<
+      number,
+      { id: number; type: string; name: string | null; order: number }[]
+    >();
+    const crByCandidate = new Map<
+      number,
+      {
+        roundId: number;
+        status: string;
+        score: number | null;
+        startedAt: Date | null;
+        completedAt: Date | null;
+      }[]
+    >();
+
+    if (jobIds.length > 0) {
+      const pipelineRows = await db
+        .select({ id: pipelines.id, jobId: pipelines.jobId })
+        .from(pipelines)
+        .where(inArray(pipelines.jobId, jobIds));
+
+      for (const p of pipelineRows) pipelineByJob.set(p.jobId, p.id);
+
+      const pipelineIds = pipelineRows.map((p) => p.id);
+      if (pipelineIds.length > 0) {
+        const roundRows = await db
+          .select({
+            id: pipelineRounds.id,
+            pipelineId: pipelineRounds.pipelineId,
+            type: pipelineRounds.type,
+            name: pipelineRounds.name,
+            order: pipelineRounds.order,
+          })
+          .from(pipelineRounds)
+          .where(inArray(pipelineRounds.pipelineId, pipelineIds))
+          .orderBy(asc(pipelineRounds.order));
+
+        for (const r of roundRows) {
+          const list = roundsByPipeline.get(r.pipelineId) ?? [];
+          list.push({
+            id: r.id,
+            type: r.type,
+            name: r.name,
+            order: r.order,
+          });
+          roundsByPipeline.set(r.pipelineId, list);
+        }
+      }
+    }
+
+    if (candidateIds.length > 0) {
+      const crRows = await db
+        .select({
+          candidateId: candidateRounds.candidateId,
+          roundId: candidateRounds.roundId,
+          status: candidateRounds.status,
+          score: candidateRounds.score,
+          startedAt: candidateRounds.startedAt,
+          completedAt: candidateRounds.completedAt,
+        })
+        .from(candidateRounds)
+        .where(inArray(candidateRounds.candidateId, candidateIds));
+
+      for (const cr of crRows) {
+        const list = crByCandidate.get(cr.candidateId) ?? [];
+        list.push(cr);
+        crByCandidate.set(cr.candidateId, list);
+      }
+    }
+
     // Dynamically update status to 'Missed' if past scheduledAt and not completed
     const now = new Date();
-    return data.map(c => {
-      if (c.status !== "Completed" && c.scheduledAt && new Date(c.scheduledAt) < now) {
-        return { ...c, status: "Missed" };
+    return data.map((c) => {
+      let status = c.status;
+      if (status !== "Completed" && c.scheduledAt && new Date(c.scheduledAt) < now) {
+        status = "Missed";
       }
-      if (c.status === "Ready" && c.scheduledAt && new Date(c.scheduledAt) >= now) {
-        return { ...c, status: "Scheduled" };
+      if (status === "Ready" && c.scheduledAt && new Date(c.scheduledAt) >= now) {
+        status = "Scheduled";
       }
-      return c;
+
+      const rounds = c.targetJobId
+        ? roundsByPipeline.get(pipelineByJob.get(c.targetJobId) ?? -1) ?? []
+        : [];
+      const crs = crByCandidate.get(c.id) ?? [];
+      const crByRound = new Map(crs.map((cr) => [cr.roundId, cr]));
+
+      // Current stage: first ACTIVE round, else first PENDING round (pipeline order).
+      let currentStageType: string | null = null;
+      let currentStageName: string | null = null;
+      let currentStageStatus: string | null = null;
+
+      for (const r of rounds) {
+        const cr = crByRound.get(r.id);
+        if (cr && cr.status === "ACTIVE") {
+          currentStageType = r.type;
+          currentStageName = r.name;
+          currentStageStatus = "ACTIVE";
+          break;
+        }
+      }
+      if (!currentStageStatus) {
+        for (const r of rounds) {
+          const cr = crByRound.get(r.id);
+          if (cr && cr.status === "PENDING") {
+            currentStageType = r.type;
+            currentStageName = r.name;
+            currentStageStatus = "PENDING";
+            break;
+          }
+        }
+      }
+      // If the candidate failed somewhere, surface the failed stage.
+      if (!currentStageStatus) {
+        for (const r of rounds) {
+          const cr = crByRound.get(r.id);
+          if (cr && cr.status === "FAILED") {
+            currentStageType = r.type;
+            currentStageName = r.name;
+            currentStageStatus = "FAILED";
+            break;
+          }
+        }
+      }
+
+      const statuses = rounds.map((r) => crByRound.get(r.id)?.status ?? "NOT_STARTED");
+      const pipelineStatus =
+        rounds.length === 0
+          ? "no-pipeline"
+          : statuses.includes("FAILED")
+            ? "failed"
+            : currentStageStatus
+              ? "in-progress"
+              : statuses.every((s) => s === "PASSED" || s === "SKIPPED")
+                ? "complete"
+                : "not-started";
+
+      const needsReview =
+        currentStageStatus === "ACTIVE" && currentStageType === "MANUAL_REVIEW";
+
+      let assessmentScore: number | null = null;
+      let interviewScore: number | null = null;
+      for (const r of rounds) {
+        const cr = crByRound.get(r.id);
+        if (!cr) continue;
+        if (r.type === "ASSESSMENT" && cr.score !== null) assessmentScore = cr.score;
+        if (r.type === "AI_INTERVIEW" && cr.score !== null) interviewScore = cr.score;
+      }
+      // Legacy fallback: interview score stored on the applicant row.
+      if (interviewScore === null && c.score) {
+        const parsed = parseInt(c.score, 10);
+        if (!Number.isNaN(parsed)) interviewScore = parsed;
+      }
+
+      const timestamps = [new Date(c.createdAt).getTime()];
+      const terminalCompletions: number[] = [];
+      for (const cr of crs) {
+        if (cr.startedAt) timestamps.push(new Date(cr.startedAt).getTime());
+        if (cr.completedAt) {
+          timestamps.push(new Date(cr.completedAt).getTime());
+          if (["PASSED", "FAILED", "SKIPPED"].includes(cr.status)) {
+            terminalCompletions.push(new Date(cr.completedAt).getTime());
+          }
+        }
+      }
+
+      return {
+        ...c,
+        status,
+        currentStageType,
+        currentStageName,
+        currentStageStatus,
+        pipelineStatus,
+        needsReview,
+        assessmentScore,
+        interviewScore,
+        lastActivityAt: new Date(Math.max(...timestamps)),
+        stageCompletedAt:
+          terminalCompletions.length > 0
+            ? new Date(Math.max(...terminalCompletions))
+            : null,
+      };
     });
   } catch (error) {
     console.error("Error fetching candidates:", error);

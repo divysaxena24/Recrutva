@@ -114,6 +114,7 @@ export async function POST(
     const [assessmentRound] = await db
       .select({
         id: pipelineRounds.id,
+        name: pipelineRounds.name,
         order: pipelineRounds.order,
         configuration: pipelineRounds.configuration,
       })
@@ -295,6 +296,12 @@ export async function POST(
 
     // 14. If PASSED, activate next round
     let nextRoundActivated = false;
+    let activatedNextRound: {
+      id: number;
+      name: string;
+      type: string;
+      order: number;
+    } | null = null;
 
     if (roundStatus === "PASSED") {
       // Import the helper dynamically to avoid circular dependencies
@@ -305,6 +312,7 @@ export async function POST(
         pipeline.id,
         assessmentRound.order
       );
+      activatedNextRound = nextRound;
 
       if (nextRound) {
         // Deactivate any existing ACTIVE round
@@ -360,6 +368,25 @@ export async function POST(
 
         nextRoundActivated = true;
       }
+    }
+
+    // 15. Notifications (side effect — must never affect the transaction)
+    try {
+      const { notifyRoundCompleted } = await import("@/lib/notifications");
+      await notifyRoundCompleted({
+        candidateId,
+        candidateRoundId: candidateRound.id,
+        round: {
+          id: assessmentRound.id,
+          type: "ASSESSMENT",
+          name: assessmentRound.name,
+        },
+        status: roundStatus,
+        score: Math.round(grade.percentage),
+        activatedRound: activatedNextRound,
+      });
+    } catch (notifyError) {
+      console.error("[Assessment] Notification failed:", notifyError);
     }
 
     return NextResponse.json({

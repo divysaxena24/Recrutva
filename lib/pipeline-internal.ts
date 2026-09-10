@@ -77,6 +77,7 @@ export async function completeAIRound({
     const [aiRound] = await db
       .select({
         id: pipelineRounds.id,
+        name: pipelineRounds.name,
         order: pipelineRounds.order,
       })
       .from(pipelineRounds)
@@ -108,7 +109,9 @@ export async function completeAIRound({
       .limit(1);
 
     // 6. Create or update the candidate_round
+    let completedRoundId: number | null = null;
     if (existingRound) {
+      completedRoundId = existingRound.id;
       // Only update if not already completed (PASSED or FAILED)
       if (existingRound.status !== "PASSED" && existingRound.status !== "FAILED") {
         await db
@@ -123,21 +126,33 @@ export async function completeAIRound({
           .where(eq(candidateRounds.id, existingRound.id));
       }
     } else {
-      await db.insert(candidateRounds).values({
-        candidateId,
-        roundId: aiRound.id,
-        status: roundStatus,
-        score,
-        feedback: summary,
-        evaluation,
-        startedAt: new Date(),
-        completedAt: new Date(),
-      });
+      const inserted = await db
+        .insert(candidateRounds)
+        .values({
+          candidateId,
+          roundId: aiRound.id,
+          status: roundStatus,
+          score,
+          feedback: summary,
+          evaluation,
+          startedAt: new Date(),
+          completedAt: new Date(),
+        })
+        .returning({ id: candidateRounds.id });
+      completedRoundId = inserted[0]?.id ?? null;
     }
 
     // 7. If PASSED, activate the next round
+    let activatedNextRound: {
+      id: number;
+      name: string;
+      type: string;
+      order: number;
+    } | null = null;
+
     if (roundStatus === "PASSED") {
       const nextRound = await getNextPipelineRound(pipeline.id, aiRound.order);
+      activatedNextRound = nextRound;
 
       if (nextRound) {
         // Deactivate any existing ACTIVE round for this candidate (preserve history)
@@ -190,6 +205,27 @@ export async function completeAIRound({
           });
         }
       }
+    }
+
+    // 8. Notifications (side effect — must never affect the transaction)
+    try {
+      if (completedRoundId !== null) {
+        const { notifyRoundCompleted } = await import("@/lib/notifications");
+        await notifyRoundCompleted({
+          candidateId,
+          candidateRoundId: completedRoundId,
+          round: {
+            id: aiRound.id,
+            type: "AI_INTERVIEW",
+            name: aiRound.name,
+          },
+          status: roundStatus,
+          score,
+          activatedRound: activatedNextRound,
+        });
+      }
+    } catch (notifyError) {
+      console.error("[AI Interview] Notification failed:", notifyError);
     }
 
     return {
@@ -256,6 +292,7 @@ export async function completeScreeningRound({
     const [screeningRound] = await db
       .select({
         id: pipelineRounds.id,
+        name: pipelineRounds.name,
         order: pipelineRounds.order,
         configuration: pipelineRounds.configuration,
       })
@@ -353,7 +390,9 @@ export async function completeScreeningRound({
     const roundStatus: "PASSED" | "FAILED" = screeningResult.decision === "PASS" ? "PASSED" : "FAILED";
 
     // 11. Update the candidate_round with results
+    let completedRoundId: number | null = null;
     if (existingRound) {
+      completedRoundId = existingRound.id;
       await db
         .update(candidateRounds)
         .set({
@@ -366,26 +405,37 @@ export async function completeScreeningRound({
         .where(eq(candidateRounds.id, existingRound.id));
     } else {
       // Create the candidate_round (shouldn't normally happen, but safe fallback)
-      await db.insert(candidateRounds).values({
-        candidateId,
-        roundId: screeningRound.id,
-        status: roundStatus,
-        score: screeningResult.score,
-        feedback: screeningResult.result.summary,
-        evaluation: screeningResult.result,
-        startedAt: new Date(),
-        completedAt: new Date(),
-      });
+      const inserted = await db
+        .insert(candidateRounds)
+        .values({
+          candidateId,
+          roundId: screeningRound.id,
+          status: roundStatus,
+          score: screeningResult.score,
+          feedback: screeningResult.result.summary,
+          evaluation: screeningResult.result,
+          startedAt: new Date(),
+          completedAt: new Date(),
+        })
+        .returning({ id: candidateRounds.id });
+      completedRoundId = inserted[0]?.id ?? null;
     }
 
     // 12. If PASSED, activate the next round
     let nextRoundActivated = false;
+    let activatedNextRound: {
+      id: number;
+      name: string;
+      type: string;
+      order: number;
+    } | null = null;
 
     if (roundStatus === "PASSED") {
       const nextRound = await getNextPipelineRound(
         pipeline.id,
         screeningRound.order
       );
+      activatedNextRound = nextRound;
 
       if (nextRound) {
         // Deactivate any existing ACTIVE round for this candidate
@@ -441,6 +491,27 @@ export async function completeScreeningRound({
 
         nextRoundActivated = true;
       }
+    }
+
+    // 13. Notifications (side effect — must never affect the transaction)
+    try {
+      if (completedRoundId !== null) {
+        const { notifyRoundCompleted } = await import("@/lib/notifications");
+        await notifyRoundCompleted({
+          candidateId,
+          candidateRoundId: completedRoundId,
+          round: {
+            id: screeningRound.id,
+            type: "RESUME_SCREENING",
+            name: screeningRound.name,
+          },
+          status: roundStatus,
+          score: screeningResult.score,
+          activatedRound: activatedNextRound,
+        });
+      }
+    } catch (notifyError) {
+      console.error("[Screening] Notification failed:", notifyError);
     }
 
     revalidatePath("/dashboard/candidates");

@@ -2,37 +2,7 @@ import { db } from "@/db";
 import { applicants } from "@/db/schema";
 import { eq, and, isNull, lt, or } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-
-/**
- * Build the SMTP transport.
- * Prefers SMTP_* variables; falls back to legacy EMAIL_USER/EMAIL_PASS.
- */
-function getTransporter() {
-  const host = process.env.SMTP_HOST || "smtp.gmail.com";
-  const port = parseInt(process.env.SMTP_PORT || "465", 10);
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-
-  if (!user || !pass) {
-    throw new Error(
-      "SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (or EMAIL_USER, EMAIL_PASS)."
-    );
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
-}
-
-const SMTP_FROM =
-  process.env.EMAIL_FROM ||
-  process.env.SMTP_USER ||
-  process.env.EMAIL_USER ||
-  "Recrutva AI <no-reply@recrutva.ai>";
+import { sendEmail, getAppUrl } from "@/lib/email";
 
 /**
  * GET /api/cron/reminders
@@ -106,9 +76,7 @@ export async function GET(req: NextRequest) {
           })
         : "your scheduled slot";
 
-      const interviewLink = `${
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-      }/interview/${candidate.id}`;
+      const interviewLink = `${getAppUrl()}/interview/${candidate.id}`;
 
       const htmlBody = `
         <!DOCTYPE html>
@@ -181,7 +149,7 @@ export async function GET(req: NextRequest) {
             <div style="border-top:1px solid #1e1e2e;padding:20px 40px;text-align:center;">
               <p style="color:#334155;font-size:11px;margin:0;">
                 © ${new Date().getFullYear()} Recrutva AI &nbsp;·&nbsp; Automated Reminder &nbsp;·&nbsp;
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/jobs" style="color:#4f46e5;text-decoration:none;">Browse Jobs</a>
+                <a href="${getAppUrl()}/jobs" style="color:#4f46e5;text-decoration:none;">Browse Jobs</a>
               </p>
             </div>
 
@@ -190,14 +158,14 @@ export async function GET(req: NextRequest) {
         </html>
       `;
 
-      try {
-        await getTransporter().sendMail({
-          from: SMTP_FROM.includes("<") ? SMTP_FROM : `"Recrutva AI" <${SMTP_FROM}>`,
-          to: candidate.email,
-          subject: `⏰ Reminder: Your AI Interview for "${candidate.jobTitle}" is Waiting`,
-          html: htmlBody,
-        });
+      // sendEmail never throws; failures are logged and do not corrupt state.
+      const result = await sendEmail({
+        to: candidate.email,
+        subject: `⏰ Reminder: Your AI Interview for "${candidate.jobTitle}" is Waiting`,
+        html: htmlBody,
+      });
 
+      if (result.success) {
         // Mark as notified
         await db
           .update(applicants)
@@ -206,8 +174,8 @@ export async function GET(req: NextRequest) {
 
         console.log(`[EMAIL SENT] ✅ ${candidate.email}`);
         results.push({ name: candidate.name, email: candidate.email, status: "Sent" });
-      } catch (emailErr) {
-        console.error(`[EMAIL ERROR] ❌ ${candidate.email}:`, emailErr);
+      } else {
+        console.error(`[EMAIL ERROR] ❌ ${candidate.email}: ${result.error}`);
         results.push({ name: candidate.name, email: candidate.email, status: "Failed" });
       }
     }

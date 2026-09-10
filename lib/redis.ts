@@ -45,7 +45,7 @@ export interface RedisClient {
   set(
     key: string,
     value: string | number | boolean,
-    opts?: { ex?: number }
+    opts?: { ex?: number; nx?: boolean }
   ): Promise<unknown>;
   incr(key: string): Promise<number>;
   expire(key: string, seconds: number): Promise<number>;
@@ -127,10 +127,18 @@ export function getRedis(): RedisClient | null {
 function adaptUpstash(client: UpstashRedis): RedisClient {
   return {
     get: (key) => client.get(key) as Promise<string | null>,
-    set: (key, value, opts) =>
-      opts?.ex !== undefined
-        ? client.set(key, value, { ex: opts.ex })
-        : client.set(key, value),
+    set: (key, value, opts) => {
+      if (opts?.ex !== undefined && opts.nx) {
+        return client.set(key, value, { ex: opts.ex, nx: true });
+      }
+      if (opts?.ex !== undefined) {
+        return client.set(key, value, { ex: opts.ex });
+      }
+      if (opts?.nx) {
+        return client.set(key, value, { nx: true });
+      }
+      return client.set(key, value);
+    },
     incr: (key) => client.incr(key) as Promise<number>,
     expire: (key, seconds) => client.expire(key, seconds) as Promise<number>,
     ttl: (key) => client.ttl(key) as Promise<number>,
@@ -179,9 +187,13 @@ function adaptIORedis(client: IORedis): RedisClient {
     },
     set: async (key, value, opts) => {
       await whenReady();
-      return opts?.ex
-        ? client.set(key, encode(value), "EX", opts.ex)
-        : client.set(key, encode(value));
+      const encoded = encode(value);
+      const ex = opts?.ex;
+      const nx = opts?.nx;
+      if (ex && nx) return client.set(key, encoded, "EX", ex, "NX");
+      if (ex) return client.set(key, encoded, "EX", ex);
+      if (nx) return client.set(key, encoded, "NX");
+      return client.set(key, encoded);
     },
     incr: async (key) => {
       await whenReady();

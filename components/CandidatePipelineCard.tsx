@@ -15,6 +15,8 @@ import {
   Bot,
   MessageSquare,
   ClipboardCheck,
+  ExternalLink,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,7 +53,13 @@ type RoundData = {
 };
 
 type PipelineData = {
-  candidate: { id: number; name: string; email: string; targetJobId: number | null };
+  candidate: {
+    id: number;
+    name: string;
+    email: string;
+    targetJobId: number | null;
+    resumeUrl: string | null;
+  };
   rounds: RoundData[];
 };
 
@@ -137,6 +145,9 @@ export default function CandidatePipelineCard({
   // Move round state
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [moveTargetRoundIndex, setMoveTargetRoundIndex] = useState<number | null>(null);
+
+  // Review mode: force-expands evaluation details (used for manual review).
+  const [reviewMode, setReviewMode] = useState(false);
 
   const mountedRef = useRef(true);
 
@@ -286,6 +297,7 @@ export default function CandidatePipelineCard({
   const activeRound = pipeline.rounds.find((r) => r.status === "ACTIVE");
   const allPassed = pipeline.rounds.every((r) => r.status === "PASSED");
   const hasFailed = pipeline.rounds.some((r) => r.status === "FAILED");
+  const needsReview = activeRound?.type === "MANUAL_REVIEW";
 
   return (
     <Card className="bg-[#0a0a0f] border-slate-800/60 rounded-2xl overflow-hidden">
@@ -304,7 +316,7 @@ export default function CandidatePipelineCard({
       )}
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-800/40 flex items-center justify-between">
+      <div className="px-6 py-4 border-b border-slate-800/40 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="bg-indigo-500/10 p-2 rounded-xl ring-1 ring-indigo-500/20">
             <ArrowRight className="w-4 h-4 text-indigo-400" />
@@ -317,32 +329,71 @@ export default function CandidatePipelineCard({
           </div>
         </div>
 
-        {activeRound && (
-          <Badge
-            variant="outline"
-            className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
-          >
-            Current: {activeRound.name}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {needsReview && (
+            <Badge
+              variant="outline"
+              className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse"
+            >
+              Needs Review
+            </Badge>
+          )}
 
-        {allPassed && (
-          <Badge
-            variant="outline"
-            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
-          >
-            <Trophy className="w-3 h-3 mr-1" /> Pipeline Completed
-          </Badge>
-        )}
+          {activeRound && !needsReview && (
+            <Badge
+              variant="outline"
+              className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+            >
+              Current: {activeRound.name}
+            </Badge>
+          )}
 
-        {!activeRound && !allPassed && hasFailed && (
-          <Badge
-            variant="outline"
-            className="bg-rose-500/10 text-rose-400 border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
-          >
-            Round Failed
-          </Badge>
-        )}
+          {allPassed && (
+            <Badge
+              variant="outline"
+              className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+            >
+              <Trophy className="w-3 h-3 mr-1" /> Pipeline Completed
+            </Badge>
+          )}
+
+          {!activeRound && !allPassed && hasFailed && (
+            <Badge
+              variant="outline"
+              className="bg-rose-500/10 text-rose-400 border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+            >
+              Round Failed
+            </Badge>
+          )}
+
+          {needsReview && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReviewMode((v) => !v)}
+              className="h-8 px-3 rounded-lg text-[11px] font-bold border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
+            >
+              <Eye className="w-3.5 h-3.5 mr-1" />
+              {reviewMode ? "Collapse Details" : "Review Candidate"}
+            </Button>
+          )}
+
+          {pipeline.candidate.resumeUrl && (
+            <a
+              href={pipeline.candidate.resumeUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1" /> Resume
+              </Button>
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Rounds */}
@@ -357,10 +408,12 @@ export default function CandidatePipelineCard({
             return (
               <div key={index}>
                 <div
-                  className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${
-                    isActive
-                      ? "bg-indigo-500/5 ring-1 ring-indigo-500/10"
-                      : "hover:bg-white/[0.02]"
+                  className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-xl transition-colors ${
+                    isActive && round.type === "MANUAL_REVIEW"
+                      ? "bg-purple-500/5 ring-1 ring-purple-500/20"
+                      : isActive
+                        ? "bg-indigo-500/5 ring-1 ring-indigo-500/10"
+                        : "hover:bg-white/[0.02]"
                   }`}
                 >
                   {/* Status Icon */}
@@ -434,41 +487,91 @@ export default function CandidatePipelineCard({
                     {config.label}
                   </Badge>
 
-                  {/* Active Round Actions */}
-                  {isActive && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openCompleteDialog(index, "PASSED")}
-                        className="h-8 px-3 rounded-lg text-[11px] font-bold border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Pass
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openCompleteDialog(index, "FAILED")}
-                        className="h-8 px-3 rounded-lg text-[11px] font-bold border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
-                      >
-                        <XCircle className="w-3.5 h-3.5 mr-1" /> Fail
-                      </Button>
-                    </div>
-                  )}
+                  {/* Round Actions */}
+                  <div className="flex items-center gap-2 flex-wrap shrink-0">
+                    {round.type === "ASSESSMENT" &&
+                      ["ACTIVE", "PASSED", "FAILED"].includes(round.status) && (
+                        <a
+                          href={`/assessment/${pipeline.candidate.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                            {round.status === "ACTIVE" ? "View Assessment" : "View Result"}
+                          </Button>
+                        </a>
+                      )}
+
+                    {round.type === "AI_INTERVIEW" &&
+                      ["ACTIVE", "PASSED", "FAILED"].includes(round.status) && (
+                        <a
+                          href={
+                            round.status === "ACTIVE"
+                              ? `/interview/${pipeline.candidate.id}`
+                              : `/interview/${pipeline.candidate.id}?view=summary`
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                            {round.status === "ACTIVE"
+                              ? "View Interview"
+                              : "View Result"}
+                          </Button>
+                        </a>
+                      )}
+
+                    {isActive && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openCompleteDialog(index, "PASSED")}
+                          className="h-8 px-3 rounded-lg text-[11px] font-bold border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Pass
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openCompleteDialog(index, "FAILED")}
+                          className="h-8 px-3 rounded-lg text-[11px] font-bold border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
+                        >
+                          <XCircle className="w-3.5 h-3.5 mr-1" /> Fail
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Screening Evaluation Detail */}
                 {round.type === "RESUME_SCREENING" &&
                   round.evaluation &&
                   (round.status === "PASSED" || round.status === "FAILED") ? (
-                  <ScreeningEvaluation evaluation={round.evaluation as Record<string, unknown>} />
+                  <ScreeningEvaluation
+                    evaluation={round.evaluation as Record<string, unknown>}
+                    forceExpand={reviewMode}
+                  />
                 ) : null}
 
                 {/* Assessment Evaluation Detail */}
                 {round.type === "ASSESSMENT" &&
                   round.evaluation &&
                   (round.status === "PASSED" || round.status === "FAILED") ? (
-                  <AssessmentEvaluation evaluation={round.evaluation as Record<string, unknown>} />
+                  <AssessmentEvaluation
+                    evaluation={round.evaluation as Record<string, unknown>}
+                    forceExpand={reviewMode}
+                  />
                 ) : null}
 
                 {/* Connector line */}
@@ -699,7 +802,10 @@ type ScreeningEvaluationData = {
   experienceMatch: string;
 };
 
-const ScreeningEvaluation: React.FC<ScreeningEvaluationProps> = ({ evaluation }) => {
+const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: boolean }> = ({
+  evaluation,
+  forceExpand = false,
+}) => {
   const [expanded, setExpanded] = useState(false);
 
   // Safely parse evaluation data
@@ -722,7 +828,7 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps> = ({ evaluation })
         {expanded ? "Hide" : "Show"} Screening Details
       </button>
 
-      {expanded && (
+      {(expanded || forceExpand) && (
         <div className="mt-3 space-y-4 bg-white/[0.02] rounded-xl p-4 ring-1 ring-white/5">
           {/* Summary */}
           {data.summary && (
@@ -884,8 +990,9 @@ type GradingData = {
   summary: string;
 };
 
-const AssessmentEvaluation: React.FC<AssessmentEvaluationProps> = ({
+const AssessmentEvaluation: React.FC<AssessmentEvaluationProps & { forceExpand?: boolean }> = ({
   evaluation,
+  forceExpand = false,
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -910,7 +1017,7 @@ const AssessmentEvaluation: React.FC<AssessmentEvaluationProps> = ({
         {expanded ? "Hide" : "Show"} Assessment Details
       </button>
 
-      {expanded && (
+      {(expanded || forceExpand) && (
         <div className="mt-3 space-y-4 bg-white/[0.02] rounded-xl p-4 ring-1 ring-white/5">
           {/* Summary */}
           {(summary || grading.summary) && (

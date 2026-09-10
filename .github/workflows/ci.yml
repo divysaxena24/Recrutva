@@ -1,0 +1,165 @@
+# =============================================================================
+# Recrutva — CI Workflow
+# =============================================================================
+#
+# Runs on:
+#   - Pull requests targeting main
+#   - Pushes to main
+#
+# Checks:
+#   1. Install dependencies (npm ci)
+#   2. TypeScript type checking
+#   3. ESLint
+#   4. Tests (existing deterministic test scripts)
+#   5. Next.js production build
+#   6. Docker image build (no push — CI only)
+#
+# Secrets handled:
+#   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: Required at build time (public key)
+#   - NEXT_PUBLIC_APP_URL: Required at build time (public URL)
+#
+# These are build-time constants that get inlined by Next.js. They are NOT
+# secrets and can be set as GitHub repository variables.
+#
+# All other variables (DATABASE_URL, CLERK_SECRET_KEY, GROQ_API_KEY, etc.)
+# are runtime-only and MUST NOT be provided during the build.
+#
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Cancel in-progress runs when new commits are pushed
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege permissions — only read repository contents
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint and Test (fast feedback, no build required)
+  # ---------------------------------------------------------------------------
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Run tests (email service, templates, notifications)
+        run: npx tsx --tsconfig tsconfig.test.json scripts/phase4-email-test.ts
+
+  # ---------------------------------------------------------------------------
+  # Production Build (requires Clerk publishable key at build time)
+  # ---------------------------------------------------------------------------
+  build:
+    name: Production Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Run tests (email service, templates, notifications)
+        run: npx tsx --tsconfig tsconfig.test.json scripts/phase4-email-test.ts
+
+      - name: Next.js production build
+        env:
+          # Build-time public variables (inlined by Next.js during build)
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+          # Runtime-only variables — not needed for build, omit to avoid issues
+          NODE_ENV: production
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Docker Build (after application checks pass)
+  # ---------------------------------------------------------------------------
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Run tests (email service, templates, notifications)
+        run: npx tsx --tsconfig tsconfig.test.json scripts/phase4-email-test.ts
+
+      - name: Next.js production build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+          NODE_ENV: production
+        run: npm run build
+
+      - name: Build Docker image
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_placeholder' }}
+          NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" \
+            --build-arg NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL}" \
+            -t recrutva:${{ github.sha }} \
+            .

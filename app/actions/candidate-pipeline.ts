@@ -48,6 +48,7 @@ export async function getCandidatePipeline(candidateId: number) {
         name: applicants.name,
         email: applicants.email,
         targetJobId: applicants.targetJobId,
+        resumeUrl: applicants.resumeUrl,
       })
       .from(applicants)
       .where(and(eq(applicants.id, candidateId), eq(applicants.userId, userId)))
@@ -185,6 +186,8 @@ export async function moveCandidateToRound({
       .select({
         id: pipelineRounds.id,
         pipelineId: pipelineRounds.pipelineId,
+        type: pipelineRounds.type,
+        name: pipelineRounds.name,
         order: pipelineRounds.order,
       })
       .from(pipelineRounds)
@@ -255,6 +258,19 @@ export async function moveCandidateToRound({
         })
         .returning();
       resultRound = created;
+    }
+
+    // 6. Notifications (side effect — must never affect the transaction)
+    try {
+      const { notifyRoundActivated } = await import("@/lib/notifications");
+      await notifyRoundActivated(
+        candidateId,
+        resultRound.id,
+        targetRound.type,
+        targetRound.name
+      );
+    } catch (notifyError) {
+      console.error("Error sending round-activated notification:", notifyError);
     }
 
     revalidatePath("/dashboard/candidates");
@@ -329,7 +345,11 @@ export async function updateCandidateRoundStatus({
     // 3. Verify ownership: candidate_round → pipeline_round → pipeline → job → job.userId
     const [pipelineRound] = await db
       .select({
+        id: pipelineRounds.id,
         pipelineId: pipelineRounds.pipelineId,
+        type: pipelineRounds.type,
+        name: pipelineRounds.name,
+        order: pipelineRounds.order,
       })
       .from(pipelineRounds)
       .where(eq(pipelineRounds.id, candidateRound.roundId))
@@ -454,6 +474,8 @@ export async function completeCandidateRound({
       .select({
         id: pipelineRounds.id,
         pipelineId: pipelineRounds.pipelineId,
+        type: pipelineRounds.type,
+        name: pipelineRounds.name,
         order: pipelineRounds.order,
       })
       .from(pipelineRounds)
@@ -495,12 +517,19 @@ export async function completeCandidateRound({
     // 5. If PASSED, find and activate the next round
     let nextRoundActivated = false;
     let pipelineCompleted = false;
+    let activatedNextRound: {
+      id: number;
+      name: string;
+      type: string;
+      order: number;
+    } | null = null;
 
     if (status === "PASSED") {
       const nextRound = await getNextPipelineRound(
         pipelineRound.pipelineId,
         pipelineRound.order
       );
+      activatedNextRound = nextRound;
 
       if (nextRound) {
         // Deactivate any existing ACTIVE round for this candidate (preserve history)
@@ -561,6 +590,28 @@ export async function completeCandidateRound({
         // No next round — pipeline completed
         pipelineCompleted = true;
       }
+    }
+
+    // 6. Notifications (side effect — must never affect the transaction).
+    // The recruiter performed this completion themselves, so they do not get
+    // a "completed" email about their own action.
+    try {
+      const { notifyRoundCompleted } = await import("@/lib/notifications");
+      await notifyRoundCompleted({
+        candidateId: candidateRound.candidateId,
+        candidateRoundId: candidateRound.id,
+        round: {
+          id: pipelineRound.id,
+          type: pipelineRound.type,
+          name: pipelineRound.name,
+        },
+        status,
+        score: score ?? null,
+        activatedRound: activatedNextRound,
+        notifyRecruiterCompletion: false,
+      });
+    } catch (notifyError) {
+      console.error("Error sending round-completion notification:", notifyError);
     }
 
     revalidatePath("/dashboard/candidates");

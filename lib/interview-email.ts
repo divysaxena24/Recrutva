@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { sendEmail, getAppUrl } from "@/lib/email";
 
 type InterviewInviteEmailParams = {
   candidateId: number;
@@ -8,34 +8,6 @@ type InterviewInviteEmailParams = {
   scheduledAt: Date | null;
   emailType?: "invite" | "reminder";
 };
-
-/**
- * Build the SMTP transport.
- *
- * Prefers the standardized SMTP_* variables (SMTP_HOST, SMTP_PORT, SMTP_USER,
- * SMTP_PASS) that Docker Compose and production pass to the container.
- * Falls back to the legacy EMAIL_USER/EMAIL_PASS Gmail-style variables for
- * existing local development setups.
- */
-function getTransporter() {
-  const host = process.env.SMTP_HOST || "smtp.gmail.com";
-  const port = parseInt(process.env.SMTP_PORT || "465", 10);
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-
-  if (!user || !pass) {
-    throw new Error(
-      "SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS (or EMAIL_USER, EMAIL_PASS)."
-    );
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465, // 465 = implicit TLS, 587 = STARTTLS
-    auth: { user, pass },
-  });
-}
 
 function formatInterviewDate(scheduledAt: Date | null) {
   if (!scheduledAt) return "your scheduled slot";
@@ -54,7 +26,7 @@ export function buildInterviewEmail({
   scheduledAt,
   emailType = "invite",
 }: InterviewInviteEmailParams) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = getAppUrl();
   const interviewDate = formatInterviewDate(scheduledAt);
   const interviewLink = `${appUrl}/interview/${candidateId}`;
   const heading =
@@ -145,17 +117,10 @@ export function buildInterviewEmail({
 }
 
 export async function sendInterviewInviteEmail(params: InterviewInviteEmailParams) {
-  const transporter = getTransporter();
   const { subject, html } = buildInterviewEmail(params);
-
-  const from =
-    process.env.EMAIL_FROM ||
-    process.env.SMTP_USER ||
-    process.env.EMAIL_USER ||
-    "Recrutva AI <no-reply@recrutva.ai>";
-
-  await transporter.sendMail({
-    from: from.includes("<") ? from : `"Recrutva AI" <${from}>`,
+  // sendEmail never throws and never fails the surrounding business
+  // transaction; delivery problems are logged and swallowed.
+  await sendEmail({
     to: params.candidateEmail,
     subject,
     html,
