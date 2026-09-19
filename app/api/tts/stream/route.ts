@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (blocked) return blocked;
 
     return handleTts(text);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

@@ -59,8 +59,9 @@ export async function GET(
       );
     }
 
-    // Strip the internal userId from the response
-    const { userId: _ownerId, ...safeCandidate } = candidate;
+    // Strip the internal userId from the response. JSON serialization omits
+    // undefined properties, so the field never reaches the client.
+    const safeCandidate = { ...candidate, userId: undefined };
 
     return NextResponse.json({ candidate: safeCandidate });
   } catch (error) {

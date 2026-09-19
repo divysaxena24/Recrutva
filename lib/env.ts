@@ -33,16 +33,6 @@ const OPTIONAL_ENV_VARS = [
   "CRON_SECRET",
 ] as const;
 
-// Sensitive variables that should NEVER be logged or exposed
-const SENSITIVE_VARS = [
-  "DATABASE_URL",
-  "CLERK_SECRET_KEY",
-  "GROQ_API_KEY",
-  "CLOUDINARY_API_SECRET",
-  "REDIS_TOKEN",
-  "SMTP_PASS",
-] as const;
-
 /**
  * Validate that all required environment variables are set.
  * Throws an error if any required variable is missing.

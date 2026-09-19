@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { applicants, jobs } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";

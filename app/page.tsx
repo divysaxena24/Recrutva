@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Mic, Users, Calendar, BarChart3, Bot, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Mic, Users, Calendar, Bot, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
+
+/**
+ * Decorative audio-wave bars for the mock live-call card.
+ * The randomized values are computed once at module scope: Math.random() is an
+ * impure function and must not run during render (react-hooks/purity).
+ */
+const AUDIO_WAVE_BARS = Array.from({ length: 30 }, () => ({
+  height: `${Math.random() * 80 + 20}%`,
+  duration: Math.random() * 0.5 + 0.5,
+  delay: Math.random() * 0.2,
+}));
 
 export default function Home() {
   const { userId } = useAuth();
@@ -182,17 +193,17 @@ export default function Home() {
               
               {/* Fake Audio Waves */}
               <div className="flex items-center justify-center gap-1.5 h-16 w-full">
-                {[...Array(30)].map((_, i) => (
+                {AUDIO_WAVE_BARS.map((bar, i) => (
                   <motion.div
                     key={i}
                     animate={{ 
-                      height: ["20%", `${Math.random() * 80 + 20}%`, "20%"] 
+                      height: ["20%", bar.height, "20%"] 
                     }}
                     transition={{ 
-                      duration: Math.random() * 0.5 + 0.5, 
+                      duration: bar.duration, 
                       repeat: Infinity, 
                       ease: "easeInOut",
-                      delay: Math.random() * 0.2
+                      delay: bar.delay
                     }}
                     className="w-1.5 bg-indigo-500/50 rounded-full"
                   />

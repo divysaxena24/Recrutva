@@ -6,27 +6,42 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getJobs, deleteJob } from "@/app/actions/job";
 import AddJobModal from "@/components/AddJobModal";
 import { useUser } from "@clerk/nextjs";
 
+/** A job row as returned by the getJobs server action. */
+type Job = Awaited<ReturnType<typeof getJobs>>[number];
+
 export default function JobsPage() {
   const { user } = useUser();
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchJobs = async () => {
+  // Loader shared by the mount effect and the refresh handlers. State is only
+  // written from promise callbacks: React forbids setState calls made
+  // synchronously from an effect, directly or through a called function.
+  const loadJobs = useCallback(() => {
+    return getJobs()
+      .then((data) => {
+        setJobs(data);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  // User-triggered refresh (create/delete) — re-shows the loading state.
+  const fetchJobs = useCallback(() => {
     setLoading(true);
-    const data = await getJobs();
-    setJobs(data);
-    setLoading(false);
-  };
+    return loadJobs();
+  }, [loadJobs]);
 
   useEffect(() => {
-    fetchJobs();
-  }, []);
+    loadJobs();
+  }, [loadJobs]);
 
   const filteredJobs = jobs.filter((job) => {
     const query = searchQuery.trim().toLowerCase();

@@ -266,8 +266,7 @@ export async function moveCandidateToRound({
       await notifyRoundActivated(
         candidateId,
         resultRound.id,
-        targetRound.type,
-        targetRound.name
+        targetRound.type
       );
     } catch (notifyError) {
       console.error("Error sending round-activated notification:", notifyError);

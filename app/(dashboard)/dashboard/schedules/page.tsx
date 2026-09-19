@@ -5,7 +5,7 @@ import { Calendar, Clock, User, Video, CheckCircle2, AlertCircle, CalendarClock,
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getCandidates, rescheduleCandidate } from "@/app/actions/candidate";
 import { 
@@ -20,26 +20,47 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
+/** A candidate row as returned by the getCandidates server action. */
+type Candidate = Awaited<ReturnType<typeof getCandidates>>[number];
+
 export default function SchedulesPage() {
   const router = useRouter();
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reschedulingCandidate, setReschedulingCandidate] = useState<any>(null);
+  const [reschedulingCandidate, setReschedulingCandidate] =
+    useState<Candidate | null>(null);
   const [newDate, setNewDate] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
-  const fetchCandidates = () => {
+  // Loader shared by the mount effect and the reschedule refresh. State is only
+  // written from promise callbacks: React forbids setState calls made
+  // synchronously from an effect, directly or through a called function.
+  const loadCandidates = useCallback(() => {
+    return getCandidates()
+      .then((data) => {
+        setCandidates(
+          data.filter(
+            (c) =>
+              c.scheduledAt ||
+              c.status === "Completed" ||
+              c.status === "Scheduled"
+          )
+        );
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const fetchCandidates = useCallback(() => {
     setLoading(true);
-    getCandidates().then(data => {
-      setCandidates(data.filter(c => c.scheduledAt || c.status === "Completed" || c.status === "Scheduled"));
-      setLoading(false);
-    });
-  };
+    return loadCandidates();
+  }, [loadCandidates]);
 
   useEffect(() => {
-    fetchCandidates();
-  }, []);
+    loadCandidates();
+  }, [loadCandidates]);
 
   const handleReschedule = async () => {
     if (!reschedulingCandidate || !newDate) return;

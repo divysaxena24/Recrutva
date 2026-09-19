@@ -1,7 +1,6 @@
 "use client";
 
 import { UserButton, useUser } from "@clerk/nextjs";
-import { motion } from "framer-motion";
 import { 
   Bot, 
   Briefcase,

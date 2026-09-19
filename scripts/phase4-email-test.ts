@@ -26,7 +26,6 @@ import {
   getAppUrl,
   isValidEmail,
   isEmailConfigured,
-  buildBrandedEmailHtml,
 } from "../lib/email";
 import { acquireNotificationLock } from "../lib/notifications";
 

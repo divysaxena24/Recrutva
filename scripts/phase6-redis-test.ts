@@ -54,7 +54,7 @@ async function main() {
   const g = await redisGet(`${K}:s`);
   log("GET string", g === "hello", `got ${JSON.stringify(g)}`);
   log("SET object", await redisSet(`${K}:o`, { a: 1, b: "x" }, 60), "JSON object");
-  const go = await redisGet<any>(`${K}:o`);
+  const go = await redisGet<{ a: number; b: string }>(`${K}:o`);
   log("GET object", go?.a === 1 && go?.b === "x", `got ${JSON.stringify(go)}`);
 
   // 3. TTL

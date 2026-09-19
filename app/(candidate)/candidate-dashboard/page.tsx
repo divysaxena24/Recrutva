@@ -156,21 +156,30 @@ export default function CandidateDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const fetchApplications = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const data = await getCandidateApplications();
-      setApplications(data);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+  // Loader shared by the mount effect and the retry button. State is only
+  // written from promise callbacks: React forbids setState calls made
+  // synchronously from an effect, directly or through a called function.
+  const loadApplications = useCallback(() => {
+    return getCandidateApplications()
+      .then((data) => {
+        setApplications(data);
+        setError(false);
+      })
+      .catch(() => {
+        setError(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
+  const fetchApplications = useCallback(() => {
+    setLoading(true);
+    return loadApplications();
+  }, [loadApplications]);
+
   useEffect(() => {
-    fetchApplications();
+    loadApplications();
 
     // Live status refresh (keeps scheduled/interview state current).
     const interval = setInterval(() => {
@@ -182,7 +191,7 @@ export default function CandidateDashboardPage() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchApplications]);
+  }, [loadApplications]);
 
   return (
     <div className="space-y-10 pb-20">

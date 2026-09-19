@@ -6,10 +6,28 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-export function InterviewSummaryViewer({ analysis, name }: { analysis: any; name: string }) {
+/** One graded question inside a stored AI interview evaluation. */
+interface InterviewBreakdownItem {
+  question?: string;
+  expectedAnswer?: string;
+  userAnswer?: string;
+  feedback?: string;
+  marks?: number;
+}
+
+/** A stored AI interview evaluation (older records may only carry a summary). */
+interface InterviewAnalysis {
+  totalScore?: number | null;
+  executiveSummary?: string | null;
+  /** Pre-`executiveSummary` records stored the narrative here. */
+  summary?: string | null;
+  breakdown?: InterviewBreakdownItem[];
+}
+
+export function InterviewSummaryViewer({ analysis, name }: { analysis: InterviewAnalysis | null; name: string }) {
   const router = useRouter();
   const totalScore = analysis?.totalScore ?? null;
-  const breakdown: any[] = analysis?.breakdown ?? [];
+  const breakdown: InterviewBreakdownItem[] = analysis?.breakdown ?? [];
   const summary = analysis?.executiveSummary ?? analysis?.summary ?? null;
 
   const scoreColor = totalScore === null ? "text-slate-400"
@@ -84,7 +102,7 @@ export function InterviewSummaryViewer({ analysis, name }: { analysis: any; name
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest px-2">
               Question-by-Question Breakdown
             </h2>
-            {breakdown.map((item: any, i: number) => {
+            {breakdown.map((item, i) => {
               const marks = item.marks ?? 0;
               const markColor = marks >= 7 ? "text-emerald-400" : marks >= 4 ? "text-amber-400" : "text-red-400";
               const markBarColor = marks >= 7 ? "bg-emerald-500" : marks >= 4 ? "bg-amber-500" : "bg-red-500";

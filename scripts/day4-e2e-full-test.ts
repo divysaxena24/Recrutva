@@ -8,8 +8,8 @@ import { db } from "../db";
 import { jobs, applicants, pipelines, pipelineRounds, candidateRounds } from "../db/schema";
 import { eq, and, asc } from "drizzle-orm";
 
-let testResults: { test: string; status: "PASS" | "FAIL" | "SKIP"; details: string }[] = [];
-let bugs: { severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"; description: string; location: string; fix: string }[] = [];
+const testResults: { test: string; status: "PASS" | "FAIL" | "SKIP"; details: string }[] = [];
+const bugs: { severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"; description: string; location: string; fix: string }[] = [];
 
 function log(test: string, status: "PASS" | "FAIL" | "SKIP", details: string) {
   testResults.push({ test, status, details });
@@ -520,7 +520,7 @@ async function testDuplicatePrevention(candidateId: number) {
   log("Test 6: Original score", "PASS", `${originalScore}`);
 
   // Try to complete again with a different score
-  const result = await completeAIRound({
+  await completeAIRound({
     candidateId,
     score: 99,
     summary: "Should not update",
@@ -693,7 +693,6 @@ async function testStateTransitions(candidateId: number) {
   const allRounds = await db.select().from(pipelineRounds)
     .orderBy(asc(pipelineRounds.order));
 
-  const roundMap = new Map(allRounds.map(r => [r.id, r]));
   const crMap = new Map(allCR.map(cr => [cr.roundId, cr]));
 
   console.log("\n  Pipeline State for Candidate #" + candidateId + ":");

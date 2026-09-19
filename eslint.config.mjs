@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local tooling worktrees (linked Git checkouts of this same project).
+    // They are not part of the repository and never exist in CI; linting them
+    // would double-report every finding against a stale copy of the source.
+    ".kilo/**",
   ]),
 ]);
 

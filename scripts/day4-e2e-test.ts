@@ -11,10 +11,10 @@
 
 import { db } from "../db";
 import { jobs, applicants, pipelines, pipelineRounds, candidateRounds } from "../db/schema";
-import { eq, and, asc, desc } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 
 // ─── Test State ───────────────────────────────────────────────────
-let testResults: { test: string; status: "PASS" | "FAIL" | "SKIP"; details: string }[] = [];
+const testResults: { test: string; status: "PASS" | "FAIL" | "SKIP"; details: string }[] = [];
 let testUserId = "test-recruiter-001";
 let testJobId: number;
 let testCandidateId: number;
@@ -433,7 +433,7 @@ async function testDuplicatePrevention() {
     }
 
     // Try to complete again with a different score
-    const result = await completeAIRound({
+    await completeAIRound({
       candidateId: testCandidateId,
       score: 99,
       summary: "Should not update",

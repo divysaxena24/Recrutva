@@ -1,7 +1,9 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-export default clerkMiddleware(async (req, res) => {
+// The handler receives no arguments: Clerk auth is enforced by
+// clerkMiddleware itself and this handler only decorates the response.
+export default clerkMiddleware(async () => {
   const response = NextResponse.next();
 
   // Security headers

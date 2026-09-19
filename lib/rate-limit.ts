@@ -1,5 +1,5 @@
 import "server-only";
-import { getRedis, redisTTL, REDIS_KEYS } from "./redis";
+import { getRedis, REDIS_KEYS } from "./redis";
 import { NextRequest } from "next/server";
 
 /**

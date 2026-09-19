@@ -11,7 +11,6 @@ import { eq, and } from "drizzle-orm";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { generateAssessmentQuestions } from "@/lib/assessment";
 import { parseAssessmentConfig } from "@/lib/schemas/assessment";
-import type { AssessmentQuestions } from "@/lib/schemas/assessment";
 import { rateLimitOrReject } from "@/lib/rate-limit";
 
 export async function GET(

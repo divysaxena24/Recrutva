@@ -5,12 +5,9 @@ import { motion } from "framer-motion";
 import { 
   Bot, 
   Users, 
-  Settings, 
   Home, 
   Calendar,
   Menu, 
-  X,
-  Bell,
   Briefcase,
   ArrowLeftRight
 } from "lucide-react";
@@ -162,21 +159,6 @@ export default function DashboardLayout({
             {children}
           </div>
         </main>
-      </div>
-    </div>
-  );
-}
-
-function NotificationItem({ title, desc, time, dot }: { title: string, desc: string, time: string, dot: string }) {
-  return (
-    <div className="flex items-start gap-3 p-3 rounded-2xl hover:bg-white/[0.03] transition-colors cursor-pointer group/item">
-      <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${dot}`} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] font-bold text-white uppercase tracking-tight">{title}</p>
-          <span className="text-[9px] text-slate-600 font-bold">{time}</span>
-        </div>
-        <p className="text-[10px] text-slate-400 truncate mt-0.5 group-hover/item:text-slate-300 transition-colors">{desc}</p>
       </div>
     </div>
   );

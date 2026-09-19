@@ -53,6 +53,9 @@ import EditCandidateModal from "@/components/EditCandidateModal";
 import { getCandidates } from "@/app/actions/candidate";
 import { getJobById } from "@/app/actions/job";
 
+/** A candidate row as returned by the getCandidates server action. */
+type CandidateRow = Awaited<ReturnType<typeof getCandidates>>[number];
+
 const STATUS_FILTERS = ["All", "Scheduled", "Completed", "Missed"] as const;
 
 const STAGE_ORDER = [
@@ -199,10 +202,12 @@ function CandidatesPage() {
   const jobIdParam = searchParams.get("jobId");
   const jobId = jobIdParam ? parseInt(jobIdParam) : undefined;
 
-  const [candidates, setCandidates] = useState<any[]>([]);
+  const [candidates, setCandidates] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [editingCandidate, setEditingCandidate] = useState<any>(null);
+  const [editingCandidate, setEditingCandidate] = useState<CandidateRow | null>(
+    null
+  );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
@@ -222,31 +227,50 @@ function CandidatesPage() {
   );
   const [view, setView] = useState<"pipeline" | "table">("pipeline");
 
-  const fetchCandidates = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const data = await getCandidates(jobId);
-      setCandidates(data);
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+  // Loader shared by the mount effect and the refresh handlers. State is only
+  // written from promise callbacks: React forbids setState calls made
+  // synchronously from an effect, directly or through a called function.
+  const loadCandidates = useCallback(() => {
+    return getCandidates(jobId)
+      .then((data) => {
+        setCandidates(data);
+        setError(false);
+      })
+      .catch(() => {
+        setError(true);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [jobId]);
 
-  useEffect(() => {
-    fetchCandidates();
-  }, [fetchCandidates]);
+  const fetchCandidates = useCallback(() => {
+    setLoading(true);
+    return loadCandidates();
+  }, [loadCandidates]);
 
   useEffect(() => {
-    if (jobId) {
-      getJobById(jobId).then((job) => {
-        if (job) setFilteredJob({ id: job.id, title: job.title });
-      });
-    } else {
-      setFilteredJob(null);
-    }
+    loadCandidates();
+  }, [loadCandidates]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    // Resolving to null when there is no jobId keeps the cleanup path on the
+    // same promise callback, so no state is written synchronously here.
+    const request: Promise<{ id: number; title: string } | null> = jobId
+      ? getJobById(jobId).then((job) =>
+          job ? { id: job.id, title: job.title } : null
+        )
+      : Promise.resolve(null);
+
+    request.then((job) => {
+      if (!cancelled) setFilteredJob(job);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [jobId]);
 
   const clearJobFilter = () => {
@@ -344,7 +368,7 @@ function CandidatesPage() {
   ]);
 
   const pipelineColumns = useMemo(() => {
-    const byColumn = new Map<string, any[]>();
+    const byColumn = new Map<string, CandidateRow[]>();
     for (const c of filteredCandidates) {
       let key: string;
       if (
@@ -373,7 +397,7 @@ function CandidatesPage() {
       color: string;
       bg: string;
       ring: string;
-      candidates: any[];
+      candidates: CandidateRow[];
     }[] = [];
 
     for (const stage of STAGE_ORDER) {
@@ -896,7 +920,7 @@ function PipelineBoard({
     color: string;
     bg: string;
     ring: string;
-    candidates: any[];
+    candidates: CandidateRow[];
   }[];
   expandedCandidateId: number | null;
   onToggleExpand: (id: number) => void;
@@ -951,7 +975,7 @@ function PipelineCandidateCard({
   onToggleExpand,
   onPipelineChange,
 }: {
-  candidate: any;
+  candidate: CandidateRow;
   expanded: boolean;
   onToggleExpand: () => void;
   onPipelineChange: () => void;

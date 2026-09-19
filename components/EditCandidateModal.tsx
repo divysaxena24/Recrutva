@@ -13,9 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Edit2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { updateCandidate } from "@/app/actions/candidate";
+import type { getCandidates } from "@/app/actions/candidate";
 import { getJobs } from "@/app/actions/job";
 
 const formSchema = z.object({
@@ -28,8 +29,14 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+/** A candidate row as returned by the getCandidates server action. */
+type CandidateRow = Awaited<ReturnType<typeof getCandidates>>[number];
+
+/** A job row as returned by the getJobs server action. */
+type Job = Awaited<ReturnType<typeof getJobs>>[number];
+
 interface EditCandidateModalProps {
-  candidate: any;
+  candidate: CandidateRow | null;
   onSuccess?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -37,13 +44,11 @@ interface EditCandidateModalProps {
 
 export default function EditCandidateModal({ candidate, onSuccess, open, onOpenChange }: EditCandidateModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
-
-  const selectedJobId = watch("targetJobId");
 
   useEffect(() => {
     if (candidate) {
@@ -64,6 +69,8 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
   }, [open]);
 
   const onSubmit = async (data: FormValues) => {
+    // The modal is only rendered with a candidate selected.
+    if (!candidate) return;
     setIsSubmitting(true);
     try {
       const result = await updateCandidate(candidate.id, {

@@ -1,5 +1,5 @@
 import "server-only";
-import { getRedis, redisGet, redisSet, redisDel, REDIS_KEYS } from "./redis";
+import { getRedis, redisDel, REDIS_KEYS } from "./redis";
 
 /**
  * Recrutva Caching Module

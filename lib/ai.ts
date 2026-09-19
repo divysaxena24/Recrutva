@@ -27,7 +27,7 @@ export const AI_MODELS = {
 let _groq: Groq | null = null;
 
 export const groq = new Proxy({} as Groq, {
-  get(_target, prop, _receiver) {
+  get(_target, prop) {
     if (!_groq) {
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {

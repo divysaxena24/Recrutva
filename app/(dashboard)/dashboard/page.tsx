@@ -97,26 +97,36 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const fetchOverview = useCallback(async () => {
-    setLoading(true);
-    setError(false);
-    try {
-      const data = await getDashboardOverview();
-      if (data === null) {
+  // Loader shared by the mount effect and the refresh handlers. State is only
+  // written from promise callbacks: React forbids setState calls made
+  // synchronously from an effect, directly or through a called function.
+  const loadOverview = useCallback(() => {
+    return getDashboardOverview()
+      .then((data) => {
+        if (data === null) {
+          setError(true);
+        } else {
+          setOverview(data);
+          setError(false);
+        }
+      })
+      .catch(() => {
         setError(true);
-      } else {
-        setOverview(data);
-      }
-    } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
+  // User-triggered refresh (candidate created / retry) — re-shows the spinner.
+  const fetchOverview = useCallback(() => {
+    setLoading(true);
+    return loadOverview();
+  }, [loadOverview]);
+
   useEffect(() => {
-    fetchOverview();
-  }, [fetchOverview]);
+    loadOverview();
+  }, [loadOverview]);
 
   const metrics = overview?.metrics;
 

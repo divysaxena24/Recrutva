@@ -110,7 +110,7 @@ async function loadCandidateContext(candidateId: number): Promise<CandidateConte
 
     let jobTitle = candidate.jobTitle ?? "the position";
     let recruiterEmail: string | null = null;
-    let jobId: number | null = candidate.targetJobId;
+    const jobId: number | null = candidate.targetJobId;
 
     if (candidate.targetJobId) {
       const [job] = await db
@@ -215,12 +215,14 @@ export async function notifyApplicationCreated(candidateId: number): Promise<voi
  * - ASSESSMENT → candidate "assessment available"
  * - AI_INTERVIEW → candidate "interview available"
  * - MANUAL_REVIEW → recruiter "candidate requires review"
+ *
+ * The round name is not passed: every email below is built from the round's
+ * own context (candidate, job, stage URL), never from its display label.
  */
 export async function notifyRoundActivated(
   candidateId: number,
   candidateRoundId: number,
-  roundType: string,
-  _roundName: string
+  roundType: string
 ): Promise<void> {
   const ctx = await loadCandidateContext(candidateId);
   if (!ctx) return;
@@ -337,8 +339,7 @@ export async function notifyRoundCompleted(input: {
       await notifyRoundActivated(
         input.candidateId,
         input.activatedRound.id,
-        input.activatedRound.type,
-        input.activatedRound.name
+        input.activatedRound.type
       );
     } else {
       const nextStep =
@@ -359,8 +360,7 @@ export async function notifyRoundCompleted(input: {
         await notifyRoundActivated(
           input.candidateId,
           input.activatedRound.id,
-          input.activatedRound.type,
-          input.activatedRound.name
+          input.activatedRound.type
         );
       }
     }

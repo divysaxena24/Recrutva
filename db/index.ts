@@ -22,7 +22,7 @@ function getDb() {
 
 // Proxy that defers to the lazy getter
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
-  get(_target, prop, _receiver) {
+  get(_target, prop) {
     const instance = getDb();
     const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
     if (typeof value === 'function') {

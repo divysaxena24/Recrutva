@@ -20,7 +20,7 @@ import {
   pipelineRounds,
   candidateRounds,
 } from "../db/schema";
-import { eq, and, asc, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { runResumeScreening } from "../lib/screening";
 import {
   generateAssessmentQuestions,
@@ -30,6 +30,7 @@ import {
   parseAssessmentConfig,
   SubmissionSchema,
   AssessmentQuestionsSchema,
+  type AssessmentQuestion,
 } from "../lib/schemas/assessment";
 import { ScreeningResultSchema } from "../lib/schemas/screening";
 import {
@@ -252,12 +253,11 @@ async function main() {
   log("Fixtures created", true, `jobs ${jobAId}/${jobBId}, candidates ${candAId}/${candBId}`);
 
   // ── 2. Resume screening: PASS path (candidate A, threshold 50) ────
-  let screenA = await completeScreeningRound({ candidateId: candAId });
-  const screenARes = screenA as { success: boolean; data?: any; error?: string };
+  const screenA = await completeScreeningRound({ candidateId: candAId });
   log(
     "Screening A (strong resume) succeeds",
-    screenARes.success === true,
-    screenARes.error ?? JSON.stringify(screenARes.data)
+    screenA.success === true,
+    screenA.success ? JSON.stringify(screenA.data) : (screenA.error ?? "unknown error")
   );
 
   const [crScreenA] = await db
@@ -288,12 +288,11 @@ async function main() {
   }
 
   // ── 3. Resume screening: FAIL path (candidate B, threshold 99) ────
-  let screenB = await completeScreeningRound({ candidateId: candBId });
-  const screenBRes = screenB as { success: boolean; data?: any; error?: string };
+  const screenB = await completeScreeningRound({ candidateId: candBId });
   log(
     "Screening B runs",
-    screenBRes.success === true,
-    screenBRes.error ?? JSON.stringify(screenBRes.data)
+    screenB.success === true,
+    screenB.success ? JSON.stringify(screenB.data) : (screenB.error ?? "unknown error")
   );
   const [crScreenB] = await db
     .select()
@@ -313,7 +312,7 @@ async function main() {
     resumeText: STRONG_RESUME,
     passThreshold: 50,
   });
-  log("runResumeScreening direct", direct.success === true, direct.success ? `score=${(direct as any).score}` : (direct as any).error);
+  log("runResumeScreening direct", direct.success === true, direct.success ? `score=${direct.score}` : direct.error);
   log("Screening Zod rejects malformed", !ScreeningResultSchema.safeParse({ score: 101, nope: true }).success, "invalid object rejected");
 
   // ── 5. Assessment generation + persistence + safe questions ───────
@@ -326,12 +325,12 @@ async function main() {
     resumeText: STRONG_RESUME,
     config: cfg,
   });
-  log("Assessment questions generated", gen.success === true, gen.success ? `${(gen as any).questions.questions.length} questions` : (gen as any).error);
-  let persistedQuestions: any[] = [];
+  log("Assessment questions generated", gen.success === true, gen.success ? `${gen.questions.questions.length} questions` : gen.error);
+  let persistedQuestions: AssessmentQuestion[] = [];
   if (gen.success) {
     persistedQuestions = gen.questions.questions;
     const safe = persistedQuestions.map((q) => ({ id: q.id, question: q.question, type: q.type, maxMarks: q.maxMarks }));
-    const leakedExpected = safe.some((q: any) => "expectedAnswer" in q);
+    const leakedExpected = safe.some((q) => "expectedAnswer" in q);
     log("Safe questions omit expectedAnswer", !leakedExpected, `${safe.length} safe questions`);
     const schemaOk = AssessmentQuestionsSchema.safeParse(gen.questions).success;
     log("Questions validate against schema", schemaOk, "AssessmentQuestionsSchema");
@@ -388,7 +387,7 @@ async function main() {
       })),
       config: cfg,
     });
-    log("Assessment graded", grading.success === true, grading.success ? JSON.stringify((grading as any).result).slice(0, 200) : (grading as any).error);
+    log("Assessment graded", grading.success === true, grading.success ? JSON.stringify(grading.result).slice(0, 200) : grading.error);
     if (grading.success) {
       const r = grading.result;
       const marksOk = r.breakdown.every((b) => b.marks >= 0 && b.marks <= b.maxMarks);
@@ -408,13 +407,6 @@ async function main() {
   // Move candidate A into AI_INTERVIEW as ACTIVE (screening PASS would have
   // activated ASSESSMENT; we simulate advancing past assessment by activating
   // the interview round directly — assessment advance logic is in the route).
-  const [crAssess] = await db
-    .select({ id: candidateRounds.id, status: candidateRounds.status })
-    .from(candidateRounds)
-    .where(
-      and(eq(candidateRounds.candidateId, candAId), eq(candidateRounds.roundId, rAssessA.id))
-    )
-    .limit(1);
   const aiRoundRow = await db
     .select({ id: candidateRounds.id })
     .from(candidateRounds)
@@ -438,7 +430,7 @@ async function main() {
   log("Candidate A at AI_INTERVIEW (ACTIVE)", true, `candidateRound=${aiCrId}`);
 
   const ai1 = await completeAIRound({ candidateId: candAId, score: 72, summary: "Great answers", evaluation: { totalScore: 72 } });
-  log("completeAIRound PASS (score 72)", (ai1 as any).success === true, JSON.stringify((ai1 as any).data));
+  log("completeAIRound PASS (score 72)", ai1.success === true, ai1.success ? JSON.stringify(ai1.data) : (ai1.error ?? "unknown error"));
   const [crAiA] = await db
     .select()
     .from(candidateRounds)
@@ -492,7 +484,7 @@ async function main() {
     startedAt: new Date(),
   });
   const aiFail = await completeAIRound({ candidateId: candC.id, score: 30, summary: "Weak", evaluation: {} });
-  log("completeAIRound FAIL (score 30)", (aiFail as any).success === true, JSON.stringify((aiFail as any).data));
+  log("completeAIRound FAIL (score 30)", aiFail.success === true, aiFail.success ? JSON.stringify(aiFail.data) : (aiFail.error ?? "unknown error"));
   const crC = await db
     .select()
     .from(candidateRounds)

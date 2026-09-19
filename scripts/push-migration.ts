@@ -91,12 +91,13 @@ async function main() {
       // Use sql.query() for raw SQL execution (DDL statements)
       await sql.query(stmt);
       console.log(`  ✓ Success`);
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       // "already exists" errors are OK
-      if (err.message?.includes("already exists")) {
+      if (message.includes("already exists")) {
         console.log(`  ⏭ Already exists — skipping`);
       } else {
-        console.error(`  ✗ Error: ${err.message}`);
+        console.error(`  ✗ Error: ${message}`);
       }
     }
   }

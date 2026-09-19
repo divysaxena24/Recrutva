@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Calendar, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, X, Loader2, Bot } from "lucide-react";
+import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, X, Loader2, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +14,20 @@ import { checkExistingApplication } from "@/app/actions/check-application";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
+/** A job as returned by the getJobById server action (null when missing). */
+type JobDetail = NonNullable<Awaited<ReturnType<typeof getJobById>>>;
+
+/** An existing application row as returned by checkExistingApplication. */
+type ExistingApplication = Awaited<ReturnType<typeof checkExistingApplication>>;
+
 export default function JobApplyPage() {
   const router = useRouter();
   const params = useParams();
-  const [job, setJob] = useState<any>(null);
+  const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [alreadyApplied, setAlreadyApplied] = useState<any>(null);
+  const [alreadyApplied, setAlreadyApplied] = useState<ExistingApplication>(null);
   const [error, setError] = useState("");
   
   // Form State
@@ -47,6 +53,8 @@ export default function JobApplyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The form only renders once the job has loaded (see the guard below).
+    if (!job) return;
     if (!file) return alert("Please upload your resume");
     
     setSubmitting(true);

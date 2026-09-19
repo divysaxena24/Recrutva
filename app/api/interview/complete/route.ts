@@ -11,6 +11,12 @@ import type { InterviewEvaluation } from "@/lib/schemas/interview";
 const MAX_TRANSCRIPT_MESSAGES = 100;
 const MAX_MESSAGE_CHARS = 20000;
 const MAX_TRANSCRIPT_TOTAL_CHARS = 200000;
+/** A transcript message after validation. */
+type ValidatedMessage = { role: "ai" | "user"; content: string };
+
+/** A question/blueprint pair after validation. */
+type ValidatedQuestion = { question: string; blueprint: string };
+
 const MAX_QUESTIONS = 25;
 const MAX_QUESTION_CHARS = 5000;
 const MAX_BLUEPRINT_CHARS = 5000;
@@ -36,6 +42,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Validated payloads, collected below so nothing downstream has to work
+    // with the raw (unknown) request body.
+    let validatedMessages: ValidatedMessage[] | null = null;
+    let validatedQuestions: ValidatedQuestion[] | null = null;
+
     // Bound transcript input (AI cost + prompt size protection)
     if (typeof transcript === "string") {
       if (transcript.length > MAX_TRANSCRIPT_TOTAL_CHARS) {
@@ -51,6 +62,7 @@ export async function POST(req: NextRequest) {
           { status: 413 }
         );
       }
+      const messages: ValidatedMessage[] = [];
       let total = 0;
       for (const m of transcript as Array<{ role?: unknown; content?: unknown }>) {
         if (!m || (m.role !== "ai" && m.role !== "user") || typeof m.content !== "string") {
@@ -66,6 +78,7 @@ export async function POST(req: NextRequest) {
             { status: 413 }
           );
         }
+        messages.push({ role: m.role, content: m.content });
       }
       if (total > MAX_TRANSCRIPT_TOTAL_CHARS) {
         return NextResponse.json(
@@ -73,6 +86,7 @@ export async function POST(req: NextRequest) {
           { status: 413 }
         );
       }
+      validatedMessages = messages;
     }
 
     // Bound the questions array (shape + size)
@@ -83,6 +97,7 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+      const parsedQuestions: ValidatedQuestion[] = [];
       for (const q of questions as Array<{ question?: unknown; blueprint?: unknown }>) {
         if (!q || typeof q.question !== "string" || typeof q.blueprint !== "string") {
           return NextResponse.json(
@@ -96,7 +111,9 @@ export async function POST(req: NextRequest) {
             { status: 413 }
           );
         }
+        parsedQuestions.push({ question: q.question, blueprint: q.blueprint });
       }
+      validatedQuestions = parsedQuestions;
     }
 
     const [existingCandidate] = await db
@@ -226,12 +243,23 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Prepare Interview Context (bounded before prompt construction)
-    const transcriptText = (Array.isArray(transcript)
-      ? transcript.map((m: any) => `${m.role === 'ai' ? 'Sarah' : 'Candidate'}: ${m.content}`).join("\n")
-      : transcript).slice(0, 150000);
+    const transcriptText = (validatedMessages
+      ? validatedMessages
+          .map(
+            (m) =>
+              `${m.role === "ai" ? "Sarah" : "Candidate"}: ${m.content}`
+          )
+          .join("\n")
+      : (transcript as string)
+    ).slice(0, 150000);
 
-    const questionsContext = Array.isArray(questions)
-      ? questions.map((q: any, i: number) => `Q${i+1}: ${q.question}\nIdeal Answer Blueprint: ${q.blueprint}`).join("\n\n")
+    const questionsContext = validatedQuestions
+      ? validatedQuestions
+          .map(
+            (q, i) =>
+              `Q${i + 1}: ${q.question}\nIdeal Answer Blueprint: ${q.blueprint}`
+          )
+          .join("\n\n")
       : "No blueprint available.";
 
     // 2. Generate Evaluation with Groq

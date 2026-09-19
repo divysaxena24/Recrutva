@@ -29,6 +29,9 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+/** A job row as returned by the getJobs server action. */
+type Job = Awaited<ReturnType<typeof getJobs>>[number];
+
 interface AddCandidateModalProps {
   onSuccess?: () => void;
 }
@@ -39,13 +42,11 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
   });
-
-  const selectedJobId = watch("targetJobId");
 
   useEffect(() => {
     if (open) {
