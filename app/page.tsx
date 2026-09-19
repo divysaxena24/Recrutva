@@ -56,10 +56,10 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {!userId ? (
             <>
-              <SignInButton mode="modal" forceRedirectUrl="/dashboard" signUpForceRedirectUrl="/dashboard">
+              <SignInButton mode="modal" forceRedirectUrl="/onboarding" signUpForceRedirectUrl="/onboarding">
                 <Button variant="ghost" className="hover:bg-white/5 hover:text-white cursor-pointer">Login</Button>
               </SignInButton>
-              <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+              <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
                 <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-6 shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all cursor-pointer">
                   Start Free Trial
                 </Button>
@@ -148,12 +148,12 @@ export default function Home() {
             className="flex flex-col sm:flex-row items-center gap-4 pt-4"
           >
             {!userId ? (
-              <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
+              <Link href="/onboarding">
                 <Button size="lg" className="h-16 px-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group cursor-pointer">
                   Get Started
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-              </SignUpButton>
+              </Link>
             ) : (
               <Link href="/onboarding">
                 <Button size="lg" className="h-16 px-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group">

@@ -33,6 +33,7 @@ export async function GET(
       .select({
         id: applicants.id,
         userId: applicants.userId,
+        clerkUserId: applicants.clerkUserId,
         email: applicants.email,
         targetJobId: applicants.targetJobId,
         resumeText: applicants.resumeText,
@@ -55,7 +56,8 @@ export async function GET(
 
     const isRecruiter = userId && candidate.userId === userId;
     const isCandidate =
-      candidateEmail && candidate.email === candidateEmail;
+      (userId && candidate.clerkUserId === userId) || // Primary: clerkUserId match
+      (candidateEmail && candidate.email === candidateEmail); // Fallback: email match
 
     if (!isRecruiter && !isCandidate) {
       return NextResponse.json(

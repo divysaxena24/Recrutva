@@ -2,25 +2,34 @@
 
 import { db } from "@/db";
 import { applicants } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { currentUser } from "@clerk/nextjs/server";
+import { eq, or } from "drizzle-orm";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 /**
  * Returns an array of job IDs that the current Clerk user has already applied to.
  * Used by the public jobs page to show "Applied" / "Not Applied" badges.
+ * 
+ * Uses clerkUserId for primary lookup (stronger than email), falls back to
+ * email for backward compatibility with existing applicants.
  */
 export async function getAppliedJobIds(): Promise<number[]> {
   try {
-    const user = await currentUser();
-    if (!user) return [];
+    const { userId } = await auth();
+    if (!userId) return [];
 
-    const email = user.emailAddresses[0]?.emailAddress;
+    const user = await currentUser();
+    const email = user?.emailAddresses?.[0]?.emailAddress;
     if (!email) return [];
 
     const rows = await db
       .select({ targetJobId: applicants.targetJobId })
       .from(applicants)
-      .where(and(eq(applicants.email, email)))
+      .where(
+        or(
+          eq(applicants.clerkUserId, userId),
+          eq(applicants.email, email)
+        )
+      )
       .execute();
 
     // Filter out nulls and return unique job IDs

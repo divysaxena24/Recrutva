@@ -9,7 +9,6 @@ import {
   Calendar,
   Menu, 
   Briefcase,
-  ArrowLeftRight
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -89,15 +88,6 @@ export default function DashboardLayout({
 
           {/* Sidebar Footer: User Profile */}
           <div className="p-4 space-y-3 border-t border-slate-800/60">
-            {/* Role Switcher */}
-            <Link href="/candidate-dashboard" className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-500/20 hover:bg-emerald-500/20 transition-all group">
-              <ArrowLeftRight className="w-4 h-4 text-emerald-400 group-hover:rotate-180 transition-transform duration-500" />
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Switch to</span>
-                <span className="text-sm font-bold text-white">Candidate</span>
-              </div>
-            </Link>
-
             <div className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] transition-all rounded-2xl p-3 ring-1 ring-white/5 group cursor-pointer">
               <UserButton appearance={{ elements: { userButtonAvatarBox: "w-9 h-9" } }} />
               <div className="flex flex-col min-w-0 flex-1">

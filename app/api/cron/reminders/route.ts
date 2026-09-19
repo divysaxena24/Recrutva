@@ -16,6 +16,15 @@ import { sendEmail, getAppUrl } from "@/lib/email";
  */
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
+
+  // In production, CRON_SECRET is mandatory — reject if missing (fail-closed)
+  if (!cronSecret && process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Server misconfiguration: CRON_SECRET not set" },
+      { status: 500 }
+    );
+  }
+
   if (cronSecret) {
     const authHeader = req.headers.get("authorization") || "";
     const xSecret = req.headers.get("x-cron-secret") || "";

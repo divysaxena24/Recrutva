@@ -29,7 +29,10 @@ export async function createCandidate(data: {
   data = validation.data as typeof data;
 
   let { userId } = await auth();
-  
+
+  // The candidate's own Clerk ID (for authenticated applicants)
+  const candidateClerkUserId = userId;
+
   // If no logged-in user (public application), we assign to the job's creator
   if (!userId && data.targetJobId) {
     const jobData = await db.select({ userId: jobs.userId }).from(jobs).where(eq(jobs.id, data.targetJobId)).limit(1);
@@ -73,6 +76,7 @@ export async function createCandidate(data: {
 
     const newCandidate = await db.insert(applicants).values({
       userId: userId,
+      clerkUserId: candidateClerkUserId || null, // Link to candidate's Clerk identity (null for anonymous)
       targetJobId: data.targetJobId,
       jobTitle: finalJobTitle,
       name: data.name,

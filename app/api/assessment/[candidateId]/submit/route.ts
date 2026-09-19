@@ -52,6 +52,7 @@ export async function POST(
       .select({
         id: applicants.id,
         userId: applicants.userId,
+        clerkUserId: applicants.clerkUserId,
         email: applicants.email,
         targetJobId: applicants.targetJobId,
       })
@@ -73,7 +74,8 @@ export async function POST(
 
     const isRecruiter = userId && candidate.userId === userId;
     const isCandidate =
-      candidateEmail && candidate.email === candidateEmail;
+      (userId && candidate.clerkUserId === userId) || // Primary: clerkUserId match
+      (candidateEmail && candidate.email === candidateEmail); // Fallback: email match
 
     if (!isRecruiter && !isCandidate) {
       return NextResponse.json(

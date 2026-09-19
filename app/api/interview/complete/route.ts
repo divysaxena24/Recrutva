@@ -120,6 +120,8 @@ export async function POST(req: NextRequest) {
       .select({
         id: applicants.id,
         userId: applicants.userId,
+        clerkUserId: applicants.clerkUserId,
+        email: applicants.email,
         status: applicants.status,
         analysis: applicants.analysis,
         targetJobId: applicants.targetJobId,
@@ -132,15 +134,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
     }
 
-    // Auth check: if authenticated, verify recruiter owns this candidate.
+    // Auth check: if authenticated, verify recruiter owns this candidate
+    // or this is the candidate themselves.
     // If not authenticated, allow access (public interview link flow).
     const { userId } = await auth();
+    const { currentUser } = await import("@clerk/nextjs/server");
+    const user = await currentUser();
+    const candidateEmail = user?.emailAddresses?.[0]?.emailAddress;
 
-    if (userId && existingCandidate.userId !== userId) {
-      return NextResponse.json(
-        { error: "You do not have access to this candidate" },
-        { status: 403 }
-      );
+    if (userId) {
+      const isRecruiter = existingCandidate.userId === userId;
+      const isCandidate =
+        existingCandidate.clerkUserId === userId || // Primary: clerkUserId match
+        (candidateEmail && existingCandidate.email === candidateEmail); // Fallback: email match
+
+      if (!isRecruiter && !isCandidate) {
+        return NextResponse.json(
+          { error: "You do not have access to this candidate" },
+          { status: 403 }
+        );
+      }
     }
 
     // Rate limit — BEFORE the expensive Groq call

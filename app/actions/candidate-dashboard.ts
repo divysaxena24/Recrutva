@@ -8,7 +8,7 @@ import {
   candidateRounds,
 } from "@/db/schema";
 import { eq, desc, asc, inArray } from "drizzle-orm";
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 /**
  * Candidate dashboard — application overview with pipeline progress.
@@ -86,16 +86,20 @@ function friendlyStageName(type: string, configuredName: string | null): string 
 }
 
 export async function getCandidateApplications(): Promise<CandidateApplicationView[]> {
-  const user = await currentUser();
-  if (!user) {
+  const { userId } = await auth();
+  if (!userId) {
     throw new Error("Unauthorized");
   }
 
-  const email = user.emailAddresses[0]?.emailAddress;
+  const user = await currentUser();
+  const email = user?.emailAddresses?.[0]?.emailAddress;
   if (!email) return [];
 
   try {
-    // ─── 1. All applications for this candidate (by email) ──────────
+    // ─── 1. All applications for this candidate ─────────────────────
+    // Use clerkUserId for primary lookup (stronger than email), fall back
+    // to email for backward compatibility with existing applicants.
+    const { or } = await import("drizzle-orm");
     const apps = await db
       .select({
         id: applicants.id,
@@ -107,7 +111,12 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
         score: applicants.score,
       })
       .from(applicants)
-      .where(eq(applicants.email, email))
+      .where(
+        or(
+          eq(applicants.clerkUserId, userId),
+          eq(applicants.email, email)
+        )
+      )
       .orderBy(desc(applicants.createdAt));
 
     if (apps.length === 0) return [];

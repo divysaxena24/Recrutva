@@ -1,10 +1,14 @@
-import { pgTable, serial, text, timestamp, varchar, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, varchar, integer, jsonb, pgEnum } from "drizzle-orm/pg-core";
+
+// ─── Role Enum ────────────────────────────────────────────────────
+export const userRoleEnum = pgEnum("user_role", ["RECRUITER", "CANDIDATE"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   clerkId: varchar("clerk_id", { length: 255 }).notNull().unique(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  role: userRoleEnum("role"), // nullable: null until onboarding completes
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -22,6 +26,7 @@ export const jobs = pgTable("jobs", {
 export const applicants = pgTable("applicants", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id", { length: 255 }).notNull(), // Linking to clerkId of the recruiter
+  clerkUserId: varchar("clerk_user_id", { length: 255 }), // Linking to clerkId of the candidate (nullable for anonymous)
   targetJobId: integer("target_job_id").references(() => jobs.id), // Link to a specific job
   jobTitle: text("job_title"), // Direct role input
   name: text("name").notNull(),

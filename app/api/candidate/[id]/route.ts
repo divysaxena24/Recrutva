@@ -29,6 +29,8 @@ export async function GET(
       .select({
         id: applicants.id,
         userId: applicants.userId,
+        clerkUserId: applicants.clerkUserId,
+        email: applicants.email,
         name: applicants.name,
         status: applicants.status,
         analysis: applicants.analysis,
@@ -48,15 +50,26 @@ export async function GET(
 
     const candidate = data[0];
 
-    // Auth check: if the requester is authenticated, verify they own this candidate.
+    // Auth check: if the requester is authenticated, verify they own this candidate
+    // or this is the candidate themselves.
     // If not authenticated, allow access (needed for public interview link flow).
     const { userId } = await auth();
+    const { currentUser } = await import("@clerk/nextjs/server");
+    const user = await currentUser();
+    const candidateEmail = user?.emailAddresses?.[0]?.emailAddress;
 
-    if (userId && candidate.userId !== userId) {
-      return NextResponse.json(
-        { error: "You do not have access to this candidate" },
-        { status: 403 }
-      );
+    if (userId) {
+      const isRecruiter = candidate.userId === userId;
+      const isCandidate =
+        candidate.clerkUserId === userId || // Primary: clerkUserId match
+        (candidateEmail && candidate.email === candidateEmail); // Fallback: email match
+
+      if (!isRecruiter && !isCandidate) {
+        return NextResponse.json(
+          { error: "You do not have access to this candidate" },
+          { status: 403 }
+        );
+      }
     }
 
     // Strip the internal userId from the response. JSON serialization omits

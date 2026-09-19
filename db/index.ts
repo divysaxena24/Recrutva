@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import "@/lib/startup"; // Side-effect: validates environment on first server access
 
 // Lazy database connection — only creates the connection when first accessed.
 // This prevents build failures when DATABASE_URL is not available (e.g., Docker build).
