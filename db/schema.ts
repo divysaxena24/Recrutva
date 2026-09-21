@@ -12,6 +12,18 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/**
+ * Job status values.
+ *
+ * `DRAFT` and `PUBLISHED` are used by the AI Job Description workflow.
+ * `Open` is the legacy value used by manually-created jobs and is still
+ * treated as publicly visible — see PUBLIC_JOB_STATUSES.
+ */
+export const JOB_STATUSES = ["DRAFT", "PUBLISHED", "CLOSED", "Open"] as const;
+
+/** Statuses that may appear in public/candidate-facing listings. */
+export const PUBLIC_JOB_STATUSES = ["PUBLISHED", "Open"] as const;
+
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id", { length: 255 }).notNull(),
@@ -20,6 +32,28 @@ export const jobs = pgTable("jobs", {
   requirements: text("requirements"),
   location: text("location").default("Remote"),
   status: varchar("status", { length: 50 }).default("Open").notNull(),
+
+  // ─── AI Job Description fields ──────────────────────────────────
+  // Structured JD data produced by lib/jd-generator.ts. `description`
+  // above holds the rendered text so existing consumers (public listing,
+  // resume screening) keep working unchanged.
+  department: text("department"),
+  employmentType: varchar("employment_type", { length: 50 }),
+  experience: varchar("experience", { length: 100 }),
+  workMode: varchar("work_mode", { length: 50 }),
+  salaryRange: varchar("salary_range", { length: 100 }),
+  summary: text("summary"),
+  responsibilities: jsonb("responsibilities").$type<string[]>(),
+  requiredSkills: jsonb("required_skills").$type<string[]>(),
+  preferredSkills: jsonb("preferred_skills").$type<string[]>(),
+  qualifications: jsonb("qualifications").$type<string[]>(),
+  benefits: jsonb("benefits").$type<string[]>(),
+
+  // The recruiter's original form input, so "Regenerate" always runs from
+  // the source requirements rather than previously generated/edited text.
+  sourceInput: jsonb("source_input").$type<Record<string, unknown>>(),
+
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
