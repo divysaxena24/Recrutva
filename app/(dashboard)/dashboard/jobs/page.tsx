@@ -1,18 +1,24 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Calendar, Search, Trash2, Globe } from "lucide-react";
+import { Briefcase, MapPin, Calendar, Search, Trash2, Globe, Pencil, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { getJobs, deleteJob } from "@/app/actions/job";
 import AddJobModal from "@/components/AddJobModal";
 import { useUser } from "@clerk/nextjs";
 
 /** A job row as returned by the getJobs server action. */
 type Job = Awaited<ReturnType<typeof getJobs>>[number];
+
+// Statuses that appear in the candidate-facing listing.
+// "Open" is the legacy value used by manually-created jobs.
+const isPublicStatus = (status: string) => status === "PUBLISHED" || status === "Open";
+const isDraft = (status: string) => status === "DRAFT";
 
 export default function JobsPage() {
   const { user } = useUser();
@@ -88,7 +94,17 @@ export default function JobsPage() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
+          className="flex flex-wrap items-center gap-3"
         >
+          <Link href="/dashboard/jobs/create">
+            <Button
+              variant="outline"
+              className="rounded-full px-6 h-12 font-bold border-slate-800 text-slate-200 hover:bg-white/5"
+            >
+              <Sparkles className="w-5 h-5 mr-2 text-indigo-400" />
+              Create with AI
+            </Button>
+          </Link>
           <AddJobModal onSuccess={fetchJobs} />
         </motion.div>
       </section>
@@ -118,7 +134,15 @@ export default function JobsPage() {
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
                     <Briefcase className="w-6 h-6 text-indigo-400" />
                   </div>
-                  <Badge className="bg-emerald-500/10 text-emerald-400 border-none px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                  <Badge
+                    className={`border-none px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                      isDraft(job.status)
+                        ? "bg-amber-500/10 text-amber-400"
+                        : isPublicStatus(job.status)
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-slate-500/10 text-slate-400"
+                    }`}
+                  >
                     {job.status}
                   </Badge>
                 </div>
@@ -137,8 +161,13 @@ export default function JobsPage() {
                   {job.description}
                 </p>
 
-                <div className="flex items-center gap-2 text-indigo-400/80 text-[10px] font-bold uppercase tracking-widest">
-                   <Globe className="w-3 h-3" /> Publicly Listed
+                <div
+                  className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest ${
+                    isDraft(job.status) ? "text-amber-400/80" : "text-indigo-400/80"
+                  }`}
+                >
+                   <Globe className="w-3 h-3" />
+                   {isDraft(job.status) ? "Draft — not visible to candidates" : "Publicly Listed"}
                 </div>
               </div>
 
@@ -149,6 +178,15 @@ export default function JobsPage() {
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(job.id)} className="w-9 h-9 rounded-xl hover:bg-rose-500/10 hover:text-rose-500 text-slate-600 transition-all">
                         <Trash2 className="w-4 h-4" />
                       </Button>
+                      <Link href={`/dashboard/jobs/${job.id}/applications`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 px-4 rounded-xl border-slate-800 text-slate-400 hover:bg-white/5 text-[10px] font-bold uppercase"
+                        >
+                          Applications
+                        </Button>
+                      </Link>
                       <Button 
                         size="sm" 
                         onClick={() => window.location.href = `/dashboard/candidates?jobId=${job.id}`}
@@ -159,14 +197,26 @@ export default function JobsPage() {
                     </>
                   )}
                 </div>
-                <Button 
-                    variant="outline"
-                    size="sm" 
-                    onClick={() => window.location.href = `/jobs/${job.id}`}
-                    className="h-9 px-4 rounded-xl border-slate-800 text-slate-400 hover:bg-white/5 text-[10px] font-bold uppercase"
-                  >
-                    View Application
-                </Button>
+                {isDraft(job.status) ? (
+                  <Link href={`/dashboard/jobs/create?jobId=${job.id}`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-4 rounded-xl border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-[10px] font-bold uppercase"
+                    >
+                      <Pencil className="w-3 h-3 mr-1.5" /> Continue editing
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button 
+                      variant="outline"
+                      size="sm" 
+                      onClick={() => window.location.href = `/jobs/${job.id}`}
+                      className="h-9 px-4 rounded-xl border-slate-800 text-slate-400 hover:bg-white/5 text-[10px] font-bold uppercase"
+                    >
+                      View Application
+                  </Button>
+                )}
               </div>
             </Card>
           </motion.div>

@@ -348,9 +348,12 @@ async function main() {
     SubmissionSchema.safeParse({ answers: [{ questionId: q1?.id ?? 1, answer: "My answer" }] }).success,
     ""
   );
+  // The schema validates shape only; unknown-id rejection lives in the
+  // submit route, which checks IDs against the candidate's persisted
+  // question set (returns 400 "Invalid question IDs").
   log(
-    "SubmissionSchema rejects unknown questionId",
-    !SubmissionSchema.safeParse({ answers: [{ questionId: 99999, answer: "x" }] }).success,
+    "SubmissionSchema accepts shape-valid answers (set checked by route)",
+    SubmissionSchema.safeParse({ answers: [{ questionId: 99999, answer: "x" }] }).success,
     "unknown id passes schema but route checks set"
   );
   log(

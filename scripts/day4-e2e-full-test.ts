@@ -662,7 +662,7 @@ async function testUIComponents() {
   }
 
   // Applications page
-  const appsPath = path.resolve(__dirname, "../app/(dashboard)/jobs/[id]/applications/page.tsx");
+  const appsPath = path.resolve(__dirname, "../app/(dashboard)/dashboard/jobs/[id]/applications/page.tsx");
   if (fs.existsSync(appsPath)) {
     const appsCode = fs.readFileSync(appsPath, "utf-8");
     log("Test 9: Apps page imports PipelineCard", appsCode.includes("CandidatePipelineCard") ? "PASS" : "FAIL",
@@ -690,7 +690,19 @@ async function testStateTransitions(candidateId: number) {
   const allCR = await db.select().from(candidateRounds)
     .where(eq(candidateRounds.candidateId, candidateId));
 
+  // Scope rounds to THIS candidate's job pipeline — an unfiltered query
+  // mixes in rounds from every other pipeline in the database.
+  const [testPipeline] = await db.select({ id: pipelines.id })
+    .from(pipelines)
+    .where(eq(pipelines.jobId, 1017))
+    .limit(1);
+  if (!testPipeline) {
+    log("Test 10: State transitions correct", "FAIL", "Pipeline for job #1017 not found");
+    return;
+  }
+
   const allRounds = await db.select().from(pipelineRounds)
+    .where(eq(pipelineRounds.pipelineId, testPipeline.id))
     .orderBy(asc(pipelineRounds.order));
 
   const crMap = new Map(allCR.map(cr => [cr.roundId, cr]));
@@ -732,6 +744,13 @@ async function runAllTests() {
 
   const candidateId = await testCandidateEnrollment();
   if (candidateId) {
+    // Simulate the job owner's Clerk session for authenticated server actions.
+    // Host-side runs resolve auth() via the stub mapped in tsconfig.test.json.
+    const [ownedJob] = await db.select({ userId: jobs.userId }).from(jobs).where(eq(jobs.id, 1017)).limit(1);
+    if (ownedJob?.userId) {
+      const { __setMockAuthUserId } = await import("./stubs/clerk-server");
+      __setMockAuthUserId(ownedJob.userId);
+    }
     await testResumeScreening(candidateId);
     await testAIAssessment(candidateId);
     await testAIInterviewIntegration(candidateId);

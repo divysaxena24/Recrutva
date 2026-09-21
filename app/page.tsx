@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SignInButton, SignUpButton, UserButton, useAuth, useClerk } from "@clerk/nextjs";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,35 @@ const AUDIO_WAVE_BARS = Array.from({ length: 30 }, () => ({
   delay: Math.random() * 0.2,
 }));
 
+/**
+ * Post-sign-in destination. The middleware appends `?redirect=<path>` when it
+ * bounces an unauthenticated visitor away from a protected route, so after
+ * signing in they land where they were originally headed. Defaults to
+ * /onboarding, which routes users to the right dashboard based on their role.
+ */
+function SafeRedirectPath({ fallback }: { fallback: string }) {
+  const searchParams = useSearchParams();
+  const requested = searchParams.get("redirect") ?? "";
+  // Only allow same-origin relative paths (never "//host" protocol-relative).
+  const safe = requested.startsWith("/") && !requested.startsWith("//") ? requested : fallback;
+  return <SignInRedirect target={safe} />;
+}
+
+function SignInRedirect({ target }: { target: string }) {
+  return (
+    <>
+      <SignInButton mode="modal" forceRedirectUrl={target} signUpForceRedirectUrl="/onboarding">
+        <Button variant="ghost" className="hover:bg-white/5 hover:text-white cursor-pointer">Login</Button>
+      </SignInButton>
+      <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
+        <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-6 shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all cursor-pointer">
+          Start Free Trial
+        </Button>
+      </SignUpButton>
+    </>
+  );
+}
+
 export default function Home() {
   const { userId } = useAuth();
   const { signOut } = useClerk();
@@ -55,16 +86,9 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           {!userId ? (
-            <>
-              <SignInButton mode="modal" forceRedirectUrl="/onboarding" signUpForceRedirectUrl="/onboarding">
-                <Button variant="ghost" className="hover:bg-white/5 hover:text-white cursor-pointer">Login</Button>
-              </SignInButton>
-              <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
-                <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-6 shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all cursor-pointer">
-                  Start Free Trial
-                </Button>
-              </SignUpButton>
-            </>
+            <Suspense fallback={null}>
+              <SafeRedirectPath fallback="/onboarding" />
+            </Suspense>
           ) : (
             <div className="flex items-center gap-4">
               <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10" } }} />

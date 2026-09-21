@@ -82,7 +82,9 @@ export async function getDashboardOverview(): Promise<DashboardOverview | null> 
     const [jobsAgg] = await db
       .select({
         total: sql<number>`count(*)::int`,
-        active: sql<number>`count(*) filter (where ${jobs.status} = 'Open')::int`,
+        // "Active" = publicly visible. Includes the legacy 'Open' status used
+        // by manually-created jobs alongside AI-published ones.
+        active: sql<number>`count(*) filter (where ${jobs.status} in ('Open', 'PUBLISHED'))::int`,
       })
       .from(jobs)
       .where(eq(jobs.userId, userId));

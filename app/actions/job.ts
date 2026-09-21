@@ -1,10 +1,10 @@
 "use server";
 
 import { db } from "@/db";
-import { jobs, pipelines, pipelineRounds } from "@/db/schema";
+import { jobs, pipelines, pipelineRounds, PUBLIC_JOB_STATUSES } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheDelete, cacheDeletePattern, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 import { CreateJobSchema } from "@/lib/schemas/actions";
 
@@ -152,6 +152,8 @@ export async function getAllJobs() {
 
     // Public listing — never expose the recruiter's userId, and bound the
     // result set so the query cannot grow without limits.
+    // Includes both AI-published jobs and the legacy "Open" status so
+    // existing listings keep appearing.
     const result = await db
       .select({
         id: jobs.id,
@@ -163,7 +165,7 @@ export async function getAllJobs() {
         createdAt: jobs.createdAt,
       })
       .from(jobs)
-      .where(eq(jobs.status, "Open"))
+      .where(inArray(jobs.status, [...PUBLIC_JOB_STATUSES]))
       .limit(200);
 
     // Cache the result
@@ -178,6 +180,8 @@ export async function getAllJobs() {
 
 export async function getJobById(id: number) {
   try {
+    const { userId } = await auth();
+
     // Check cache first
     const cacheKey = CACHE_KEYS.job(id);
     const cached = await cacheGet<{
@@ -188,10 +192,10 @@ export async function getJobById(id: number) {
       location: string | null;
       status: string;
       createdAt: Date | null;
+      userId: string;
     }>(cacheKey);
-    if (cached) return cached;
+    if (cached) return toPublicJob(cached, userId);
 
-    // Public job details — never expose the recruiter's userId
     const data = await db
       .select({
         id: jobs.id,
@@ -201,20 +205,53 @@ export async function getJobById(id: number) {
         location: jobs.location,
         status: jobs.status,
         createdAt: jobs.createdAt,
+        userId: jobs.userId,
       })
       .from(jobs)
       .where(eq(jobs.id, id))
       .limit(1);
     const job = data[0];
 
-    // Cache the result (even if null, to avoid repeated DB hits for missing jobs)
+    // Cache the full row (draft visibility is resolved per caller on read)
     if (job) {
       await cacheSet(cacheKey, job, CACHE_TTL.job);
     }
 
-    return job ?? null;
+    return toPublicJob(job ?? null, userId);
   } catch (error) {
     console.error("Error fetching job by id:", error);
     return null;
   }
+}
+
+/**
+ * Drafts are visible only to their owning recruiter; every other status
+ * (PUBLISHED and the legacy "Open") stays publicly accessible. The owner's
+ * userId is never included in the returned shape.
+ */
+function toPublicJob(
+  job: {
+    id: number;
+    title: string;
+    description: string | null;
+    requirements: string | null;
+    location: string | null;
+    status: string;
+    createdAt: Date | null;
+    userId: string;
+  } | null,
+  viewerUserId: string | null,
+) {
+  if (!job) return null;
+  if (job.status === "DRAFT" && job.userId !== viewerUserId) return null;
+  // Explicit allowlist — new columns never leak into the public shape.
+  return {
+    id: job.id,
+    title: job.title,
+    description: job.description,
+    requirements: job.requirements,
+    location: job.location,
+    status: job.status,
+    createdAt: job.createdAt,
+  };
 }

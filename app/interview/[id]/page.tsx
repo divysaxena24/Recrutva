@@ -170,7 +170,7 @@ function InterviewJoinPage({
             View Summary
           </Button>
           <Button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/")}
             className="bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-12 px-8 font-bold"
           >
             Return Home
@@ -1090,7 +1090,7 @@ function InterviewRoom({
             View Summary
           </Button>
           <Button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/")}
             className="bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-12 px-8 font-bold"
           >
             Return Home
@@ -1372,7 +1372,7 @@ function InterviewRoom({
             <Button
               variant="destructive"
               className="h-12 px-6 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-red-500/20"
-              onClick={() => (window.location.href = "/dashboard")}
+              onClick={() => (window.location.href = "/")}
             >
               <PhoneOff className="w-5 h-5" /> End Call
             </Button>
@@ -1877,7 +1877,7 @@ function InterviewSummaryViewer({
         {/* Return to Dashboard */}
         <div className="pb-12">
           <Button
-            onClick={() => (window.location.href = "/dashboard")}
+            onClick={() => (window.location.href = "/")}
             className="w-full h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all"
           >
             Return to Dashboard

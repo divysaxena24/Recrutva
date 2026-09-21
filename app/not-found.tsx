@@ -1,0 +1,31 @@
+import Link from "next/link";
+import { ArrowRight, Bot } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+/**
+ * Global 404 page. Only renders for URLs that match no route — valid
+ * application routes must always resolve to their own pages.
+ */
+export default function NotFound() {
+  return (
+    <div className="min-h-screen bg-[#050505] text-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+      <div className="bg-indigo-500/10 p-3 rounded-2xl ring-1 ring-indigo-500/30">
+        <Bot className="w-8 h-8 text-indigo-400" />
+      </div>
+
+      <h1 className="mt-8 text-7xl font-black tracking-tight text-white">
+        404
+      </h1>
+      <p className="mt-3 text-lg font-bold text-white">Page not found</p>
+      <p className="mt-2 max-w-md text-sm text-slate-400">
+        The page you are looking for doesn&apos;t exist or may have been moved.
+      </p>
+
+      <Link href="/" className="mt-8">
+        <Button className="h-12 px-8 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-[0_0_20px_rgba(61,110,250,0.3)]">
+          Back to Home <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
+      </Link>
+    </div>
+  );
+}

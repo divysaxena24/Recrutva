@@ -14,6 +14,11 @@ import { config } from "dotenv";
 config({ path: ".env" });
 
 import { neon } from "@neondatabase/serverless";
+import { configureNeonHttp } from "../lib/neon-fetch";
+
+// Use the host from DATABASE_URL directly (and retry transient failures)
+// instead of the driver's legacy `api.<region>.neon.tech` endpoint.
+configureNeonHttp();
 
 const sql = neon(process.env.DATABASE_URL!);
 

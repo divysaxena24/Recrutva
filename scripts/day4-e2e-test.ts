@@ -522,8 +522,15 @@ async function testServerActionCodeReview() {
     log("Code Review: Ownership verification", hasOwnership ? "PASS" : "FAIL",
       hasOwnership ? "verifyRecruiterOwnership helper exists" : "Missing ownership verification");
 
-    // Check for completeAIRound
-    const hasAIRound = pipelineCode.includes("completeAIRound");
+    // Check for completeAIRound (lives in lib/pipeline-internal.ts since the
+    // auth refactor moved it out of the client-facing actions module)
+    const internalPipelineCode = fs.readFileSync(
+      path.resolve(__dirname, "../lib/pipeline-internal.ts"),
+      "utf-8"
+    );
+    const hasAIRound =
+      internalPipelineCode.includes("export async function completeAIRound") ||
+      pipelineCode.includes("completeAIRound");
     log("Code Review: completeAIRound exists", hasAIRound ? "PASS" : "FAIL",
       hasAIRound ? "completeAIRound function found" : "Missing completeAIRound function");
 
@@ -605,7 +612,7 @@ async function testUIComponentReview() {
     }
 
     // Check Applications page integration
-    const appsPath = path.resolve(__dirname, "../app/(dashboard)/jobs/[id]/applications/page.tsx");
+    const appsPath = path.resolve(__dirname, "../app/(dashboard)/dashboard/jobs/[id]/applications/page.tsx");
     if (fs.existsSync(appsPath)) {
       const appsCode = fs.readFileSync(appsPath, "utf-8");
       const hasPipelineImport = appsCode.includes("CandidatePipelineCard");

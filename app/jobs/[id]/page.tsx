@@ -41,7 +41,9 @@ export default function JobApplyPage() {
     if (params.id) {
       const jobId = parseInt(params.id as string);
       getJobById(jobId).then(data => {
-        setJob(data);
+        // Unpublished drafts are not candidate-facing: a draft id should
+        // behave the same as a missing job on this public route.
+        setJob(data && data.status !== "DRAFT" ? data : null);
         setLoading(false);
       });
 

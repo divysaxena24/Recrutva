@@ -182,7 +182,7 @@ export function InterviewSummaryViewer({ analysis, name }: { analysis: Interview
 
         <div className="pb-12">
           <Button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/")}
             className="w-full h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all"
           >
             Return to Dashboard
