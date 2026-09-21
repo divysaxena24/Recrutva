@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { configureNeonHttp } from '@/lib/neon-fetch';
-import "@/lib/startup"; // Side-effect: validates environment on first server access
+import { ensureEnvValidated } from '@/lib/startup';
 
 // Harden the Neon HTTP driver before any connection is created.
 // See lib/neon-fetch.ts for why (legacy `api.` endpoint rewrite + undici's
@@ -33,6 +33,10 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 function getDb() {
   if (!_db) {
+    // Validate environment on first real database access (runtime), not at
+    // module evaluation — see lib/startup.ts for why.
+    ensureEnvValidated();
+
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error(
