@@ -13,18 +13,35 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { updateCandidate } from "@/app/actions/candidate";
 import type { getCandidates } from "@/app/actions/candidate";
 import { getJobs } from "@/app/actions/job";
 
+const phoneRegex = /^[+]*[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,20}$/;
+
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 characters"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name cannot exceed 100 characters"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address")
+    .max(254, "Email is too long"),
+  phone: z
+    .string()
+    .trim()
+    .refine((val) => phoneRegex.test(val), "Please enter a valid phone number (at least 10 digits)"),
   targetJobId: z.string().min(1, "Please link this candidate to a job opening"),
-  scheduledAt: z.string().min(1, "Please select an interview date"),
+  scheduledAt: z
+    .string()
+    .min(1, "Please select an interview date and time")
+    .refine((val) => !isNaN(Date.parse(val)), "Please select a valid date and time"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -44,6 +61,7 @@ interface EditCandidateModalProps {
 
 export default function EditCandidateModal({ candidate, onSuccess, open, onOpenChange }: EditCandidateModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
@@ -59,6 +77,7 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
         targetJobId: candidate.targetJobId?.toString() || "",
         scheduledAt: candidate.scheduledAt ? new Date(candidate.scheduledAt).toISOString().slice(0, 16) : "",
       });
+      setServerError(null);
     }
   }, [candidate, reset]);
 
@@ -69,9 +88,10 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
   }, [open]);
 
   const onSubmit = async (data: FormValues) => {
-    // The modal is only rendered with a candidate selected.
     if (!candidate) return;
     setIsSubmitting(true);
+    setServerError(null);
+
     try {
       const result = await updateCandidate(candidate.id, {
         ...data,
@@ -82,20 +102,23 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
         onOpenChange(false);
         if (onSuccess) onSuccess();
       } else {
-        alert("Failed to update candidate");
+        setServerError(result.error || "Failed to update candidate.");
       }
     } catch (error) {
       console.error("Error updating candidate:", error);
-      alert("Something went wrong");
+      setServerError("An unexpected error occurred while updating candidate.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      onOpenChange(val);
+      if (!val) setServerError(null);
+    }}>
       <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[550px] rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/5 shadow-2xl">
-        <div className="p-8 space-y-8">
+        <div className="p-8 space-y-6">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold tracking-tight">Edit Candidate</DialogTitle>
             <DialogDescription className="text-slate-400">
@@ -103,64 +126,82 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
             </DialogDescription>
           </DialogHeader>
 
+          {serverError && (
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-center gap-3 text-rose-400 text-xs font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p>{serverError}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Full Name</Label>
+                <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Full Name *</Label>
                 <Input 
                   id="name" 
                   {...register("name")}
-                  className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
+                    errors.name ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  }`}
                 />
-                {errors.name && <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">{errors.name.message}</p>}
+                {errors.name && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Phone Number</Label>
+                <Label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Phone Number *</Label>
                 <Input 
                   id="phone" 
                   {...register("phone")}
-                  className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
+                    errors.phone ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  }`}
                 />
-                {errors.phone && <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">{errors.phone.message}</p>}
+                {errors.phone && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.phone.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Email Address</Label>
+              <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Email Address *</Label>
               <Input 
                 id="email" 
                 type="email" 
                 {...register("email")}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
+                  errors.email ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                }`}
               />
-              {errors.email && <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Linked Job Role</Label>
+                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Linked Job Role *</Label>
                 <select 
                   id="targetJobId"
                   {...register("targetJobId")}
-                  className="w-full bg-slate-950 border border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 px-4 appearance-none outline-none transition-all"
+                  className={`w-full bg-slate-950 border border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 px-4 appearance-none outline-none transition-all ${
+                    errors.targetJobId ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  }`}
                 >
                   <option value="">-- Select a Job Opening --</option>
                   {jobs.map(job => (
                     <option key={job.id} value={job.id.toString()}>{job.title} (#{job.id.toString().padStart(4, '0')})</option>
                   ))}
                 </select>
-                {errors.targetJobId && <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">{errors.targetJobId.message}</p>}
+                {errors.targetJobId && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.targetJobId.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Interview Date & Time</Label>
+              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Interview Date & Time *</Label>
               <Input 
                 id="scheduledAt" 
                 type="datetime-local"
                 {...register("scheduledAt")}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark]"
+                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark] ${
+                  errors.scheduledAt ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                }`}
               />
+              {errors.scheduledAt && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.scheduledAt.message}</p>}
             </div>
 
             <div className="pt-4 flex gap-4">

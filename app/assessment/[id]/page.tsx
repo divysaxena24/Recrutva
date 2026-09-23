@@ -119,8 +119,24 @@ export default function AssessmentPage() {
     setState((s) => ({ ...s, currentIndex: index }));
   };
 
+  const [confirmUnanswered, setConfirmUnanswered] = useState(false);
+
   // Submit assessment
   const handleSubmit = async () => {
+    const unansweredCount = state.questions.filter(
+      (q) => !state.answers[q.id] || state.answers[q.id].trim().length === 0
+    ).length;
+
+    if (unansweredCount > 0 && !confirmUnanswered) {
+      setConfirmUnanswered(true);
+      setState((s) => ({
+        ...s,
+        error: `You have ${unansweredCount} unanswered question(s). Click "Confirm & Submit" to submit anyway.`,
+      }));
+      return;
+    }
+
+    setConfirmUnanswered(false);
     setState((s) => ({ ...s, submitting: true, error: "" }));
 
     try {
@@ -449,7 +465,7 @@ export default function AssessmentPage() {
               ) : (
                 <Send className="w-4 h-4 mr-2" />
               )}
-              Submit Assessment
+              {confirmUnanswered ? "Confirm & Submit" : "Submit Assessment"}
             </Button>
           )}
         </div>

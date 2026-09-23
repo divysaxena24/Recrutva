@@ -62,17 +62,48 @@ export default function SchedulesPage() {
     loadCandidates();
   }, [loadCandidates]);
 
+  const [dateError, setDateError] = useState<string | null>(null);
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+
   const handleReschedule = async () => {
-    if (!reschedulingCandidate || !newDate) return;
-    setIsUpdating(true);
-    const res = await rescheduleCandidate(reschedulingCandidate.id, newDate);
-    if (res.success) {
-      setReschedulingCandidate(null);
-      fetchCandidates();
-    } else {
-      alert("Failed to reschedule");
+    if (!reschedulingCandidate) return;
+
+    setDateError(null);
+    setRescheduleError(null);
+
+    if (!newDate) {
+      setDateError("Please select a new date and time");
+      return;
     }
-    setIsUpdating(false);
+
+    const parsed = Date.parse(newDate);
+    if (isNaN(parsed)) {
+      setDateError("Please enter a valid date and time");
+      return;
+    }
+
+    if (parsed < Date.now() - 15 * 60 * 1000) {
+      setDateError("Rescheduled interview date must be in the future");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const res = await rescheduleCandidate(reschedulingCandidate.id, newDate);
+      if (res.success) {
+        setReschedulingCandidate(null);
+        setNewDate("");
+        setDateError(null);
+        setRescheduleError(null);
+        fetchCandidates();
+      } else {
+        setRescheduleError(res.error || "Failed to reschedule interview. Please try again.");
+      }
+    } catch {
+      setRescheduleError("An unexpected error occurred while rescheduling.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -237,7 +268,13 @@ export default function SchedulesPage() {
       </div>
 
       {/* Reschedule Modal */}
-      <Dialog open={!!reschedulingCandidate} onOpenChange={(open) => !open && setReschedulingCandidate(null)}>
+      <Dialog open={!!reschedulingCandidate} onOpenChange={(open) => {
+        if (!open) {
+          setReschedulingCandidate(null);
+          setDateError(null);
+          setRescheduleError(null);
+        }
+      }}>
         <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[425px] rounded-[2rem] p-8 ring-1 ring-white/5 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Reschedule Interview</DialogTitle>
@@ -245,16 +282,32 @@ export default function SchedulesPage() {
               Pick a new date and time for {reschedulingCandidate?.name}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+
+          {rescheduleError && (
+            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-xs font-medium">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p>{rescheduleError}</p>
+            </div>
+          )}
+
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="newDate" className="text-xs font-bold text-slate-500 uppercase tracking-widest">New Date & Time</Label>
+              <Label htmlFor="newDate" className="text-xs font-bold text-slate-500 uppercase tracking-widest">New Date & Time *</Label>
               <Input 
                 id="newDate" 
                 type="datetime-local"
                 value={newDate}
-                onChange={(e) => setNewDate(e.target.value)}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark]"
+                onChange={(e) => {
+                  setNewDate(e.target.value);
+                  if (dateError) setDateError(null);
+                }}
+                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark] ${
+                  dateError ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                }`}
               />
+              {dateError && (
+                <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{dateError}</p>
+              )}
             </div>
           </div>
           <DialogFooter className="flex gap-3">

@@ -1,18 +1,43 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, X, Loader2, Bot } from "lucide-react";
+import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, X, Loader2, Bot, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { getJobById } from "@/app/actions/job";
 import { createCandidate } from "@/app/actions/candidate";
 import { checkExistingApplication } from "@/app/actions/check-application";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+
+const phoneRegex = /^[+]*[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,20}$/;
+
+const jobApplySchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Full name must be at least 2 characters")
+    .max(100, "Full name cannot exceed 100 characters"),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address")
+    .max(254, "Email is too long"),
+  phone: z
+    .string()
+    .trim()
+    .refine((val) => phoneRegex.test(val), "Please enter a valid phone number (at least 10 digits)"),
+});
+
+type JobApplyFormValues = z.infer<typeof jobApplySchema>;
 
 /** A job as returned by the getJobById server action (null when missing). */
 type JobDetail = NonNullable<Awaited<ReturnType<typeof getJobById>>>;
@@ -29,13 +54,13 @@ export default function JobApplyPage() {
   const [success, setSuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState<ExistingApplication>(null);
   const [error, setError] = useState("");
-  
-  // Form State
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { register, handleSubmit, formState: { errors } } = useForm<JobApplyFormValues>({
+    resolver: zodResolver(jobApplySchema),
+  });
 
   useEffect(() => {
     if (params.id) {
@@ -53,13 +78,40 @@ export default function JobApplyPage() {
     }
   }, [params.id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // The form only renders once the job has loaded (see the guard below).
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileError(null);
+    if (e.target.files && e.target.files[0]) {
+      const selected = e.target.files[0];
+      const validTypes = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+      if (!validTypes.includes(selected.type) && !selected.name.match(/\.(pdf|doc|docx)$/i)) {
+        setFileError("Only PDF, DOC, and DOCX files are allowed.");
+        setFile(null);
+        return;
+      }
+      if (selected.size > 10 * 1024 * 1024) {
+        setFileError("File size cannot exceed 10MB.");
+        setFile(null);
+        return;
+      }
+      setFile(selected);
+    }
+  };
+
+  const onSubmit = async (data: JobApplyFormValues) => {
     if (!job) return;
-    if (!file) return alert("Please upload your resume");
+    if (!file) {
+      setFileError("Please upload your resume document.");
+      return;
+    }
     
     setSubmitting(true);
+    setError("");
+    setFileError(null);
+
     try {
       // 1. Upload resume to Cloudinary via our API
       const formData = new FormData();
@@ -80,26 +132,25 @@ export default function JobApplyPage() {
       
       // 2. Create candidate with real resume data
       const res = await createCandidate({
-        name,
-        email,
-        phone,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
         resumeText: uploadData.resumeText,
         resumeUrl: uploadData.resumeUrl,
         resumeFileName: uploadData.resumeFileName,
         resumePublicId: uploadData.resumePublicId,
         targetJobId: job.id,
-        // For public apps, we set a default schedule or leave it for recruiter
         scheduledAt: new Date(Date.now() + 86400000).toISOString(), // Default: Tomorrow
       });
 
       if (res.success) {
         setSuccess(true);
       } else {
-        setError(res.error || "Application failed. Please try again.");
+        setError(res.error || "Application submission failed. Please try again.");
       }
     } catch (err) {
       console.error(err);
-      setError("Something went wrong. Please check your details.");
+      setError("Something went wrong. Please check your details and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +168,7 @@ export default function JobApplyPage() {
            </div>
            <div className="space-y-3">
              <h2 className="text-3xl font-black">Application Sent!</h2>
-             <p className="text-slate-400">Thank you for applying, {name.split(' ')[0]}. Our AI system will review your profile shortly. Keep an eye on your email for the interview invitation.</p>
+             <p className="text-slate-400">Thank you for applying! Our AI system will review your profile shortly. Keep an eye on your email for the interview invitation.</p>
            </div>
            <Link href="/jobs" className="block">
              <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-bold">Back to Job Board</Button>
@@ -217,56 +268,87 @@ export default function JobApplyPage() {
             ) : (
               <>
                 <h2 className="text-3xl font-bold text-white mb-8">Apply for this position</h2>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   {error && (
                     <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-center gap-3 text-rose-400 text-sm">
-                      <X className="w-4 h-4 shrink-0" />
+                      <AlertCircle className="w-4 h-4 shrink-0" />
                       <p className="font-medium">{error}</p>
                     </div>
                   )}
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Full Name</Label>
-                <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Cooper" className="h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Email Address</Label>
-                <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" className="h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Phone Number</Label>
-                <Input required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" className="h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5" />
-              </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Full Name *</Label>
+                    <Input 
+                      placeholder="Jane Cooper" 
+                      {...register("name")}
+                      className={`h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 focus:ring-indigo-500/30 ${
+                        errors.name ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                      }`}
+                    />
+                    {errors.name && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{errors.name.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Email Address *</Label>
+                    <Input 
+                      type="email" 
+                      placeholder="jane@example.com" 
+                      {...register("email")}
+                      className={`h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 focus:ring-indigo-500/30 ${
+                        errors.email ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                      }`}
+                    />
+                    {errors.email && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{errors.email.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Phone Number *</Label>
+                    <Input 
+                      placeholder="+1 (555) 000-0000" 
+                      {...register("phone")}
+                      className={`h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 focus:ring-indigo-500/30 ${
+                        errors.phone ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                      }`}
+                    />
+                    {errors.phone && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{errors.phone.message}</p>}
+                  </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Resume / CV</Label>
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer ${file ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/5'}`}
-                >
-                  <input type="file" ref={fileInputRef} onChange={(e) => e.target.files && setFile(e.target.files[0])} className="hidden" accept=".pdf,.doc,.docx" />
-                  {file ? (
-                    <div className="text-center">
-                       <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-                       <p className="text-sm font-bold text-white">{file.name}</p>
-                       <p className="text-[10px] text-slate-500 uppercase mt-2">Ready to upload</p>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Resume / CV *</Label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        fileError ? 'border-rose-500/50 bg-rose-500/5' : file ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/5'
+                      }`}
+                    >
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        className="hidden" 
+                        accept=".pdf,.doc,.docx" 
+                      />
+                      {file ? (
+                        <div className="text-center">
+                           <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+                           <p className="text-sm font-bold text-white">{file.name}</p>
+                           <p className="text-[10px] text-slate-500 uppercase mt-2">Ready to upload</p>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-slate-600 mb-2" />
+                          <p className="text-sm font-bold text-slate-400">Upload PDF, DOC, or DOCX</p>
+                          <p className="text-[10px] text-slate-600 uppercase mt-2">Max size 10MB</p>
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-slate-600 mb-2" />
-                      <p className="text-sm font-bold text-slate-400">Upload PDF or DOC</p>
-                      <p className="text-[10px] text-slate-600 uppercase mt-2">Max size 10MB</p>
-                    </>
-                  )}
-                </div>
-              </div>
+                    {fileError && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{fileError}</p>}
+                  </div>
 
-                <div className="pt-6">
-                  <Button type="submit" disabled={submitting} className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg shadow-2xl shadow-indigo-500/30">
-                    {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : "Submit Application"}
-                  </Button>
-                  <p className="text-center text-[10px] text-slate-600 font-bold uppercase mt-6 tracking-widest">By applying, you agree to our terms & privacy policy</p>
-                </div>
-              </form>
+                  <div className="pt-6">
+                    <Button type="submit" disabled={submitting} className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg shadow-2xl shadow-indigo-500/30">
+                      {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : "Submit Application"}
+                    </Button>
+                    <p className="text-center text-[10px] text-slate-600 font-bold uppercase mt-6 tracking-widest">By applying, you agree to our terms & privacy policy</p>
+                  </div>
+                </form>
               </>
             )}
           </Card>

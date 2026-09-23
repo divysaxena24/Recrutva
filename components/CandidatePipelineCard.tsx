@@ -140,6 +140,8 @@ export default function CandidatePipelineCard({
   const [completeStatus, setCompleteStatus] = useState<"PASSED" | "FAILED">("PASSED");
   const [score, setScore] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [scoreError, setScoreError] = useState<string | null>(null);
+  const [dialogError, setDialogError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Move round state
@@ -188,16 +190,35 @@ export default function CandidatePipelineCard({
     setCompleteStatus(status);
     setScore("");
     setFeedback("");
+    setScoreError(null);
+    setDialogError(null);
     setCompleteDialogOpen(true);
   };
 
   const handleCompleteRound = async () => {
     if (activeRoundIndex === null || !pipeline) return;
 
+    setScoreError(null);
+    setDialogError(null);
+
+    let parsedScore: number | undefined = undefined;
+    if (score !== "") {
+      const val = parseInt(score, 10);
+      if (isNaN(val) || val < 0 || val > 100) {
+        setScoreError("Score must be a number between 0 and 100");
+        return;
+      }
+      parsedScore = val;
+    }
+
+    if (feedback.length > 2000) {
+      setDialogError("Feedback cannot exceed 2000 characters");
+      return;
+    }
+
     const round = pipeline.rounds[activeRoundIndex];
     if (!round.candidateRoundId) {
-      setError("Cannot complete this round: no candidate round record found.");
-      setCompleteDialogOpen(false);
+      setDialogError("Cannot complete this round: no candidate round record found.");
       return;
     }
 
@@ -206,7 +227,7 @@ export default function CandidatePipelineCard({
       const result = await completeCandidateRound({
         candidateRoundId: round.candidateRoundId,
         status: completeStatus,
-        score: score ? parseInt(score) : undefined,
+        score: parsedScore,
         feedback: feedback || undefined,
       });
 
@@ -215,12 +236,10 @@ export default function CandidatePipelineCard({
         await fetchPipeline();
         onPipelineChange?.();
       } else {
-        setError(result.error || "Failed to complete round.");
-        setCompleteDialogOpen(false);
+        setDialogError(result.error || "Failed to complete round.");
       }
     } catch {
-      setError("An unexpected error occurred.");
-      setCompleteDialogOpen(false);
+      setDialogError("An unexpected error occurred.");
     } finally {
       setSubmitting(false);
     }
@@ -625,6 +644,13 @@ export default function CandidatePipelineCard({
             </DialogHeader>
 
             <div className="space-y-5 mt-6">
+              {dialogError && (
+                <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-xs font-medium">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{dialogError}</p>
+                </div>
+              )}
+
               {/* Score */}
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
@@ -636,20 +662,17 @@ export default function CandidatePipelineCard({
                   max="100"
                   value={score}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    if (isNaN(val)) {
-                      setScore("");
-                    } else if (val < 0) {
-                      setScore("0");
-                    } else if (val > 100) {
-                      setScore("100");
-                    } else {
-                      setScore(e.target.value);
-                    }
+                    setScore(e.target.value);
+                    if (scoreError) setScoreError(null);
                   }}
                   placeholder="0-100"
-                  className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
+                    scoreError ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  }`}
                 />
+                {scoreError && (
+                  <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{scoreError}</p>
+                )}
               </div>
 
               {/* Feedback */}

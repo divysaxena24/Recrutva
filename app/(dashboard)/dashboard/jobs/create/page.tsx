@@ -119,6 +119,8 @@ function CreateJobView() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const busy = generating || saving || publishing;
 
   // ─── Load an existing draft for editing ─────────────────────────
@@ -176,12 +178,12 @@ function CreateJobView() {
       setGenerating(true);
       setError(null);
       setNotice(null);
+      setFieldErrors({});
 
       try {
         const result = await generateJobDraft(input);
 
         if (!result.success) {
-          // The previously generated content is intentionally preserved.
           setError(result.error);
           return;
         }
@@ -198,19 +200,33 @@ function CreateJobView() {
     [],
   );
 
-  const handleGenerate = async () => {
-    // Client-side pre-flight only — the server validates again.
+  const validateInput = (): GenerateJobInput | null => {
+    setFieldErrors({});
     const parsed = GenerateJobInputSchema.safeParse({
       ...form,
       skills: splitSkills(skillsText),
     });
 
     if (!parsed.success) {
+      const errorsMap: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const fieldName = String(issue.path[0] ?? "");
+        if (fieldName && !errorsMap[fieldName]) {
+          errorsMap[fieldName] = issue.message;
+        }
+      }
+      setFieldErrors(errorsMap);
       setError(parsed.error.issues[0]?.message ?? "Please complete the required fields.");
-      return;
+      return null;
     }
 
-    await runGeneration(parsed.data);
+    return parsed.data;
+  };
+
+  const handleGenerate = async () => {
+    const validated = validateInput();
+    if (!validated) return;
+    await runGeneration(validated);
   };
 
   const handleRegenerate = async () => {
@@ -396,9 +412,17 @@ function CreateJobView() {
               value={form.title}
               disabled={busy}
               placeholder="e.g. Backend Engineer"
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+              onChange={(e) => {
+                setForm({ ...form, title: e.target.value });
+                if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: "" });
+              }}
+              className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
+                fieldErrors.title ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+              }`}
             />
+            {fieldErrors.title && (
+              <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{fieldErrors.title}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -514,9 +538,17 @@ function CreateJobView() {
               disabled={busy}
               placeholder="e.g. Java, Spring Boot, PostgreSQL, REST APIs"
               aria-describedby="skills-hint"
-              onChange={(e) => setSkillsText(e.target.value)}
-              className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+              onChange={(e) => {
+                setSkillsText(e.target.value);
+                if (fieldErrors.skills) setFieldErrors({ ...fieldErrors, skills: "" });
+              }}
+              className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
+                fieldErrors.skills ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+              }`}
             />
+            {fieldErrors.skills && (
+              <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{fieldErrors.skills}</p>
+            )}
             <p id="skills-hint" className="text-[11px] text-slate-600">
               Separate skills with commas.
             </p>
