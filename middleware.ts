@@ -62,13 +62,18 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Protected routes require authentication
-  const { userId } = await auth();
+  const { userId, redirectToSignIn } = await auth();
 
   if (!userId) {
-    // Unauthenticated user trying to access protected route
-    const signInUrl = new URL("/", req.url);
-    signInUrl.searchParams.set("redirect", req.nextUrl.pathname);
-    return NextResponse.redirect(signInUrl);
+    // Unauthenticated API request -> return HTTP 401 Unauthorized JSON
+    if (req.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized access. Please sign in." },
+        { status: 401 }
+      );
+    }
+    // Unauthenticated page request -> redirect directly to Sign In page
+    return redirectToSignIn({ returnBackUrl: req.url });
   }
 
   // Recruiter routes — require authentication (role checked server-side in actions)
