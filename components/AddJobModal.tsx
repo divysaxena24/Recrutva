@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -54,7 +54,7 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<AddJobFormValues>({
@@ -67,7 +67,7 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
     },
   });
 
-  const titleValue = watch("title");
+  const titleValue = useWatch({ control, name: "title" });
 
   const handleGenerateAI = async () => {
     if (!titleValue || titleValue.trim().length < 3) {

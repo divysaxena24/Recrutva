@@ -77,7 +77,6 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
         targetJobId: candidate.targetJobId?.toString() || "",
         scheduledAt: candidate.scheduledAt ? new Date(candidate.scheduledAt).toISOString().slice(0, 16) : "",
       });
-      setServerError(null);
     }
   }, [candidate, reset]);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, X, Loader2, Bot, AlertCircle } from "lucide-react";
+import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, Loader2, Bot, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -140,7 +140,6 @@ export default function JobApplyPage() {
         resumeFileName: uploadData.resumeFileName,
         resumePublicId: uploadData.resumePublicId,
         targetJobId: job.id,
-        scheduledAt: new Date(Date.now() + 86400000).toISOString(), // Default: Tomorrow
       });
 
       if (res.success) {
