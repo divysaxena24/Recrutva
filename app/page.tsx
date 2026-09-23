@@ -172,12 +172,12 @@ export default function Home() {
             className="flex flex-col sm:flex-row items-center gap-4 pt-4"
           >
             {!userId ? (
-              <Link href="/onboarding">
+              <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
                 <Button size="lg" className="h-16 px-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group cursor-pointer">
                   Get Started
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
-              </Link>
+              </SignUpButton>
             ) : (
               <Link href="/onboarding">
                 <Button size="lg" className="h-16 px-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 group">
@@ -281,9 +281,19 @@ export default function Home() {
                   placeholder="Enter your work email" 
                   className="flex-1 rounded-xl bg-slate-950 border border-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                 />
-                <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-6 px-6">
-                  Get Access
-                </Button>
+                {!userId ? (
+                  <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
+                    <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-6 px-6 font-bold cursor-pointer">
+                      Get Access
+                    </Button>
+                  </SignUpButton>
+                ) : (
+                  <Link href="/onboarding">
+                    <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-6 px-6 font-bold cursor-pointer">
+                      Go to Dashboard
+                    </Button>
+                  </Link>
+                )}
               </div>
               
               <div className="flex items-center gap-4 mt-6 text-sm text-slate-400">
