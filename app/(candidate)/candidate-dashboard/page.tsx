@@ -270,30 +270,47 @@ function SummaryCards({
   applications: CandidateApplicationView[];
 }) {
   const total = applications.length;
+  const actionRequired = applications.filter(
+    (a) => a.nextAction.kind === "interview" || a.nextAction.kind === "assessment"
+  ).length;
   const completed = applications.filter(
     (a) => a.nextAction.kind === "complete"
   ).length;
-  const inProgress = total - completed;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-      <Card className="bg-emerald-600/5 border-emerald-500/20 p-6 rounded-3xl">
-        <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-4">
-          Total Applications
+      <Card className="bg-[#0a0a0f] border-slate-800/60 p-6 rounded-3xl ring-1 ring-white/5 flex flex-col justify-between shadow-xl">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Briefcase className="w-4 h-4 text-emerald-400" /> Total Applications
         </h3>
-        <div className="text-5xl font-black text-white">{total}</div>
+        <div className="text-4xl font-black text-white">{total}</div>
       </Card>
-      <Card className="bg-indigo-600/5 border-indigo-500/20 p-6 rounded-3xl">
-        <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-4">
-          In Progress
+      <Card
+        className={`p-6 rounded-3xl ring-1 flex flex-col justify-between transition-all shadow-xl ${
+          actionRequired > 0
+            ? "bg-amber-500/10 border-amber-500/30 ring-amber-500/20"
+            : "bg-[#0a0a0f] border-slate-800/60 ring-1 ring-white/5"
+        }`}
+      >
+        <h3
+          className={`text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2 ${
+            actionRequired > 0 ? "text-amber-400" : "text-slate-400"
+          }`}
+        >
+          <AlertTriangle
+            className={`w-4 h-4 ${
+              actionRequired > 0 ? "text-amber-400 animate-pulse" : "text-slate-500"
+            }`}
+          />
+          Action Required
         </h3>
-        <div className="text-5xl font-black text-white">{inProgress}</div>
+        <div className="text-4xl font-black text-white">{actionRequired}</div>
       </Card>
-      <Card className="bg-slate-600/5 border-slate-700/20 p-6 rounded-3xl">
-        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">
-          Completed
+      <Card className="bg-[#0a0a0f] border-slate-800/60 p-6 rounded-3xl ring-1 ring-white/5 flex flex-col justify-between shadow-xl">
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-indigo-400" /> Completed
         </h3>
-        <div className="text-5xl font-black text-white">{completed}</div>
+        <div className="text-4xl font-black text-white">{completed}</div>
       </Card>
     </div>
   );

@@ -26,6 +26,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AddCandidateModal from "@/components/AddCandidateModal";
+import AddJobModal from "@/components/AddJobModal";
 import {
   getDashboardOverview,
   type DashboardOverview,
@@ -97,9 +98,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Loader shared by the mount effect and the refresh handlers. State is only
-  // written from promise callbacks: React forbids setState calls made
-  // synchronously from an effect, directly or through a called function.
   const loadOverview = useCallback(() => {
     return getDashboardOverview()
       .then((data) => {
@@ -118,7 +116,6 @@ export default function DashboardPage() {
       });
   }, []);
 
-  // User-triggered refresh (candidate created / retry) — re-shows the spinner.
   const fetchOverview = useCallback(() => {
     setLoading(true);
     return loadOverview();
@@ -129,6 +126,8 @@ export default function DashboardPage() {
   }, [loadOverview]);
 
   const metrics = overview?.metrics;
+  const manualReviewCount =
+    overview?.pipelineStages?.find((s) => s.type === "MANUAL_REVIEW")?.count ?? 0;
 
   return (
     <div className="space-y-10 pb-20">
@@ -140,13 +139,13 @@ export default function DashboardPage() {
           className="space-y-1"
         >
           <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest mb-2">
-            <Sparkles className="w-4 h-4" /> Hiring Command Center
+            <Sparkles className="w-4 h-4" /> Recruiter Command Center
           </div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight">
             Welcome back, {user?.firstName || "Recruiter"}
           </h1>
           <p className="text-slate-400 text-lg max-w-xl">
-            Your hiring pipeline at a glance.
+            Real-time pipeline metrics and active candidate evaluations.
           </p>
         </motion.div>
 
@@ -156,22 +155,7 @@ export default function DashboardPage() {
           transition={{ delay: 0.2 }}
           className="flex items-center gap-3 flex-wrap"
         >
-          <Link href="/dashboard/candidates">
-            <Button
-              variant="outline"
-              className="h-12 px-5 rounded-full border-slate-800 text-slate-300 hover:bg-white/5 text-sm font-bold"
-            >
-              <Users className="w-4 h-4 mr-2" /> Candidates
-            </Button>
-          </Link>
-          <Link href="/dashboard/jobs">
-            <Button
-              variant="outline"
-              className="h-12 px-5 rounded-full border-slate-800 text-slate-300 hover:bg-white/5 text-sm font-bold"
-            >
-              <Briefcase className="w-4 h-4 mr-2" /> Jobs
-            </Button>
-          </Link>
+          <AddJobModal onSuccess={fetchOverview} />
           <AddCandidateModal onSuccess={fetchOverview} />
         </motion.div>
       </section>
@@ -182,6 +166,35 @@ export default function DashboardPage() {
         <ErrorState onRetry={fetchOverview} />
       ) : (
         <>
+          {/* Action Required Alert Banner */}
+          {manualReviewCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-5 bg-purple-500/10 border border-purple-500/30 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl ring-1 ring-purple-500/20"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-base">
+                    {manualReviewCount} Candidate{manualReviewCount > 1 ? "s" : ""}{" "}
+                    Awaiting Manual Review
+                  </h4>
+                  <p className="text-xs text-purple-200/70">
+                    Review candidate scores and move them forward in the pipeline.
+                  </p>
+                </div>
+              </div>
+              <Link href="/dashboard/candidates">
+                <Button className="h-10 px-5 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-500/20 shrink-0">
+                  Review Candidates <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </Link>
+            </motion.div>
+          )}
+
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             <StatCard
