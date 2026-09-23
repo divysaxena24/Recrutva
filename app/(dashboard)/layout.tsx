@@ -9,6 +9,8 @@ import {
   Calendar,
   Menu, 
   Briefcase,
+  User,
+  ArrowRightLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -86,6 +88,25 @@ export default function DashboardLayout({
             })}
           </div>
 
+          {/* Dashboard Switcher */}
+          <div className="px-4 py-3 border-t border-slate-800/60">
+            <Link
+              href="/candidate-dashboard"
+              className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 transition-all group shadow-md"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-white truncate">Candidate Portal</span>
+                  <span className="text-[9px] text-emerald-300/70 font-semibold">Switch Dashboard</span>
+                </div>
+              </div>
+              <ArrowRightLeft className="w-4 h-4 text-emerald-400 opacity-60 group-hover:opacity-100 group-hover:rotate-180 transition-all shrink-0" />
+            </Link>
+          </div>
+
           {/* Sidebar Footer: User Profile */}
           <div className="p-4 space-y-3 border-t border-slate-800/60">
             <div className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] transition-all rounded-2xl p-3 ring-1 ring-white/5 group cursor-pointer">
@@ -132,6 +153,11 @@ export default function DashboardLayout({
 
           {/* Right: Notifications & User Profile Icon */}
           <div className="flex items-center gap-4">
+            <Link href="/candidate-dashboard" className="hidden sm:inline-flex">
+              <Button variant="outline" className="h-9 px-4 rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs font-bold gap-2">
+                <ArrowRightLeft className="w-3.5 h-3.5" /> Candidate Portal
+              </Button>
+            </Link>
             <div className="h-8 w-px bg-slate-800/60 mx-2 hidden sm:block"></div>
             <div className="flex items-center gap-3">
               <div className="hidden md:flex flex-col items-end mr-1">

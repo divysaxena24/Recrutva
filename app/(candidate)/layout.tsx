@@ -5,7 +5,9 @@ import {
   Bot, 
   Briefcase,
   Home, 
-  Menu, 
+  Menu,
+  UserCheck,
+  ArrowRightLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -74,6 +76,25 @@ export default function CandidateLayout({
             })}
           </nav>
 
+          {/* Dashboard Switcher */}
+          <div className="px-4 py-3 border-t border-slate-800/60">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-between p-3 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 transition-all group shadow-md"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold text-white truncate">Recruiter Portal</span>
+                  <span className="text-[9px] text-indigo-300/70 font-semibold">Switch Dashboard</span>
+                </div>
+              </div>
+              <ArrowRightLeft className="w-4 h-4 text-indigo-400 opacity-60 group-hover:opacity-100 group-hover:rotate-180 transition-all shrink-0" />
+            </Link>
+          </div>
+
           <div className="p-4 space-y-3 border-t border-slate-800/60">
             <div className="flex items-center gap-3 bg-white/[0.03] rounded-2xl p-3 ring-1 ring-white/5">
               <UserButton appearance={{ elements: { userButtonAvatarBox: "w-9 h-9" } }} />
@@ -95,6 +116,11 @@ export default function CandidateLayout({
             <h2 className="text-lg font-bold text-white hidden lg:block">Candidate Dashboard</h2>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="hidden sm:inline-flex">
+              <Button variant="outline" className="h-9 px-4 rounded-full border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 text-xs font-bold gap-2">
+                <ArrowRightLeft className="w-3.5 h-3.5" /> Recruiter Portal
+              </Button>
+            </Link>
             <UserButton />
           </div>
         </header>
