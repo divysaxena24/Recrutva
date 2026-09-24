@@ -13,9 +13,9 @@ export const CreateCandidateSchema = z.object({
   email: z.string().trim().toLowerCase().email("Invalid email address").max(254, "Email is too long"),
   phone: z.string().trim().min(5, "Phone number is too short").max(30, "Phone number is too long"),
   resumeText: z.string().max(20000, "Resume text is too large").optional().default(""),
-  resumeUrl: z.string().url("Invalid resume URL").max(1000).optional(),
-  resumeFileName: z.string().max(255).optional(),
-  resumePublicId: z.string().max(500).optional(),
+  resumeUrl: z.union([z.string().url("Invalid resume URL"), z.literal("")]).optional().nullable(),
+  resumeFileName: z.string().max(255).optional().nullable(),
+  resumePublicId: z.string().max(500).optional().nullable(),
   jobTitle: z.string().max(255).optional(),
   targetJobId: z.number().int().positive().optional(),
   scheduledAt: z

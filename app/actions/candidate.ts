@@ -193,6 +193,9 @@ export async function getCandidates(jobId?: number) {
       matchScore: applicants.matchScore,
       jobTitle: applicants.jobTitle,
       targetJobId: applicants.targetJobId,
+      resumeUrl: applicants.resumeUrl,
+      resumeFileName: applicants.resumeFileName,
+      resumeText: applicants.resumeText,
       scheduledAt: applicants.scheduledAt,
       createdAt: applicants.createdAt,
       linkedJobTitle: jobs.title,
@@ -408,8 +411,13 @@ export async function getCandidateById(id: number) {
     const data = await db.select({
       id: applicants.id,
       name: applicants.name,
+      email: applicants.email,
+      phone: applicants.phone,
       jobTitle: applicants.jobTitle,
       targetJobId: applicants.targetJobId,
+      resumeUrl: applicants.resumeUrl,
+      resumeFileName: applicants.resumeFileName,
+      resumeText: applicants.resumeText,
       linkedJobTitle: jobs.title,
     })
     .from(applicants)

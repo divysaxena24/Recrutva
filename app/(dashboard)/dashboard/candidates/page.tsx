@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Eye,
   FileSearch,
+  FileText,
   Filter,
   Inbox,
   LayoutGrid,
@@ -825,6 +826,21 @@ function CandidatesPage() {
                         </TableCell>
                         <TableCell className="text-right px-8">
                           <div className="flex items-center justify-end gap-2">
+                            {candidate.resumeUrl && (
+                              <a
+                                href={candidate.resumeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2.5 rounded-lg border-slate-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-[11px] font-bold"
+                                >
+                                  <FileText className="w-3.5 h-3.5 mr-1" /> Resume
+                                </Button>
+                              </a>
+                            )}
                             {candidate.needsReview && (
                               <Button
                                 size="sm"
