@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Layers, Plus, Trash2, Sliders, CheckCircle2 } from "lucide-react";
+import { Layers, Trash2 } from "lucide-react";
 
 export type RoundConfig = {
   name: string;
@@ -60,7 +58,6 @@ export default function PipelineConfigurator({
 
     if (validNum > updated.length) {
       // Add default round
-      const nextOrder = updated.length + 1;
       const defaultOptions: RoundConfig[] = [
         { name: "Resume Screening", type: "RESUME_SCREENING", passThreshold: 70, selectTarget: "80%" },
         { name: "Technical OA", type: "ASSESSMENT", passThreshold: 70, selectTarget: "70%" },
@@ -84,7 +81,7 @@ export default function PipelineConfigurator({
     onChange(updated);
   };
 
-  const updateRound = (index: number, field: keyof RoundConfig, value: any) => {
+  const updateRound = (index: number, field: keyof RoundConfig, value: string | number) => {
     const updated = [...rounds];
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);

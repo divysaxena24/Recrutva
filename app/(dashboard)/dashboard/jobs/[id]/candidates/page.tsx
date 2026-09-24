@@ -2,24 +2,17 @@
 
 import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Briefcase,
-  Users,
   LayoutGrid,
   Table as TableIcon,
-  FileText,
   ExternalLink,
   Loader2,
   CheckCircle2,
   XCircle,
-  Clock,
   Sparkles,
   Search,
-  Filter,
-  Eye,
-  SlidersHorizontal,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -35,11 +28,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getJobPipelineOverview } from "@/app/actions/candidate-pipeline";
-import { deleteJob } from "@/app/actions/job";
 import CandidatePipelineCard from "@/components/CandidatePipelineCard";
 import DeleteJobAlertModal from "@/components/DeleteJobAlertModal";
 
 type OverviewData = Awaited<ReturnType<typeof getJobPipelineOverview>>;
+type PipelineCandidate = NonNullable<OverviewData>["rounds"][number]["passedCandidates"][number];
 
 export default function JobCandidatesPage({
   params,
@@ -57,15 +50,6 @@ export default function JobCandidatesPage({
   const [showFailed, setShowFailed] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
 
-  const handleDeleteJob = async () => {
-    if (confirm("Are you sure you want to delete this job position and all its candidates?")) {
-      const res = await deleteJob(jobId);
-      if (res.success) {
-        router.push("/dashboard/jobs");
-      }
-    }
-  };
-
   const loadData = useCallback(async () => {
     if (isNaN(jobId)) return;
     setLoading(true);
@@ -80,6 +64,7 @@ export default function JobCandidatesPage({
   }, [jobId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [loadData]);
 
@@ -421,10 +406,12 @@ export default function JobCandidatesPage({
                     </span>
                   </div>
 
-                  {passedCandidates.map((cand: any) => (
+                  {passedCandidates.map((cand: PipelineCandidate) => (
                     <div
                       key={cand.id}
-                      onClick={() => setSelectedCandidateId(cand.id)}
+                      onClick={() => {
+                        if (cand?.id) setSelectedCandidateId(cand.id);
+                      }}
                       className="p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-indigo-50/40 hover:border-indigo-300 transition-all cursor-pointer space-y-2 group shadow-2xs"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -464,10 +451,12 @@ export default function JobCandidatesPage({
                       </span>
                     </div>
 
-                    {failedCandidates.map((cand: any) => (
+                    {failedCandidates.map((cand: PipelineCandidate) => (
                       <div
                         key={cand.id}
-                        onClick={() => setSelectedCandidateId(cand.id)}
+                        onClick={() => {
+                          if (cand?.id) setSelectedCandidateId(cand.id);
+                        }}
                         className="p-3.5 rounded-2xl border border-rose-100 bg-rose-50/30 hover:bg-rose-50/70 transition-all cursor-pointer space-y-2 group"
                       >
                         <div className="flex items-start justify-between gap-2">

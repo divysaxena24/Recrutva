@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getJobs, deleteJob } from "@/app/actions/job";
+import { getJobs } from "@/app/actions/job";
 import AddJobModal from "@/components/AddJobModal";
 import JobDetailsModal from "@/components/JobDetailsModal";
 import { useUser } from "@clerk/nextjs";
@@ -64,14 +64,7 @@ export default function JobsPage() {
     );
   });
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Are you sure you want to delete this job?")) {
-      const res = await deleteJob(id);
-      if (res.success) {
-        fetchJobs();
-      }
-    }
-  };
+
 
   return (
     <div className="space-y-10 pb-20">
