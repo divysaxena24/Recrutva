@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Calendar, Search, Trash2, Globe, Pencil, Sparkles } from "lucide-react";
+import { Briefcase, MapPin, Calendar, Search, Trash2, Globe, Pencil, Sparkles, Eye, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { getJobs, deleteJob } from "@/app/actions/job";
 import AddJobModal from "@/components/AddJobModal";
+import JobDetailsModal from "@/components/JobDetailsModal";
 import { useUser } from "@clerk/nextjs";
 
 /** A job row as returned by the getJobs server action. */
@@ -171,50 +172,38 @@ export default function JobsPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {job.userId === user?.id && (
-                    <>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(job.id)} className="w-9 h-9 rounded-xl hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                      <Link href={`/dashboard/jobs/${job.id}/applications`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 px-3 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-[10px] font-bold uppercase"
-                        >
-                          Applications
-                        </Button>
-                      </Link>
-                      <Button 
-                        size="sm" 
-                        onClick={() => window.location.href = `/dashboard/candidates?jobId=${job.id}`}
-                        className="h-9 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20"
-                      >
-                        View Candidates
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {isDraft(job.status) ? (
-                  <Link href={`/dashboard/jobs/create?jobId=${job.id}`}>
+              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
+                <JobDetailsModal
+                  job={job}
+                  trigger={
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 px-4 rounded-xl border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-[10px] font-bold uppercase"
+                      className="flex-1 h-10 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider shadow-xs"
                     >
-                      <Pencil className="w-3 h-3 mr-1.5" /> Continue editing
-                    </Button>
-                  </Link>
-                ) : (
-                  <Button 
-                      variant="outline"
-                      size="sm" 
-                      onClick={() => window.location.href = `/jobs/${job.id}`}
-                      className="h-9 px-4 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-[10px] font-bold uppercase"
-                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
                       View Application
+                    </Button>
+                  }
+                />
+                <Link href={`/dashboard/jobs/${job.id}/candidates`} className="flex-1">
+                  <Button
+                    size="sm"
+                    className="w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider shadow-md shadow-indigo-500/20"
+                  >
+                    <Users className="w-3.5 h-3.5 mr-1.5" />
+                    View Candidates
+                  </Button>
+                </Link>
+                {job.userId === user?.id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(job.id)}
+                    title="Delete Job"
+                    className="w-10 h-10 rounded-xl hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-all shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 )}
               </div>

@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Plus, Sparkles, Loader2, Briefcase, MapPin, AlertCircle } from "lucide-react";
 import { createJob } from "@/app/actions/job";
+import { setupJobPipeline } from "@/app/actions/candidate-pipeline";
+import PipelineConfigurator, { DEFAULT_PIPELINE_ROUNDS, RoundConfig } from "@/components/PipelineConfigurator";
 
 const addJobSchema = z.object({
   title: z
@@ -49,6 +51,7 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [pipelineRounds, setPipelineRounds] = useState<RoundConfig[]>(DEFAULT_PIPELINE_ROUNDS);
 
   const {
     register,
@@ -109,7 +112,24 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
         requirements: data.requirements || undefined,
       });
 
-      if (res.success) {
+      if (res.success && res.job?.id) {
+        // Setup custom pipeline rounds
+        await setupJobPipeline(
+          res.job.id,
+          pipelineRounds.map((r) => ({
+            name: r.name,
+            type: r.type,
+            configuration: {
+              passThreshold: r.passThreshold,
+              selectTarget: r.selectTarget,
+            },
+          }))
+        );
+
+        setIsOpen(false);
+        reset();
+        onSuccess();
+      } else if (res.success) {
         setIsOpen(false);
         reset();
         onSuccess();
@@ -132,13 +152,15 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
         setServerError(null);
       }
     }}>
-      <DialogTrigger render={
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 h-12 font-bold shadow-md shadow-indigo-500/20 group">
-          <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
-          Post New Role
-        </Button>
-      } />
-      <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-[600px] rounded-[2rem] p-0 overflow-hidden shadow-2xl">
+      <DialogTrigger
+        render={
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 h-12 font-bold shadow-md shadow-indigo-500/20 group">
+            <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
+            Post New Role
+          </Button>
+        }
+      />
+      <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-[650px] rounded-[2rem] p-0 overflow-hidden shadow-2xl max-h-[85vh] overflow-y-auto">
         <div className="p-8 space-y-6">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
@@ -234,6 +256,12 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
                 <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mt-1">{errors.requirements.message}</p>
               )}
             </div>
+
+            <PipelineConfigurator
+              rounds={pipelineRounds}
+              onChange={setPipelineRounds}
+              disabled={loading}
+            />
 
             <div className="pt-4 flex gap-4">
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="flex-1 h-12 rounded-xl text-slate-600 hover:bg-slate-100 font-bold">

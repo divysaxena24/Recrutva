@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { applicants, candidateRounds, pipelineRounds, pipelines, jobs } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getNextPipelineRound } from "@/lib/pipeline-internal";
 import {
@@ -632,5 +632,310 @@ export async function completeCandidateRound({
   } catch (error) {
     console.error("Error completing candidate round:", error);
     return { success: false, error: "Failed to complete candidate round" };
+  }
+}
+
+// ─── Setup / Update Custom Job Pipeline Rounds ───────────────────
+export async function setupJobPipeline(
+  jobId: number,
+  customRounds: Array<{
+    name: string;
+    type: string;
+    configuration?: Record<string, unknown>;
+  }>
+) {
+  const { userId } = await auth();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const ownership = await verifyRecruiterOwnership(userId, jobId);
+    if (!ownership.authorized) return { success: false, error: ownership.error };
+
+    // Find or create pipeline
+    let [pipeline] = await db
+      .select({ id: pipelines.id })
+      .from(pipelines)
+      .where(eq(pipelines.jobId, jobId))
+      .limit(1);
+
+    if (!pipeline) {
+      const [job] = await db.select({ title: jobs.title }).from(jobs).where(eq(jobs.id, jobId)).limit(1);
+      const [newPipe] = await db
+        .insert(pipelines)
+        .values({
+          jobId,
+          name: `${job?.title ?? "Job"} Pipeline`,
+        })
+        .returning();
+      pipeline = newPipe;
+    }
+
+    // Delete existing rounds if updating rounds setup
+    await db.delete(pipelineRounds).where(eq(pipelineRounds.pipelineId, pipeline.id));
+
+    // Insert new rounds
+    const roundsToInsert = customRounds.map((r, index) => ({
+      pipelineId: pipeline.id,
+      name: r.name,
+      type: r.type,
+      order: index + 1,
+      configuration: r.configuration ?? {},
+    }));
+
+    if (roundsToInsert.length > 0) {
+      await db.insert(pipelineRounds).values(roundsToInsert);
+    }
+
+    revalidatePath(`/dashboard/jobs/${jobId}/candidates`);
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting up job pipeline:", error);
+    return { success: false, error: "Failed to setup job pipeline" };
+  }
+}
+
+// ─── Get Job-Specific Pipeline Overview (Analytics + Table + Pipeline) ─
+export async function getJobPipelineOverview(jobId: number) {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    // 1. Verify job ownership
+    const [jobData] = await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        description: jobs.description,
+        requirements: jobs.requirements,
+        location: jobs.location,
+        status: jobs.status,
+        department: jobs.department,
+        employmentType: jobs.employmentType,
+        experience: jobs.experience,
+        workMode: jobs.workMode,
+        salaryRange: jobs.salaryRange,
+        summary: jobs.summary,
+        responsibilities: jobs.responsibilities,
+        requiredSkills: jobs.requiredSkills,
+        preferredSkills: jobs.preferredSkills,
+        qualifications: jobs.qualifications,
+        benefits: jobs.benefits,
+        createdAt: jobs.createdAt,
+        userId: jobs.userId,
+      })
+      .from(jobs)
+      .where(and(eq(jobs.id, jobId), eq(jobs.userId, userId)))
+      .limit(1);
+
+    if (!jobData) return null;
+
+    // 2. Ensure pipeline exists
+    let [pipeline] = await db
+      .select({ id: pipelines.id })
+      .from(pipelines)
+      .where(eq(pipelines.jobId, jobId))
+      .limit(1);
+
+    if (!pipeline) {
+      const [newPipe] = await db
+        .insert(pipelines)
+        .values({
+          jobId,
+          name: `${jobData.title} Pipeline`,
+        })
+        .returning();
+      pipeline = newPipe;
+
+      // Default 3 rounds if none configured
+      await db.insert(pipelineRounds).values([
+        {
+          pipelineId: pipeline.id,
+          name: "Resume Screening",
+          type: "RESUME_SCREENING",
+          order: 1,
+          configuration: { passThreshold: 70, selectTarget: "80%" },
+        },
+        {
+          pipelineId: pipeline.id,
+          name: "Technical OA",
+          type: "ASSESSMENT",
+          order: 2,
+          configuration: { passThreshold: 70, selectTarget: "70%" },
+        },
+        {
+          pipelineId: pipeline.id,
+          name: "AI Tech Interview",
+          type: "AI_INTERVIEW",
+          order: 3,
+          configuration: { passThreshold: 75, selectTarget: "60%" },
+        },
+      ]);
+    }
+
+    // 3. Fetch rounds
+    const rounds = await db
+      .select({
+        id: pipelineRounds.id,
+        name: pipelineRounds.name,
+        type: pipelineRounds.type,
+        order: pipelineRounds.order,
+        configuration: pipelineRounds.configuration,
+      })
+      .from(pipelineRounds)
+      .where(eq(pipelineRounds.pipelineId, pipeline.id))
+      .orderBy(asc(pipelineRounds.order));
+
+    // 4. Fetch candidates for this specific job
+    const candidateRows = await db
+      .select({
+        id: applicants.id,
+        name: applicants.name,
+        email: applicants.email,
+        phone: applicants.phone,
+        status: applicants.status,
+        score: applicants.score,
+        matchScore: applicants.matchScore,
+        jobTitle: applicants.jobTitle,
+        targetJobId: applicants.targetJobId,
+        resumeUrl: applicants.resumeUrl,
+        resumeFileName: applicants.resumeFileName,
+        resumeText: applicants.resumeText,
+        createdAt: applicants.createdAt,
+      })
+      .from(applicants)
+      .where(and(eq(applicants.targetJobId, jobId), eq(applicants.userId, userId)));
+
+    const candidateIds = candidateRows.map((c) => c.id);
+
+    // 5. Fetch candidate_rounds for these candidates
+    let candidateRoundRows: Array<{
+      id: number;
+      candidateId: number;
+      roundId: number;
+      status: string;
+      score: number | null;
+      feedback: string | null;
+      completedAt: Date | null;
+    }> = [];
+
+    if (candidateIds.length > 0) {
+      candidateRoundRows = await db
+        .select({
+          id: candidateRounds.id,
+          candidateId: candidateRounds.candidateId,
+          roundId: candidateRounds.roundId,
+          status: candidateRounds.status,
+          score: candidateRounds.score,
+          feedback: candidateRounds.feedback,
+          completedAt: candidateRounds.completedAt,
+        })
+        .from(candidateRounds)
+        .where(inArray(candidateRounds.candidateId, candidateIds));
+    }
+
+    // Map candidate rounds by roundId & candidateId
+    const crByCandidate = new Map<number, typeof candidateRoundRows>();
+    for (const cr of candidateRoundRows) {
+      const list = crByCandidate.get(cr.candidateId) ?? [];
+      list.push(cr);
+      crByCandidate.set(cr.candidateId, list);
+    }
+
+    // Build enriched candidates list for Table View
+    const allCandidates = candidateRows.map((c) => {
+      const crs = crByCandidate.get(c.id) ?? [];
+      const crByRound = new Map(crs.map((cr) => [cr.roundId, cr]));
+
+      let currentStageName = "Not started";
+      let currentStageType = "not-started";
+      let currentStageStatus = "PENDING";
+
+      for (const r of rounds) {
+        const cr = crByRound.get(r.id);
+        if (cr && (cr.status === "ACTIVE" || cr.status === "PASSED")) {
+          currentStageName = r.name;
+          currentStageType = r.type;
+          currentStageStatus = cr.status;
+        }
+      }
+
+      // Convert matchScore string or float to clean integer
+      const atsScoreNum = c.matchScore
+        ? Math.round(parseFloat(c.matchScore))
+        : null;
+
+      return {
+        ...c,
+        atsScore: atsScoreNum,
+        currentStageName,
+        currentStageType,
+        currentStageStatus,
+      };
+    });
+
+    // Build Pipeline View rounds analytics + candidate arrays
+    const candidateMap = new Map(allCandidates.map((c) => [c.id, c]));
+
+    const pipelineRoundsOverview = rounds.map((r) => {
+      const roundCRs = candidateRoundRows.filter((cr) => cr.roundId === r.id);
+      
+      const passedCandidates = roundCRs
+        .filter((cr) => cr.status === "PASSED" || cr.status === "ACTIVE")
+        .map((cr) => {
+          const cand = candidateMap.get(cr.candidateId);
+          return {
+            ...cand,
+            roundScore: cr.score,
+            roundStatus: cr.status,
+            roundFeedback: cr.feedback,
+          };
+        })
+        .filter(Boolean);
+
+      const failedCandidates = roundCRs
+        .filter((cr) => cr.status === "FAILED")
+        .map((cr) => {
+          const cand = candidateMap.get(cr.candidateId);
+          return {
+            ...cand,
+            roundScore: cr.score,
+            roundStatus: cr.status,
+            roundFeedback: cr.feedback,
+          };
+        })
+        .filter(Boolean);
+
+      const evaluatedCount = roundCRs.length;
+      const passedCount = passedCandidates.length;
+      const failedCount = failedCandidates.length;
+
+      const passPercentage =
+        evaluatedCount > 0 ? Math.round((passedCount / evaluatedCount) * 100) : 0;
+
+      return {
+        id: r.id,
+        name: r.name,
+        type: r.type,
+        order: r.order,
+        configuration: r.configuration as Record<string, unknown>,
+        stats: {
+          evaluatedCount,
+          passedCount,
+          failedCount,
+          passPercentage,
+        },
+        passedCandidates,
+        failedCandidates,
+      };
+    });
+
+    return {
+      job: jobData,
+      rounds: pipelineRoundsOverview,
+      allCandidates,
+    };
+  } catch (error) {
+    console.error("Error getting job pipeline overview:", error);
+    return null;
   }
 }

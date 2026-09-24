@@ -29,6 +29,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import JDEditor from "@/components/JDEditor";
+import PipelineConfigurator, { DEFAULT_PIPELINE_ROUNDS, RoundConfig } from "@/components/PipelineConfigurator";
+import { setupJobPipeline } from "@/app/actions/candidate-pipeline";
 import {
   generateJobDraft,
   getJobForEditing,
@@ -264,6 +266,8 @@ function CreateJobView() {
     return { jobId, input: parsed.data, jd };
   };
 
+  const [pipelineRounds, setPipelineRounds] = useState<RoundConfig[]>(DEFAULT_PIPELINE_ROUNDS);
+
   const handleSaveDraft = async () => {
     const payload = buildPayload();
     if (!payload) return;
@@ -278,6 +282,20 @@ function CreateJobView() {
         return;
       }
       setJobId(result.jobId);
+
+      // Persist custom pipeline rounds config
+      await setupJobPipeline(
+        result.jobId,
+        pipelineRounds.map((r) => ({
+          name: r.name,
+          type: r.type,
+          configuration: {
+            passThreshold: r.passThreshold,
+            selectTarget: r.selectTarget,
+          },
+        }))
+      );
+
       setNotice("Draft saved. It is not visible to candidates until you publish it.");
     } catch {
       setError("We couldn't save this draft. Please try again.");
@@ -307,6 +325,20 @@ function CreateJobView() {
       }
       setJobId(result.jobId);
       setPublishedId(result.jobId);
+
+      // Persist custom pipeline rounds config
+      await setupJobPipeline(
+        result.jobId,
+        pipelineRounds.map((r) => ({
+          name: r.name,
+          type: r.type,
+          configuration: {
+            passThreshold: r.passThreshold,
+            selectTarget: r.selectTarget,
+          },
+        }))
+      );
+
       setNotice("Job published. It is now visible in the public job listing.");
     } catch {
       setError("We couldn't publish this job. Please try again.");
@@ -584,6 +616,12 @@ function CreateJobView() {
               className="bg-white border-slate-200 min-h-[90px] rounded-2xl p-4 focus:ring-indigo-500/20 text-slate-900 resize-y"
             />
           </div>
+
+          <PipelineConfigurator
+            rounds={pipelineRounds}
+            onChange={setPipelineRounds}
+            disabled={busy}
+          />
 
           <Button
             type="button"
