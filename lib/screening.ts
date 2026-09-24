@@ -7,6 +7,13 @@ export interface ScreeningInput {
   jobTitle: string;
   jobDescription: string;
   jobRequirements: string | null;
+  department?: string | null;
+  employmentType?: string | null;
+  experience?: string | null;
+  requiredSkills?: string[] | null;
+  preferredSkills?: string[] | null;
+  qualifications?: string[] | null;
+  responsibilities?: string[] | null;
   resumeText: string;
   passThreshold: number;
 }
@@ -32,43 +39,71 @@ const MAX_JOB_DESC_CHARS = 5000;
 function buildScreeningPrompt(input: ScreeningInput): string {
   const resumeText = input.resumeText.slice(0, MAX_RESUME_CHARS);
   const jobDesc = input.jobDescription.slice(0, MAX_JOB_DESC_CHARS);
-  const requirements = input.jobRequirements
-    ? `\n\nAdditional Requirements:\n${input.jobRequirements}`
-    : "";
 
-  return `You are an expert AI resume screener. Evaluate the following candidate against the job requirements.
+  const reqSkillsStr =
+    input.requiredSkills && input.requiredSkills.length > 0
+      ? input.requiredSkills.join(", ")
+      : "Not specified";
 
-## Job Title
-${input.jobTitle}
+  const prefSkillsStr =
+    input.preferredSkills && input.preferredSkills.length > 0
+      ? input.preferredSkills.join(", ")
+      : "None";
 
-## Job Description
-${jobDesc}${requirements}
+  const qualStr =
+    input.qualifications && input.qualifications.length > 0
+      ? input.qualifications.join("; ")
+      : "None";
+
+  const respStr =
+    input.responsibilities && input.responsibilities.length > 0
+      ? input.responsibilities.join("; ")
+      : "Not specified";
+
+  return `You are an expert AI ATS (Applicant Tracking System) resume screener. Evaluate the following candidate against the exact job requirements and produce an accurate ATS Match Score (0 to 100) and structured analysis.
+
+## Role Title: ${input.jobTitle}
+- Department: ${input.department || "General"}
+- Required Experience: ${input.experience || "Not specified"}
+- Employment Type: ${input.employmentType || "Full-time"}
+
+## Required Key Skills (PRIMARY MATCH SIGNALS)
+${reqSkillsStr}
+
+## Preferred Skills
+${prefSkillsStr}
+
+## Key Responsibilities & Expectations
+${respStr}
+
+## Desired Qualifications
+${qualStr}
+
+## Job Overview & Context
+${jobDesc}
+${input.jobRequirements ? `Additional Notes: ${input.jobRequirements}` : ""}
 
 ## Candidate Resume
 ${resumeText}
 
-## Instructions
-Evaluate this candidate comprehensively against the job requirements. Consider:
-- Required skills match and proficiency
-- Preferred skills alignment
-- Education requirements
-- Experience requirements (years and relevance)
-- Relevant projects and work experience
-- Overall resume-job relevance
-- Missing critical requirements that would be deal-breakers
+## ATS Scoring Methodology (0 - 100 scale)
+- **85 - 100 (Strong Match)**: Candidate demonstrates strong proficiency in required key skills, appropriate experience level, and clear relevant domain background.
+- **70 - 84 (Good Match)**: Candidate covers most required skills with solid technical skills, minor gaps in optional/preferred skills or years.
+- **50 - 69 (Moderate Match)**: Candidate exhibits partial skill match or transferable experience, but lacks 1 or 2 critical required skills or hands-on depth.
+- **0 - 49 (Low Match)**: Candidate lacks core required skills, has completely unrelated domain experience, or missing critical qualifications.
 
 You MUST return ONLY a valid JSON object matching this exact schema — no markdown, no code fences, no explanation text:
 
 {
-  "score": <number 0-100 representing overall fit>,
+  "score": <integer 0-100 representing overall fit>,
   "decision": "<PASS or FAIL>",
-  "summary": "<2-3 sentence summary of the evaluation>",
+  "summary": "<2-3 sentence executive summary explaining the evaluation>",
   "strengths": ["<strength1>", "<strength2>", ...],
   "missingRequirements": ["<missing1>", "<missing2>", ...],
   "skillAnalysis": [
     {
       "skill": "<skill name>",
-      "level": "<proficiency or years>",
+      "level": "<proficiency level or years found>",
       "match": "<match|partial|missing>"
     }
   ],

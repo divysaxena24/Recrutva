@@ -347,12 +347,19 @@ export async function completeScreeningRound({
       };
     }
 
-    // 7. Load job details
+    // 7. Load full job details for comprehensive ATS match scoring
     const [job] = await db
       .select({
         title: jobs.title,
         description: jobs.description,
         requirements: jobs.requirements,
+        department: jobs.department,
+        employmentType: jobs.employmentType,
+        experience: jobs.experience,
+        requiredSkills: jobs.requiredSkills,
+        preferredSkills: jobs.preferredSkills,
+        qualifications: jobs.qualifications,
+        responsibilities: jobs.responsibilities,
       })
       .from(jobs)
       .where(eq(jobs.id, candidate.targetJobId))
@@ -367,12 +374,19 @@ export async function completeScreeningRound({
     const passThreshold =
       typeof config?.passThreshold === "number" ? config.passThreshold : 50;
 
-    // 9. Run the screening
+    // 9. Run the screening with full ATS parameters
     const screeningResult = await runResumeScreening({
       candidateId,
       jobTitle: job.title,
       jobDescription: job.description,
       jobRequirements: job.requirements,
+      department: job.department,
+      employmentType: job.employmentType,
+      experience: job.experience,
+      requiredSkills: job.requiredSkills,
+      preferredSkills: job.preferredSkills,
+      qualifications: job.qualifications,
+      responsibilities: job.responsibilities,
       resumeText: candidate.resumeText,
       passThreshold,
     });
@@ -420,6 +434,17 @@ export async function completeScreeningRound({
         .returning({ id: candidateRounds.id });
       completedRoundId = inserted[0]?.id ?? null;
     }
+
+    // Also update main applicant table (matchScore, score, summary, analysis) so ATS score is unified
+    await db
+      .update(applicants)
+      .set({
+        matchScore: screeningResult.score.toString(),
+        score: screeningResult.score.toString(),
+        summary: screeningResult.result.summary,
+        analysis: screeningResult.result as unknown as Record<string, unknown>,
+      })
+      .where(eq(applicants.id, candidateId));
 
     // 12. If PASSED, activate the next round
     let nextRoundActivated = false;
