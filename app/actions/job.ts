@@ -204,6 +204,12 @@ export async function getAllJobs() {
         requirements: jobs.requirements,
         location: jobs.location,
         status: jobs.status,
+        department: jobs.department,
+        employmentType: jobs.employmentType,
+        experience: jobs.experience,
+        workMode: jobs.workMode,
+        salaryRange: jobs.salaryRange,
+        requiredSkills: jobs.requiredSkills,
         createdAt: jobs.createdAt,
       })
       .from(jobs)
