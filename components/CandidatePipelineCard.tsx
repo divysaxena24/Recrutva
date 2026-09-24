@@ -36,7 +36,6 @@ import {
   completeCandidateRound,
   moveCandidateToRound,
 } from "@/app/actions/candidate-pipeline";
-import { getValidResumeUrl } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────
 type RoundData = {
