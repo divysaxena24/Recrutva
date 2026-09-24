@@ -13,6 +13,8 @@ import AddJobModal from "@/components/AddJobModal";
 import JobDetailsModal from "@/components/JobDetailsModal";
 import { useUser } from "@clerk/nextjs";
 
+import DeleteJobAlertModal from "@/components/DeleteJobAlertModal";
+
 /** A job row as returned by the getJobs server action. */
 type Job = Awaited<ReturnType<typeof getJobs>>[number];
 
@@ -148,15 +150,21 @@ export default function JobsPage() {
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                         </Link>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(job.id)}
-                          title="Delete Job"
-                          className="w-7 h-7 rounded-lg hover:bg-white hover:text-rose-600 text-slate-500 transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <DeleteJobAlertModal
+                          jobId={job.id}
+                          jobTitle={job.title}
+                          onSuccess={fetchJobs}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Delete Job"
+                              className="w-7 h-7 rounded-lg hover:bg-white hover:text-rose-600 text-slate-500 transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          }
+                        />
                       </div>
                     )}
                     <Badge

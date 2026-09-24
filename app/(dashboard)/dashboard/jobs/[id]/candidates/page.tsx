@@ -37,6 +37,7 @@ import {
 import { getJobPipelineOverview } from "@/app/actions/candidate-pipeline";
 import { deleteJob } from "@/app/actions/job";
 import CandidatePipelineCard from "@/components/CandidatePipelineCard";
+import DeleteJobAlertModal from "@/components/DeleteJobAlertModal";
 
 type OverviewData = Awaited<ReturnType<typeof getJobPipelineOverview>>;
 
@@ -182,13 +183,19 @@ export default function JobCandidatesPage({
                   <Pencil className="w-4 h-4 mr-1.5 text-indigo-600" /> Edit Job
                 </Button>
               </Link>
-              <Button
-                variant="outline"
-                onClick={handleDeleteJob}
-                className="h-12 px-4 rounded-2xl border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-100 text-xs font-bold uppercase tracking-wider"
-              >
-                <Trash2 className="w-4 h-4 mr-1.5 text-rose-600" /> Delete
-              </Button>
+              <DeleteJobAlertModal
+                jobId={jobId}
+                jobTitle={job.title}
+                onSuccess={() => router.push("/dashboard/jobs")}
+                trigger={
+                  <Button
+                    variant="outline"
+                    className="h-12 px-4 rounded-2xl border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-100 text-xs font-bold uppercase tracking-wider"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1.5 text-rose-600" /> Delete
+                  </Button>
+                }
+              />
             </div>
           </div>
         </div>
@@ -370,14 +377,14 @@ export default function JobCandidatesPage({
 
       {/* ─── TAB 2: PIPELINE VIEW ─── */}
       {activeTab === "pipeline" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 items-start overflow-x-auto pb-4">
+        <div className="flex flex-row gap-6 items-start overflow-x-auto pb-8 pt-2 px-1 w-full font-sans">
           {rounds.map((round) => {
             const { stats, passedCandidates, failedCandidates } = round;
 
             return (
               <Card
                 key={round.id}
-                className="bg-white border-slate-200/80 rounded-3xl p-5 space-y-4 shadow-xs flex flex-col min-w-[280px]"
+                className="bg-white border border-slate-200/90 rounded-3xl p-5 space-y-4 shadow-xs flex flex-col w-[300px] sm:w-[335px] shrink-0"
               >
                 {/* Round Header & Stats */}
                 <div className="border-b border-slate-100 pb-4 space-y-2">
