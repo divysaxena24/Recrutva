@@ -452,13 +452,22 @@ export async function rescheduleCandidate(id: number, newDate: string) {
   }
 
   try {
+    const newScheduledAt = new Date(newDate);
     const updated = await db.update(applicants)
-      .set({ scheduledAt: new Date(newDate) })
+      .set({ scheduledAt: newScheduledAt })
       .where(and(eq(applicants.id, id), eq(applicants.userId, userId)))
       .returning({ id: applicants.id });
 
     if (updated.length === 0) {
       return { success: false, error: "Candidate not found or access denied" };
+    }
+
+    // Send email notification to candidate about updated schedule
+    try {
+      const { notifyInterviewRescheduled } = await import("@/lib/notifications");
+      await notifyInterviewRescheduled(id, newScheduledAt);
+    } catch (notifyError) {
+      console.error("Error sending interview rescheduled email:", notifyError);
     }
 
     revalidatePath("/dashboard/schedules");

@@ -27,6 +27,51 @@ function fallbackLink(url: string): string {
   return `If the button doesn't work, open this link: <a href="${url}" style="color:#3D6EFA;text-decoration:none;">${url}</a>`;
 }
 
+// ─── Candidate: Application Confirmation ───────────────────────────
+
+export function buildApplicationConfirmationEmail(input: {
+  candidateName: string;
+  jobTitle: string;
+  candidateId: number;
+}): TemplateEmail {
+  const dashboardUrl = `${getAppUrl()}/candidate-dashboard`;
+  return {
+    subject: `Application Received: ${input.jobTitle} — Recrutva`,
+    html: buildBrandedEmailHtml({
+      heading: "Application Confirmed",
+      title: "We've received your application!",
+      greeting: `Hello ${input.candidateName},`,
+      introHtml: `Thank you for applying for <strong style="color:#4F46E5;">${input.jobTitle}</strong>. Your application has been successfully submitted and entered into our AI talent screening system.<br><br>Our hiring team will review your profile. You can log into your Candidate Portal at any time to track your status.`,
+      cta: { label: "Track Application Status", url: dashboardUrl },
+      noteHtml: fallbackLink(dashboardUrl),
+      footerNote: "You will receive regular email updates whenever your status changes.",
+    }),
+  };
+}
+
+// ─── Candidate: Interview Rescheduled ─────────────────────────────
+
+export function buildInterviewRescheduledEmail(input: {
+  candidateName: string;
+  jobTitle: string;
+  candidateId: number;
+  formattedDate: string;
+}): TemplateEmail {
+  const interviewUrl = `${getAppUrl()}/interview/${input.candidateId}`;
+  return {
+    subject: `Interview Rescheduled: ${input.jobTitle} — Recrutva`,
+    html: buildBrandedEmailHtml({
+      heading: "Schedule Updated",
+      title: "Your interview schedule has been updated",
+      greeting: `Hello ${input.candidateName},`,
+      introHtml: `Your interview schedule for <strong style="color:#4F46E5;">${input.jobTitle}</strong> has been updated.<br><br><strong>New Interview Date & Time:</strong> <span style="color:#4F46E5;font-weight:700;">${input.formattedDate} IST</span>.`,
+      cta: { label: "Start Interview", url: interviewUrl },
+      noteHtml: fallbackLink(interviewUrl),
+      footerNote: "Please join your interview at your scheduled time.",
+    }),
+  };
+}
+
 // ─── Candidate: Assessment Available ───────────────────────────────
 
 export function buildAssessmentAvailableEmail(
@@ -39,7 +84,7 @@ export function buildAssessmentAvailableEmail(
       heading: "Assessment Ready",
       title: "Your assessment is ready",
       greeting: `Hello ${input.candidateName},`,
-      introHtml: `Great news — you've moved forward in the hiring process for <strong style="color:#7fa0ff;">${input.jobTitle}</strong>. Your skills assessment is now available to complete.`,
+      introHtml: `Great news — you've moved forward in the hiring process for <strong style="color:#4F46E5;">${input.jobTitle}</strong>. Your skills assessment is now available to complete.`,
       cta: { label: "Start Assessment", url: assessmentUrl },
       noteHtml: fallbackLink(assessmentUrl),
       footerNote: "Complete your assessment to keep your application moving.",

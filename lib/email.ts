@@ -181,51 +181,89 @@ export function buildBrandedEmailHtml(content: BrandedEmailContent): string {
 
   return `
     <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-    <body style="margin:0;padding:0;background:#07090F;font-family:'Segoe UI',Arial,sans-serif;">
-      <div style="max-width:600px;margin:40px auto;background:#0E1220;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
-        <div style="background:linear-gradient(135deg,#3D6EFA,#00E5C0);padding:40px;text-align:center;">
-          <div style="font-size:40px;margin-bottom:8px;">AI</div>
-          <h1 style="color:#fff;margin:0;font-size:26px;font-weight:900;letter-spacing:-0.5px;">Recrutva</h1>
-          <p style="color:rgba(255,255,255,0.8);margin:8px 0 0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;">${content.heading}</p>
-        </div>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${content.title}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+      </style>
+    </head>
+    <body style="margin:0;padding:0;background-color:#F8FAFC;color:#0F172A;-webkit-font-smoothing:antialiased;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;padding:40px 16px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:580px;background:#FFFFFF;border-radius:24px;border:1px solid #E2E8F0;box-shadow:0 10px 25px -5px rgba(15,23,42,0.05);overflow:hidden;">
+              
+              <!-- Header Banner -->
+              <tr>
+                <td style="background:linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);padding:36px 32px;text-align:center;">
+                  <table role="presentation" align="center" cellspacing="0" cellpadding="0">
+                    <tr>
+                      <td style="background:rgba(255,255,255,0.2);padding:8px 16px;border-radius:999px;backdrop-filter:blur(4px);display:inline-block;">
+                        <span style="color:#FFFFFF;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">${content.heading}</span>
+                      </td>
+                    </tr>
+                  </table>
+                  <h1 style="color:#FFFFFF;margin:16px 0 0;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Recrutva</h1>
+                  <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:12px;font-weight:600;">Autonomous AI Hiring & Talent Assessment</p>
+                </td>
+              </tr>
 
-        <div style="padding:40px;">
-          <p style="color:#8A93A8;font-size:14px;margin:0 0 4px;">${content.greeting}</p>
-          <h2 style="color:#EDF0F7;font-size:22px;font-weight:800;margin:0 0 24px;">${content.title}</h2>
+              <!-- Body Content -->
+              <tr>
+                <td style="padding:36px 32px 28px;">
+                  <p style="color:#64748B;font-size:14px;font-weight:600;margin:0 0 6px;">${content.greeting}</p>
+                  <h2 style="color:#0F172A;font-size:20px;font-weight:800;letter-spacing:-0.3px;margin:0 0 20px;line-height:1.3;">${content.title}</h2>
 
-          <div style="color:#8A93A8;font-size:15px;line-height:1.7;margin:0 0 28px;">${content.introHtml}</div>
+                  <div style="color:#334155;font-size:14px;line-height:1.7;margin:0 0 28px;">
+                    ${content.introHtml}
+                  </div>
 
-          ${
-            content.cta
-              ? `<div style="text-align:center;margin:0 0 28px;">
-            <a href="${content.cta.url}"
-              style="display:inline-block;background:#3D6EFA;color:#fff;text-decoration:none;padding:18px 44px;border-radius:14px;font-weight:800;font-size:16px;letter-spacing:0.3px;">
-              ${content.cta.label}
-            </a>
-          </div>`
-              : ""
-          }
+                  ${
+                    content.cta
+                      ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 28px;">
+                    <tr>
+                      <td align="center">
+                        <a href="${content.cta.url}" target="_blank"
+                          style="display:inline-block;background:linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);color:#FFFFFF;text-decoration:none;padding:16px 36px;border-radius:14px;font-weight:700;font-size:14px;letter-spacing:0.2px;box-shadow:0 4px 14px rgba(79,70,229,0.3);text-align:center;">
+                          ${content.cta.label} &rarr;
+                        </a>
+                      </td>
+                    </tr>
+                  </table>`
+                      : ""
+                  }
 
-          ${
-            content.noteHtml
-              ? `<p style="color:#4A5368;font-size:12px;line-height:1.6;margin:0;">${content.noteHtml}</p>`
-              : ""
-          }
-        </div>
+                  ${
+                    content.noteHtml
+                      ? `<div style="background:#F1F5F9;border-radius:12px;padding:14px 18px;margin:0 0 20px;color:#64748B;font-size:12px;line-height:1.6;">
+                          ${content.noteHtml}
+                        </div>`
+                      : ""
+                  }
+                </td>
+              </tr>
 
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding:20px 40px;text-align:center;">
-          <p style="color:#4A5368;font-size:11px;margin:0;">
-            © ${new Date().getFullYear()} Recrutva · <a href="${appUrl}/jobs" style="color:#3D6EFA;text-decoration:none;">Browse Jobs</a>
-            ${
-              content.footerNote
-                ? `&nbsp;·&nbsp; ${content.footerNote}`
-                : ""
-            }
-          </p>
-        </div>
-      </div>
+              <!-- Footer -->
+              <tr>
+                <td style="background:#F8FAFC;border-top:1px solid #F1F5F9;padding:24px 32px;text-align:center;">
+                  <p style="color:#64748B;font-size:12px;margin:0 0 8px;font-weight:500;">
+                    ${content.footerNote ? `${content.footerNote}<br>` : ""}
+                    Questions? Contact us at <a href="mailto:divysaxena2402@gmail.com" style="color:#4F46E5;text-decoration:none;font-weight:600;">divysaxena2402@gmail.com</a>
+                  </p>
+                  <p style="color:#94A3B8;font-size:11px;margin:0;">
+                    &copy; ${new Date().getFullYear()} Recrutva AI Inc. All rights reserved. &middot; <a href="${appUrl}/candidate-dashboard" style="color:#4F46E5;text-decoration:none;font-weight:600;">Candidate Portal</a> &middot; <a href="${appUrl}/privacy" style="color:#94A3B8;text-decoration:none;">Privacy Policy</a>
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;

@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 import { getRedis } from "@/lib/redis";
 import { sendEmail, getAppUrl } from "@/lib/email";
 import {
+  buildApplicationConfirmationEmail,
+  buildInterviewRescheduledEmail,
   buildAssessmentAvailableEmail,
   buildInterviewAvailableEmail,
   buildStagePassedEmail,
@@ -189,24 +191,63 @@ function recruiterReviewUrl(jobId: number | null): string {
 /**
  * Application created.
  *
- * Candidate side: the existing immediate interview-invite email (sent by
- * createCandidate) already confirms the application was received — sending a
- * second "application received" email would duplicate it. This trigger sends
- * the recruiter "new candidate" notification.
+ * Candidate side: sends immediate "Application Received" confirmation to candidate.
+ * Recruiter side: sends "New Candidate Applied" alert to recruiter.
  */
 export async function notifyApplicationCreated(candidateId: number): Promise<void> {
   const ctx = await loadCandidateContext(candidateId);
-  if (!ctx || !ctx.recruiterEmail) return;
+  if (!ctx) return;
   const { candidate, jobTitle, recruiterEmail, jobId } = ctx;
 
-  await notifyOnce(`recrutva:notify:application-created:${candidateId}`, async () => {
-    const { subject, html } = buildRecruiterNewCandidateEmail({
+  // 1. Candidate Application Confirmation Email
+  await notifyOnce(`recrutva:notify:candidate-app-confirmed:${candidateId}`, async () => {
+    const { subject, html } = buildApplicationConfirmationEmail({
       candidateName: candidate.name,
-      candidateEmail: candidate.email,
       jobTitle,
-      candidatesUrl: recruiterReviewUrl(jobId),
+      candidateId,
     });
-    await sendEmail({ to: recruiterEmail, subject, html });
+    await sendEmail({ to: candidate.email, subject, html });
+  });
+
+  // 2. Recruiter New Application Alert Email
+  if (recruiterEmail) {
+    await notifyOnce(`recrutva:notify:application-created:${candidateId}`, async () => {
+      const { subject, html } = buildRecruiterNewCandidateEmail({
+        candidateName: candidate.name,
+        candidateEmail: candidate.email,
+        jobTitle,
+        candidatesUrl: recruiterReviewUrl(jobId),
+      });
+      await sendEmail({ to: recruiterEmail, subject, html });
+    });
+  }
+}
+
+/**
+ * Interview rescheduled by recruiter.
+ */
+export async function notifyInterviewRescheduled(
+  candidateId: number,
+  scheduledAt: Date
+): Promise<void> {
+  const ctx = await loadCandidateContext(candidateId);
+  if (!ctx) return;
+  const { candidate, jobTitle } = ctx;
+
+  const formattedDate = new Date(scheduledAt).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+
+  await notifyOnce(`recrutva:notify:interview-rescheduled:${candidateId}:${scheduledAt.getTime()}`, async () => {
+    const { subject, html } = buildInterviewRescheduledEmail({
+      candidateName: candidate.name,
+      jobTitle,
+      candidateId,
+      formattedDate,
+    });
+    await sendEmail({ to: candidate.email, subject, html });
   });
 }
 
