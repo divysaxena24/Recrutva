@@ -116,18 +116,18 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
       onOpenChange(val);
       if (!val) setServerError(null);
     }}>
-      <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[550px] rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/5 shadow-2xl">
+      <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-[550px] rounded-[2rem] p-0 overflow-hidden shadow-2xl">
         <div className="p-8 space-y-6">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold tracking-tight">Edit Candidate</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">Edit Candidate</DialogTitle>
+            <DialogDescription className="text-slate-500">
               Update details for {candidate?.name}.
             </DialogDescription>
           </DialogHeader>
 
           {serverError && (
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-center gap-3 text-rose-400 text-xs font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center gap-3 text-rose-700 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <p>{serverError}</p>
             </div>
           )}
@@ -135,50 +135,50 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Full Name *</Label>
+                <Label htmlFor="name" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Full Name *</Label>
                 <Input 
                   id="name" 
                   {...register("name")}
-                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                    errors.name ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 ${
+                    errors.name ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 />
-                {errors.name && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.name.message}</p>}
+                {errors.name && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Phone Number *</Label>
+                <Label htmlFor="phone" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Phone Number *</Label>
                 <Input 
                   id="phone" 
                   {...register("phone")}
-                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                    errors.phone ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 ${
+                    errors.phone ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 />
-                {errors.phone && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.phone.message}</p>}
+                {errors.phone && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.phone.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Email Address *</Label>
+              <Label htmlFor="email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address *</Label>
               <Input 
                 id="email" 
                 type="email" 
                 {...register("email")}
-                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                  errors.email ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 ${
+                  errors.email ? "border-rose-400 focus:ring-rose-500/20" : ""
                 }`}
               />
-              {errors.email && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Linked Job Role *</Label>
+                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Linked Job Role *</Label>
                 <select 
                   id="targetJobId"
                   {...register("targetJobId")}
-                  className={`w-full bg-slate-950 border border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 px-4 appearance-none outline-none transition-all ${
-                    errors.targetJobId ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`w-full bg-slate-50 border border-slate-200 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 text-slate-900 px-4 appearance-none outline-none transition-all ${
+                    errors.targetJobId ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 >
                   <option value="">-- Select a Job Opening --</option>
@@ -186,28 +186,28 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
                     <option key={job.id} value={job.id.toString()}>{job.title} (#{job.id.toString().padStart(4, '0')})</option>
                   ))}
                 </select>
-                {errors.targetJobId && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.targetJobId.message}</p>}
+                {errors.targetJobId && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.targetJobId.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Interview Date & Time *</Label>
+              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Interview Date & Time *</Label>
               <Input 
                 id="scheduledAt" 
                 type="datetime-local"
                 {...register("scheduledAt")}
-                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark] ${
-                  errors.scheduledAt ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 [color-scheme:light] ${
+                  errors.scheduledAt ? "border-rose-400 focus:ring-rose-500/20" : ""
                 }`}
               />
-              {errors.scheduledAt && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.scheduledAt.message}</p>}
+              {errors.scheduledAt && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.scheduledAt.message}</p>}
             </div>
 
             <div className="pt-4 flex gap-4">
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 rounded-xl text-slate-400 hover:bg-white/5 font-bold">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="flex-1 h-12 rounded-xl text-slate-600 hover:bg-slate-100 font-bold">
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-xl shadow-indigo-500/20">
+              <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20">
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Changes"}
               </Button>
             </div>
@@ -217,3 +217,4 @@ export default function EditCandidateModal({ candidate, onSuccess, open, onOpenC
     </Dialog>
   );
 }
+

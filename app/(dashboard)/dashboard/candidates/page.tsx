@@ -78,76 +78,76 @@ const STAGE_META: Record<
   RESUME_SCREENING: {
     label: "Resume Screening",
     icon: FileSearch,
-    color: "text-indigo-400",
-    bg: "bg-indigo-500/10",
-    ring: "ring-indigo-500/20",
+    color: "text-indigo-600",
+    bg: "bg-indigo-50",
+    ring: "ring-indigo-200",
   },
   ASSESSMENT: {
     label: "Assessment",
     icon: ClipboardList,
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
-    ring: "ring-amber-500/20",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    ring: "ring-amber-200",
   },
   AI_INTERVIEW: {
     label: "AI Interview",
     icon: Bot,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    ring: "ring-emerald-500/20",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
   },
   MANUAL_REVIEW: {
     label: "Manual Review",
     icon: UserCheck,
-    color: "text-purple-400",
-    bg: "bg-purple-500/10",
-    ring: "ring-purple-500/20",
+    color: "text-purple-600",
+    bg: "bg-purple-50",
+    ring: "ring-purple-200",
   },
 };
 
 const STAGE_STATUS_META: Record<string, { label: string; className: string }> = {
   ACTIVE: {
     label: "In Progress",
-    className: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    className: "bg-indigo-50 text-indigo-700 border-indigo-200",
   },
   PENDING: {
     label: "Waiting",
-    className: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    className: "bg-slate-100 text-slate-700 border-slate-200",
   },
   PASSED: {
     label: "Passed",
-    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   FAILED: {
     label: "Failed",
-    className: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    className: "bg-rose-50 text-rose-700 border-rose-200",
   },
   SKIPPED: {
     label: "Skipped",
-    className: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    className: "bg-slate-100 text-slate-600 border-slate-200",
   },
 };
 
 const APP_STATUS_META: Record<string, { label: string; className: string }> = {
   Ready: {
     label: "New",
-    className: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    className: "bg-slate-100 text-slate-700 border-slate-200",
   },
   Scheduled: {
     label: "Interview Scheduled",
-    className: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+    className: "bg-indigo-50 text-indigo-700 border-indigo-200",
   },
   Completed: {
     label: "Interview Completed",
-    className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   Missed: {
     label: "Interview Missed",
-    className: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    className: "bg-rose-50 text-rose-700 border-rose-200",
   },
   Calling: {
     label: "In Call",
-    className: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    className: "bg-amber-50 text-amber-700 border-amber-200",
   },
 };
 
@@ -186,7 +186,7 @@ export default function CandidatesPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="h-64 flex items-center justify-center text-slate-500 font-bold animate-pulse">
+        <div className="h-64 flex items-center justify-center text-slate-400 font-bold animate-pulse">
           Loading candidates...
         </div>
       }
@@ -227,9 +227,6 @@ function CandidatesPage() {
   );
   const [view, setView] = useState<"pipeline" | "table">("pipeline");
 
-  // Loader shared by the mount effect and the refresh handlers. State is only
-  // written from promise callbacks: React forbids setState calls made
-  // synchronously from an effect, directly or through a called function.
   const loadCandidates = useCallback(() => {
     return getCandidates(jobId)
       .then((data) => {
@@ -256,8 +253,6 @@ function CandidatesPage() {
   useEffect(() => {
     let cancelled = false;
 
-    // Resolving to null when there is no jobId keeps the cleanup path on the
-    // same promise callback, so no state is written synchronously here.
     const request: Promise<{ id: number; title: string } | null> = jobId
       ? getJobById(jobId).then((job) =>
           job ? { id: job.id, title: job.title } : null
@@ -326,7 +321,6 @@ function CandidatesPage() {
 
     const sorted = [...list].sort((a, b) => {
       if (sortMode === "priority") {
-        // Requires review first, then active candidates, then recently active.
         if (a.needsReview !== b.needsReview) return a.needsReview ? -1 : 1;
         const aActive = a.pipelineStatus === "in-progress" ? 1 : 0;
         const bActive = b.pipelineStatus === "in-progress" ? 1 : 0;
@@ -425,25 +419,25 @@ function CandidatesPage() {
         key: "complete",
         label: "Complete",
         icon: CheckCircle2,
-        color: "text-emerald-400",
-        bg: "bg-emerald-500/10",
-        ring: "ring-emerald-500/20",
+        color: "text-emerald-600",
+        bg: "bg-emerald-50",
+        ring: "ring-emerald-200",
       },
       {
         key: "failed",
         label: "Failed",
         icon: XCircle,
-        color: "text-rose-400",
-        bg: "bg-rose-500/10",
-        ring: "ring-rose-500/20",
+        color: "text-rose-600",
+        bg: "bg-rose-50",
+        ring: "ring-rose-200",
       },
       {
         key: "not-started",
         label: "Not Started",
         icon: Inbox,
-        color: "text-slate-400",
-        bg: "bg-white/[0.03]",
-        ring: "ring-white/5",
+        color: "text-slate-500",
+        bg: "bg-slate-100",
+        ring: "ring-slate-200",
       },
     ];
 
@@ -460,21 +454,21 @@ function CandidatesPage() {
   };
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-8 pb-16">
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-1"
         >
-          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest mb-2">
+          <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-widest mb-1.5">
             <Users className="w-4 h-4" /> Talent Pool
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Candidate Pipeline
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl">
+          <p className="text-slate-600 text-base max-w-xl">
             {filteredJob
               ? `Showing candidates for "${filteredJob.title}"`
               : "Track and manage every recruit in your ecosystem."}
@@ -486,19 +480,19 @@ function CandidatesPage() {
 
       {/* Job filter banner */}
       {filteredJob && (
-        <Card className="p-4 bg-indigo-600/10 border-indigo-500/20 rounded-2xl ring-1 ring-indigo-500/20 flex items-center justify-between">
+        <Card className="p-4 bg-indigo-50 border-indigo-200 rounded-2xl flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-3">
-            <Briefcase className="w-4 h-4 text-indigo-400" />
-            <span className="text-sm font-medium text-indigo-200">
+            <Briefcase className="w-4 h-4 text-indigo-600" />
+            <span className="text-sm font-medium text-indigo-950">
               Filtered by job:{" "}
-              <span className="font-bold text-white">{filteredJob.title}</span>
+              <span className="font-bold text-indigo-700">{filteredJob.title}</span>
             </span>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={clearJobFilter}
-            className="h-8 px-3 text-xs font-bold text-indigo-300 hover:text-white hover:bg-indigo-500/20 rounded-lg gap-1.5"
+            className="h-8 px-3 text-xs font-bold text-indigo-700 hover:text-indigo-900 hover:bg-indigo-100 rounded-lg gap-1.5"
           >
             <X className="w-3.5 h-3.5" /> Clear filter
           </Button>
@@ -510,18 +504,18 @@ function CandidatesPage() {
       ) : error ? (
         <ErrorState onRetry={fetchCandidates} />
       ) : (
-        <Card className="bg-[#0a0a0f] border-slate-800/60 overflow-hidden rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl">
+        <Card className="bg-white border-slate-200/80 overflow-hidden rounded-3xl shadow-xs">
           {/* Toolbar */}
-          <div className="p-6 lg:p-8 border-b border-slate-800/60 bg-white/[0.01] space-y-4">
+          <div className="p-6 border-b border-slate-200/80 bg-slate-50/50 space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               {/* View toggle */}
-              <div className="flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl ring-1 ring-white/5">
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                 <button
                   onClick={() => setView("pipeline")}
                   className={`flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-bold transition-all ${
                     view === "pipeline"
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" /> Pipeline
@@ -530,8 +524,8 @@ function CandidatesPage() {
                   onClick={() => setView("table")}
                   className={`flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-bold transition-all ${
                     view === "table"
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                      : "text-slate-400 hover:text-white"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
                   <Table2 className="w-3.5 h-3.5" /> Table
@@ -539,19 +533,19 @@ function CandidatesPage() {
               </div>
 
               <div className="relative flex-1 min-w-[170px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search candidates..."
-                  className="pl-9 h-10 w-full bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
+                  className="pl-9 h-10 w-full bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs rounded-xl focus:ring-indigo-500/20"
                 />
               </div>
               <Input
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
                 placeholder="Assigned role..."
-                className="h-10 flex-1 min-w-[140px] bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
+                className="h-10 flex-1 min-w-[140px] bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs rounded-xl focus:ring-indigo-500/20"
               />
               <Input
                 type="number"
@@ -560,7 +554,7 @@ function CandidatesPage() {
                 value={minScore}
                 onChange={(e) => setMinScore(e.target.value)}
                 placeholder="Min ATS"
-                className="h-10 w-24 bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
+                className="h-10 w-24 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs rounded-xl focus:ring-indigo-500/20"
               />
               <Input
                 type="number"
@@ -569,7 +563,7 @@ function CandidatesPage() {
                 value={maxScore}
                 onChange={(e) => setMaxScore(e.target.value)}
                 placeholder="Max ATS"
-                className="h-10 w-24 bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
+                className="h-10 w-24 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs rounded-xl focus:ring-indigo-500/20"
               />
               <Input
                 type="number"
@@ -577,7 +571,7 @@ function CandidatesPage() {
                 value={topN}
                 onChange={(e) => setTopN(e.target.value)}
                 placeholder="Top N"
-                className="h-10 w-24 bg-slate-950 border-slate-800 text-xs rounded-xl focus:ring-indigo-500/50"
+                className="h-10 w-24 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 text-xs rounded-xl focus:ring-indigo-500/20"
               />
 
               <DropdownMenu>
@@ -586,7 +580,7 @@ function CandidatesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-10 border-slate-800 bg-transparent text-slate-400 rounded-xl px-4"
+                      className="h-10 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 rounded-xl px-4"
                     >
                       <Filter className="w-3.5 h-3.5 mr-2" />
                       {STAGE_FILTERS.find((f) => f.value === stageFilter)?.label ??
@@ -594,7 +588,7 @@ function CandidatesPage() {
                     </Button>
                   }
                 />
-                <DropdownMenuContent className="w-48 rounded-xl border-slate-800 bg-[#0a0a0f] text-slate-200">
+                <DropdownMenuContent className="w-48 rounded-xl border-slate-200 bg-white text-slate-800 shadow-md">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>Pipeline Stage</DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -618,14 +612,14 @@ function CandidatesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-10 border-slate-800 bg-transparent text-slate-400 rounded-xl px-4"
+                      className="h-10 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 rounded-xl px-4"
                     >
                       <Filter className="w-3.5 h-3.5 mr-2" />
                       {statusFilter === "All" ? "Status" : statusFilter}
                     </Button>
                   }
                 />
-                <DropdownMenuContent className="w-44 rounded-xl border-slate-800 bg-[#0a0a0f] text-slate-200">
+                <DropdownMenuContent className="w-44 rounded-xl border-slate-200 bg-white text-slate-800 shadow-md">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>Status</DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -651,7 +645,7 @@ function CandidatesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-10 border-slate-800 bg-transparent text-slate-400 rounded-xl px-4"
+                      className="h-10 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 rounded-xl px-4"
                     >
                       <Filter className="w-3.5 h-3.5 mr-2" />
                       Sort:{" "}
@@ -659,7 +653,7 @@ function CandidatesPage() {
                     </Button>
                   }
                 />
-                <DropdownMenuContent className="w-44 rounded-xl border-slate-800 bg-[#0a0a0f] text-slate-200">
+                <DropdownMenuContent className="w-44 rounded-xl border-slate-200 bg-white text-slate-800 shadow-md">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>Sort By</DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -686,10 +680,10 @@ function CandidatesPage() {
 
           {filteredCandidates.length === 0 ? (
             <div className="px-8 py-16 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-white/[0.03] ring-1 ring-white/5 flex items-center justify-center mx-auto mb-4">
-                <Inbox className="w-7 h-7 text-slate-600" />
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <Inbox className="w-7 h-7 text-slate-400" />
               </div>
-              <p className="text-sm font-bold text-white">No candidates found</p>
+              <p className="text-base font-bold text-slate-900">No candidates found</p>
               <p className="text-xs text-slate-500 mt-1">
                 {jobId
                   ? "No candidates have applied to this job yet."
@@ -706,9 +700,9 @@ function CandidatesPage() {
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-white/[0.02]">
-                  <TableRow className="border-slate-800/60 hover:bg-transparent uppercase tracking-wider text-[10px]">
-                    <TableHead className="text-slate-500 font-bold py-6 px-8">
+                <TableHeader className="bg-slate-50/80">
+                  <TableRow className="border-slate-200 hover:bg-transparent uppercase tracking-wider text-[10px]">
+                    <TableHead className="text-slate-500 font-bold py-4 px-8">
                       Candidate
                     </TableHead>
                     <TableHead className="text-slate-500 font-bold">
@@ -733,20 +727,20 @@ function CandidatesPage() {
                   {filteredCandidates.map((candidate) => (
                     <React.Fragment key={candidate.id}>
                       <TableRow
-                        className={`border-slate-800/40 hover:bg-white/[0.02] transition-colors group cursor-default ${
-                          candidate.needsReview ? "bg-purple-500/[0.03]" : ""
+                        className={`border-slate-100 hover:bg-slate-50/80 transition-colors group cursor-default ${
+                          candidate.needsReview ? "bg-purple-50/40" : ""
                         }`}
                       >
-                        <TableCell className="py-6 px-8">
+                        <TableCell className="py-4 px-8">
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs ring-1 ring-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all shrink-0">
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs ring-1 ring-indigo-200 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
                               {candidate.name.charAt(0)}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-bold text-white text-sm group-hover:text-indigo-300 transition-colors truncate">
+                              <div className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors truncate">
                                 {candidate.name}
                                 {candidate.needsReview && (
-                                  <span className="ml-2 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 ring-1 ring-purple-500/20 px-2 py-0.5 rounded-full">
+                                  <span className="ml-2 inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-purple-700 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-full">
                                     Review
                                   </span>
                                 )}
@@ -765,11 +759,11 @@ function CandidatesPage() {
                             }
                             className={`flex items-center gap-2 font-medium transition-colors ${
                               candidate.targetJobId
-                                ? "text-indigo-400 hover:text-indigo-300 cursor-pointer"
-                                : "text-slate-300"
+                                ? "text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                                : "text-slate-700"
                             }`}
                           >
-                            <Briefcase className="w-3.5 h-3.5 shrink-0" />
+                            <Briefcase className="w-3.5 h-3.5 shrink-0 text-slate-400" />
                             <span className="text-xs truncate max-w-[160px]">
                               {candidate.jobTitle || "General Role"}
                             </span>
@@ -780,17 +774,17 @@ function CandidatesPage() {
                             {candidate.matchScore ? (
                               <Badge
                                 variant="outline"
-                                className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-3 py-1 rounded-full text-[11px] font-bold"
+                                className="bg-indigo-50 text-indigo-700 border-indigo-200 px-3 py-1 rounded-full text-[11px] font-bold"
                               >
                                 {candidate.matchScore}%
                               </Badge>
                             ) : (
-                              <span className="text-xs text-slate-600">—</span>
+                              <span className="text-xs text-slate-400">—</span>
                             )}
                           </div>
                           {(candidate.assessmentScore !== null ||
                             candidate.interviewScore !== null) && (
-                            <div className="text-[10px] text-slate-600 font-bold uppercase tracking-wider mt-1">
+                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
                               A: {candidate.assessmentScore ?? "—"} · I:{" "}
                               {candidate.interviewScore ?? "—"}
                             </div>
@@ -800,20 +794,20 @@ function CandidatesPage() {
                           {candidate.pipelineStatus === "complete" ? (
                             <Badge
                               variant="outline"
-                              className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                              className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                             >
                               Complete
                             </Badge>
                           ) : candidate.pipelineStatus === "failed" ? (
                             <Badge
                               variant="outline"
-                              className="bg-rose-500/10 text-rose-400 border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                              className="bg-rose-50 text-rose-700 border-rose-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                             >
                               Failed
                             </Badge>
                           ) : candidate.currentStageName ? (
                             <div className="min-w-0">
-                              <div className="text-xs font-bold text-white truncate max-w-[150px]">
+                              <div className="text-xs font-bold text-slate-900 truncate max-w-[150px]">
                                 {candidate.currentStageName}
                               </div>
                               <StageStatusBadge
@@ -821,7 +815,7 @@ function CandidatesPage() {
                               />
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-600">
+                            <span className="text-xs text-slate-400">
                               Not started
                             </span>
                           )}
@@ -835,7 +829,7 @@ function CandidatesPage() {
                               <Button
                                 size="sm"
                                 onClick={() => toggleExpand(candidate.id)}
-                                className="h-8 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold"
+                                className="h-8 px-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold shadow-xs"
                               >
                                 <Eye className="w-3.5 h-3.5 mr-1" /> Review
                               </Button>
@@ -847,7 +841,7 @@ function CandidatesPage() {
                                 setEditingCandidate(candidate);
                                 setIsEditModalOpen(true);
                               }}
-                              className="w-8 h-8 rounded-lg hover:bg-white/5 text-slate-600 hover:text-indigo-400 transition-colors"
+                              className="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-indigo-600 transition-colors"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
@@ -858,8 +852,8 @@ function CandidatesPage() {
                             onClick={() => toggleExpand(candidate.id)}
                             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                               expandedCandidateId === candidate.id
-                                ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20"
-                                : "text-slate-600 hover:text-slate-400 hover:bg-white/5"
+                                ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200"
+                                : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
                             }`}
                           >
                             <ChevronRight
@@ -874,10 +868,10 @@ function CandidatesPage() {
                       </TableRow>
 
                       {expandedCandidateId === candidate.id && (
-                        <TableRow className="border-slate-800/40 hover:bg-transparent">
+                        <TableRow className="border-slate-200 hover:bg-transparent">
                           <TableCell
                             colSpan={7}
-                            className="px-8 py-4 bg-white/[0.01]"
+                            className="px-8 py-4 bg-slate-50/50"
                           >
                             <CandidatePipelineCard
                               candidateId={candidate.id}
@@ -927,8 +921,8 @@ function PipelineBoard({
   onPipelineChange: () => void;
 }) {
   return (
-    <div className="overflow-x-auto pb-6 pt-6 px-2">
-      <div className="flex gap-4 min-w-max px-2">
+    <div className="overflow-x-auto pb-6 pt-6 px-4">
+      <div className="flex gap-4 min-w-max">
         {columns.map((col) => (
           <div key={col.key} className="w-72 shrink-0">
             <div className="flex items-center gap-2 mb-3 px-2">
@@ -937,17 +931,17 @@ function PipelineBoard({
               >
                 <col.icon className={`w-3.5 h-3.5 ${col.color}`} />
               </div>
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
                 {col.label}
               </span>
-              <Badge className="bg-white/[0.04] text-slate-400 border-none px-2 py-0.5 rounded-full text-[10px] font-bold">
+              <Badge className="bg-slate-100 text-slate-600 border-none px-2 py-0.5 rounded-full text-[10px] font-bold">
                 {col.candidates.length}
               </Badge>
             </div>
 
             <div className="space-y-3">
               {col.candidates.length === 0 ? (
-                <div className="h-24 rounded-2xl border border-dashed border-slate-800/70 flex items-center justify-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                <div className="h-24 rounded-2xl border border-dashed border-slate-200 flex items-center justify-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                   No candidates
                 </div>
               ) : (
@@ -984,18 +978,18 @@ function PipelineCandidateCard({
 
   return (
     <div
-      className={`rounded-2xl bg-[#0a0a0f] border p-4 space-y-3 transition-all ${
+      className={`rounded-2xl bg-white border p-4 space-y-3 transition-all ${
         needsReview
-          ? "border-purple-500/30 ring-1 ring-purple-500/20 shadow-[0_0_24px_rgba(168,85,247,0.08)]"
-          : "border-slate-800/60 ring-1 ring-white/5"
+          ? "border-purple-300 ring-2 ring-purple-100 shadow-md shadow-purple-500/5"
+          : "border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300"
       }`}
     >
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs ring-1 ring-indigo-500/20 shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs ring-1 ring-indigo-100 shrink-0">
           {candidate.name.charAt(0)}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-white truncate">
+          <p className="text-sm font-bold text-slate-900 truncate">
             {candidate.name}
           </p>
           <p className="text-[10px] text-slate-500 truncate">{candidate.email}</p>
@@ -1004,8 +998,8 @@ function PipelineCandidateCard({
           onClick={onToggleExpand}
           className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all shrink-0 ${
             expanded
-              ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20"
-              : "text-slate-600 hover:text-slate-400 hover:bg-white/5"
+              ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200"
+              : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
           }`}
           aria-label="Toggle candidate details"
         >
@@ -1017,7 +1011,7 @@ function PipelineCandidateCard({
 
       {candidate.jobTitle && (
         <p className="text-[10px] text-slate-500 truncate flex items-center gap-1.5">
-          <Briefcase className="w-3 h-3 text-indigo-400/70 shrink-0" />
+          <Briefcase className="w-3 h-3 text-indigo-600 shrink-0" />
           <span className="truncate">{candidate.jobTitle}</span>
         </p>
       )}
@@ -1050,7 +1044,7 @@ function PipelineCandidateCard({
 
       <div className="flex items-center justify-between pt-1">
         <StageStatusBadge stageStatus={candidate.currentStageStatus} />
-        <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
           {timeAgo(candidate.lastActivityAt)}
         </span>
       </div>
@@ -1059,14 +1053,14 @@ function PipelineCandidateCard({
         <Button
           size="sm"
           onClick={onToggleExpand}
-          className="w-full h-9 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
+          className="w-full h-9 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs"
         >
           <Eye className="w-3.5 h-3.5 mr-1.5" /> Review Candidate
         </Button>
       )}
 
       {expanded && (
-        <div className="pt-3 border-t border-slate-800/40">
+        <div className="pt-3 border-t border-slate-100">
           <CandidatePipelineCard
             candidateId={candidate.id}
             onPipelineChange={onPipelineChange}
@@ -1087,14 +1081,14 @@ function ScoreChip({
   color: "indigo" | "amber" | "emerald";
 }) {
   const colors = {
-    indigo: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-    amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    indigo: "text-indigo-700 bg-indigo-50 border-indigo-200",
+    amber: "text-amber-700 bg-amber-50 border-amber-200",
+    emerald: "text-emerald-700 bg-emerald-50 border-emerald-200",
   };
 
   if (value === null) {
     return (
-      <span className="text-[9px] text-slate-600 font-bold uppercase tracking-wider">
+      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
         {label} —
       </span>
     );
@@ -1112,7 +1106,7 @@ function StageStatusBadge({ stageStatus }: { stageStatus: string | null }) {
   const meta = stageStatus ? STAGE_STATUS_META[stageStatus] : undefined;
   if (!meta) {
     return (
-      <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
         Not Started
       </span>
     );
@@ -1141,22 +1135,22 @@ function StatusBadge({ status }: { status: string }) {
 
 function LoadingSkeleton() {
   return (
-    <Card className="bg-[#0a0a0f] border-slate-800/60 overflow-hidden rounded-[2.5rem] ring-1 ring-white/5">
-      <div className="p-6 lg:p-8 border-b border-slate-800/60 space-y-4">
+    <Card className="bg-white border-slate-200/80 overflow-hidden rounded-3xl shadow-xs">
+      <div className="p-6 border-b border-slate-200/80 space-y-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="h-10 w-40 rounded-xl bg-white/[0.03] animate-pulse" />
-          <div className="h-10 flex-1 min-w-[170px] rounded-xl bg-white/[0.03] animate-pulse" />
-          <div className="h-10 w-32 rounded-xl bg-white/[0.03] animate-pulse" />
+          <div className="h-10 w-40 rounded-xl bg-slate-100 animate-pulse" />
+          <div className="h-10 flex-1 min-w-[170px] rounded-xl bg-slate-100 animate-pulse" />
+          <div className="h-10 w-32 rounded-xl bg-slate-100 animate-pulse" />
         </div>
       </div>
-      <div className="flex gap-4 overflow-hidden p-6 lg:p-8">
+      <div className="flex gap-4 overflow-hidden p-6">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="w-72 shrink-0 space-y-3">
-            <div className="h-6 w-40 rounded-lg bg-white/[0.03] animate-pulse" />
+            <div className="h-6 w-40 rounded-lg bg-slate-100 animate-pulse" />
             {[0, 1].map((j) => (
               <div
                 key={j}
-                className="h-44 rounded-2xl bg-white/[0.02] animate-pulse"
+                className="h-44 rounded-2xl bg-slate-50 animate-pulse"
               />
             ))}
           </div>
@@ -1168,18 +1162,18 @@ function LoadingSkeleton() {
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <Card className="p-10 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 flex flex-col items-center justify-center text-center py-20">
-      <div className="w-14 h-14 rounded-2xl bg-rose-500/10 ring-1 ring-rose-500/20 flex items-center justify-center mb-4">
-        <AlertTriangle className="w-7 h-7 text-rose-400" />
+    <Card className="p-10 bg-white border-slate-200/80 rounded-3xl shadow-xs flex flex-col items-center justify-center text-center py-20">
+      <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center mb-4">
+        <AlertTriangle className="w-7 h-7 text-rose-600" />
       </div>
-      <h3 className="text-lg font-bold text-white">Couldn&apos;t load candidates</h3>
+      <h3 className="text-lg font-bold text-slate-900">Couldn&apos;t load candidates</h3>
       <p className="text-sm text-slate-500 mt-1 max-w-sm">
         Something went wrong while fetching your candidate pipeline. Please try
         again.
       </p>
       <Button
         onClick={onRetry}
-        className="mt-6 h-11 px-6 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-500/20"
+        className="mt-6 h-11 px-6 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-xs"
       >
         <RefreshCw className="w-4 h-4 mr-2" /> Retry
       </Button>

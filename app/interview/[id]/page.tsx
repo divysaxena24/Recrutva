@@ -149,14 +149,14 @@ function InterviewJoinPage({
       );
     }
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/30">
-          <ShieldAlert className="w-10 h-10 text-rose-500" />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center space-y-6">
+        <div className="w-20 h-20 rounded-full bg-rose-50 flex items-center justify-center border border-rose-200">
+          <ShieldAlert className="w-10 h-10 text-rose-600" />
         </div>
-        <h2 className="text-3xl font-black text-white">
+        <h2 className="text-3xl font-black text-slate-900">
           Interview Already Completed
         </h2>
-        <p className="text-slate-400 max-w-md">
+        <p className="text-slate-600 max-w-md">
           This interview has already been submitted and cannot be accessed
           again.
         </p>
@@ -165,13 +165,13 @@ function InterviewJoinPage({
             onClick={() =>
               router.push(`/interview/${interviewId}?view=summary`)
             }
-            className="bg-emerald-600 hover:bg-emerald-500 rounded-2xl h-12 px-8 font-bold"
+            className="bg-emerald-600 hover:bg-emerald-700 rounded-2xl h-12 px-8 font-bold text-white shadow-xs"
           >
             View Summary
           </Button>
           <Button
             onClick={() => router.push("/")}
-            className="bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-12 px-8 font-bold"
+            className="bg-indigo-600 hover:bg-indigo-700 rounded-2xl h-12 px-8 font-bold text-white shadow-xs"
           >
             Return Home
           </Button>
@@ -181,45 +181,45 @@ function InterviewJoinPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] opacity-20 pointer-events-none blur-[120px] bg-indigo-500 rounded-full" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] opacity-20 pointer-events-none blur-[120px] bg-indigo-200 rounded-full" />
       <div className="max-w-4xl w-full relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center gap-3 mb-12"
+          className="flex items-center justify-center gap-3 mb-10"
         >
-          <div className="bg-indigo-500/10 p-3 rounded-2xl ring-1 ring-indigo-500/30">
-            <Bot className="w-8 h-8 text-indigo-400" />
+          <div className="bg-indigo-50 p-3 rounded-2xl ring-1 ring-indigo-100">
+            <Bot className="w-8 h-8 text-indigo-600" />
           </div>
-          <span className="font-bold text-2xl tracking-tight">
-            Recrutva <span className="text-indigo-500">AI</span>
+          <span className="font-bold text-2xl tracking-tight text-slate-900">
+            Recrutva <span className="text-indigo-600">AI</span>
           </span>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-stretch">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -15 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.1 }}
             className="lg:col-span-3 flex flex-col gap-6"
           >
-            <Card className="flex-1 p-8 bg-slate-900/40 border-slate-800/60 backdrop-blur-xl rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl flex flex-col justify-between">
+            <Card className="flex-1 p-8 bg-white border-slate-200/80 rounded-3xl shadow-xs flex flex-col justify-between">
               <div className="space-y-6">
                 <Badge
                   variant="outline"
-                  className="px-4 py-1.5 rounded-full border-indigo-500/30 bg-indigo-500/10 text-indigo-300 font-bold uppercase text-[10px]"
+                  className="px-4 py-1.5 rounded-full border-indigo-200 bg-indigo-50 text-indigo-700 font-bold uppercase text-[10px]"
                 >
                   AI Screening Session
                 </Badge>
                 <div>
-                  <h1 className="text-4xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
                     {displayJobTitle} <br />
-                    <span className="text-slate-400 text-2xl">
+                    <span className="text-slate-500 text-xl font-medium">
                       at Recrutva Partner
                     </span>
                   </h1>
-                  <p className="text-slate-400 leading-relaxed max-w-md">
+                  <p className="text-slate-600 leading-relaxed max-w-md text-base">
                     Join your AI-powered voice interview. Sarah will guide you
                     through technical and behavioral questions tailored to
                     your profile.
@@ -227,30 +227,30 @@ function InterviewJoinPage({
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-4">
                   <InfoItem
-                    icon={<Clock className="w-4 h-4 text-amber-400" />}
+                    icon={<Clock className="w-4 h-4 text-amber-600" />}
                     label="Duration"
                     value="~15-20 Mins"
                   />
                   <InfoItem
-                    icon={<Calendar className="w-4 h-4 text-indigo-400" />}
+                    icon={<Calendar className="w-4 h-4 text-indigo-600" />}
                     label="Format"
                     value="AI Voice Call"
                   />
                 </div>
               </div>
-              <div className="pt-8 border-t border-slate-800/60 mt-8 text-emerald-400/80 text-sm font-bold uppercase tracking-widest flex items-center gap-3">
-                <ShieldCheck className="w-5 h-5" /> Privacy Secured
+              <div className="pt-6 border-t border-slate-100 mt-6 text-emerald-600 text-xs font-bold uppercase tracking-widest flex items-center gap-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" /> Privacy Secured
               </div>
             </Card>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.15 }}
             className="lg:col-span-2 flex flex-col"
           >
-            <Card className="flex-1 p-8 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl flex flex-col justify-center text-center space-y-8">
+            <Card className="flex-1 p-8 bg-white border-slate-200/80 rounded-3xl shadow-xs flex flex-col justify-center text-center space-y-8">
               <AnimatePresence mode="wait">
                 {step === 1 ? (
                   <motion.div
@@ -260,10 +260,10 @@ function InterviewJoinPage({
                     exit={{ opacity: 0 }}
                     className="space-y-6"
                   >
-                    <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 flex items-center justify-center mx-auto ring-1 ring-indigo-500/20">
-                      <Sparkles className="w-10 h-10 text-indigo-400" />
+                    <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center mx-auto ring-1 ring-indigo-100">
+                      <Sparkles className="w-10 h-10 text-indigo-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-2xl font-bold text-slate-900">
                       Ready to start?
                     </h2>
                     <p className="text-sm text-slate-500">
@@ -278,15 +278,15 @@ function InterviewJoinPage({
                     exit={{ opacity: 0 }}
                     className="space-y-6 text-left"
                   >
-                    <div className="flex items-center gap-2 text-slate-300 font-bold text-xs uppercase mb-1">
-                      <User className="w-3.5 h-3.5 text-indigo-400" /> Full
+                    <div className="flex items-center gap-2 text-slate-700 font-bold text-xs uppercase mb-1">
+                      <User className="w-3.5 h-3.5 text-indigo-600" /> Full
                       Name
                     </div>
                     <Input
                       placeholder="John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 text-base"
+                      className="h-14 bg-white border-slate-200 text-slate-900 rounded-2xl pl-5 text-base"
                     />
                   </motion.div>
                 )}
@@ -294,7 +294,7 @@ function InterviewJoinPage({
               <Button
                 onClick={handleNext}
                 disabled={isJoining || (step === 2 && !name.trim())}
-                className="w-full h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg group"
+                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base group shadow-xs"
               >
                 {isJoining ? (
                   <Loader2 className="animate-spin" />
@@ -1069,14 +1069,14 @@ function InterviewRoom({
 
   if (isAccessBlocked) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/30">
-          <ShieldAlert className="w-10 h-10 text-rose-500" />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center space-y-6 font-sans">
+        <div className="w-20 h-20 rounded-full bg-rose-50 flex items-center justify-center border border-rose-200">
+          <ShieldAlert className="w-10 h-10 text-rose-600" />
         </div>
-        <h2 className="text-3xl font-black text-white">
+        <h2 className="text-3xl font-black text-slate-900">
           Interview Already Completed
         </h2>
-        <p className="text-slate-400 max-w-md">
+        <p className="text-slate-600 max-w-md">
           This interview for {blockedCandidateName || "the candidate"} was
           already completed. It cannot be started again.
         </p>
@@ -1085,13 +1085,13 @@ function InterviewRoom({
             onClick={() =>
               router.push(`/interview/${interviewId}?view=summary`)
             }
-            className="bg-emerald-600 hover:bg-emerald-500 rounded-2xl h-12 px-8 font-bold"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-12 px-8 font-bold shadow-md shadow-emerald-600/15"
           >
             View Summary
           </Button>
           <Button
             onClick={() => router.push("/")}
-            className="bg-indigo-600 hover:bg-indigo-500 rounded-2xl h-12 px-8 font-bold"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl h-12 px-8 font-bold shadow-md shadow-indigo-600/15"
           >
             Return Home
           </Button>
@@ -1165,15 +1165,15 @@ function InterviewRoom({
   // ══════════════════════════════════════════════════════════════
 
   return (
-    <div className="h-screen bg-[#050505] text-slate-50 flex flex-col overflow-hidden font-sans">
+    <div className="h-screen bg-slate-50 text-slate-900 flex flex-col overflow-hidden font-sans">
       {/* ── Header ── */}
-      <header className="h-16 border-b border-white/5 bg-black/40 backdrop-blur-md px-8 flex items-center justify-between z-20">
+      <header className="h-16 border-b border-slate-200 bg-white/90 backdrop-blur-md px-8 flex items-center justify-between z-20">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-500/10 p-2 rounded-xl ring-1 ring-indigo-500/20">
-            <Bot className="w-5 h-5 text-indigo-400" />
+          <div className="bg-indigo-50 p-2 rounded-xl border border-indigo-100">
+            <Bot className="w-5 h-5 text-indigo-600" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-sm tracking-tight">
+            <span className="font-bold text-sm text-slate-900 tracking-tight">
               Interview Room
             </span>
             <span
@@ -1190,7 +1190,7 @@ function InterviewRoom({
             interviewStep !== "completing" && (
               <Badge
                 variant="outline"
-                className="bg-indigo-500/10 border-indigo-500/20 text-indigo-300 px-3 py-1 text-[11px] font-bold"
+                className="bg-indigo-50 border-indigo-200 text-indigo-700 px-3 py-1 text-[11px] font-bold"
               >
                 Question {questionNumber} of {TOTAL_QUESTIONS}
               </Badge>
@@ -1198,14 +1198,14 @@ function InterviewRoom({
           {interviewStep === "completing" && (
             <Badge
               variant="outline"
-              className="bg-amber-500/10 border-amber-500/20 text-amber-300 px-3 py-1 text-[11px] font-bold"
+              className="bg-amber-50 border-amber-200 text-amber-700 px-3 py-1 text-[11px] font-bold"
             >
               Evaluating...
             </Badge>
           )}
           <Badge
             variant="outline"
-            className="bg-white/5 border-white/10 text-slate-400 px-3 py-1"
+            className="bg-slate-100 border-slate-200 text-slate-600 px-3 py-1"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
             Session ID: {interviewId.slice(0, 8)}
@@ -1215,12 +1215,12 @@ function InterviewRoom({
 
       <main className="flex-1 flex overflow-hidden">
         {/* ── Left: Video Area ── */}
-        <div className="flex-1 relative bg-slate-950 flex flex-col items-center justify-center p-8">
+        <div className="flex-1 relative bg-slate-100/70 flex flex-col items-center justify-center p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-5xl aspect-video">
             {/* AI Agent View */}
-            <Card className="relative bg-[#0a0a0f] border-slate-800/60 rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-white/5 flex flex-col items-center justify-center">
+            <Card className="relative bg-white border-slate-200/80 rounded-[2rem] overflow-hidden shadow-sm flex flex-col items-center justify-center">
               <div className="absolute top-4 left-4 z-10">
-                <Badge className="bg-indigo-500/20 text-indigo-300 border-none px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
                   Sarah AI
                 </Badge>
               </div>
@@ -1250,15 +1250,15 @@ function InterviewRoom({
                   )}
                 </AnimatePresence>
                 <div
-                  className={`w-32 h-32 rounded-full bg-indigo-500/10 border-2 transition-all duration-500 flex items-center justify-center ${
+                  className={`w-32 h-32 rounded-full bg-indigo-50 border-2 transition-all duration-500 flex items-center justify-center ${
                     isAiSpeaking
-                      ? "border-indigo-500 scale-110 shadow-[0_0_40px_rgba(99,102,241,0.4)]"
-                      : "border-slate-800"
+                      ? "border-indigo-600 scale-110 shadow-[0_0_30px_rgba(79,70,229,0.25)]"
+                      : "border-slate-200"
                   }`}
                 >
                   <Bot
                     className={`w-12 h-12 transition-colors ${
-                      isAiSpeaking ? "text-indigo-400" : "text-slate-600"
+                      isAiSpeaking ? "text-indigo-600" : "text-slate-400"
                     }`}
                   />
                 </div>
@@ -1266,7 +1266,7 @@ function InterviewRoom({
               <div className="mt-8 text-center">
                 <p
                   className={`text-sm font-bold uppercase tracking-[0.2em] transition-colors ${
-                    isAiSpeaking ? "text-indigo-400" : "text-slate-600"
+                    isAiSpeaking ? "text-indigo-600" : "text-slate-500"
                   }`}
                 >
                   {isAiSpeaking
@@ -1283,7 +1283,7 @@ function InterviewRoom({
             </Card>
 
             {/* Candidate Webcam */}
-            <Card className="relative bg-black border-slate-800/60 rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-white/5">
+            <Card className="relative bg-slate-900 border-slate-800 rounded-[2rem] overflow-hidden shadow-sm">
               <video
                 ref={videoRef}
                 autoPlay
@@ -1292,7 +1292,7 @@ function InterviewRoom({
                 className="w-full h-full object-cover scale-x-[-1]"
               />
               <div className="absolute top-4 left-4 z-10">
-                <Badge className="bg-black/40 backdrop-blur-md text-white border-none px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                <Badge className="bg-black/50 backdrop-blur-md text-white border-none px-3 py-1 rounded-full text-[10px] font-bold uppercase">
                   {name}
                 </Badge>
               </div>
@@ -1303,7 +1303,7 @@ function InterviewRoom({
                       ? "bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"
                       : recordingState === "transcribing"
                       ? "bg-amber-500 animate-pulse"
-                      : "bg-slate-600"
+                      : "bg-slate-400"
                   }`}
                 />
               </div>
@@ -1311,7 +1311,7 @@ function InterviewRoom({
           </div>
 
           {/* Floating Controls */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/40 backdrop-blur-2xl border border-white/5 rounded-3xl p-3 shadow-2xl px-6">
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/95 backdrop-blur-2xl border border-slate-200 rounded-3xl p-3 shadow-lg px-6">
             {/* Record / Stop button */}
             {showRecordingControls && !isAiSpeaking && (
               <>
@@ -1319,7 +1319,7 @@ function InterviewRoom({
                   <Button
                     size="icon"
                     onClick={startRecording}
-                    className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all border border-emerald-500/30"
+                    className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all border border-emerald-200 shadow-xs"
                     title="Start recording"
                   >
                     <Mic className="w-7 h-7" />
@@ -1328,7 +1328,7 @@ function InterviewRoom({
                   <Button
                     size="icon"
                     onClick={stopRecording}
-                    className="w-14 h-14 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/30 animate-pulse"
+                    className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all border border-rose-200 animate-pulse shadow-xs"
                     title="Stop recording"
                   >
                     <Square className="w-6 h-6" />
@@ -1337,7 +1337,7 @@ function InterviewRoom({
                   <Button
                     size="icon"
                     disabled
-                    className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200"
                   >
                     <Loader2 className="w-6 h-6 animate-spin" />
                   </Button>
@@ -1354,7 +1354,7 @@ function InterviewRoom({
                   stopRecording();
                 }
               }}
-              className="w-12 h-12 rounded-2xl hover:bg-white/5 text-slate-400"
+              className="w-12 h-12 rounded-2xl hover:bg-slate-100 text-slate-600"
             >
               <MicOff className="w-6 h-6" />
             </Button>
@@ -1362,16 +1362,16 @@ function InterviewRoom({
             <Button
               variant="ghost"
               size="icon"
-              className="w-12 h-12 rounded-2xl hover:bg-white/5 text-slate-400"
+              className="w-12 h-12 rounded-2xl hover:bg-slate-100 text-slate-600"
             >
               <Video className="w-6 h-6" />
             </Button>
 
-            <div className="w-px h-8 bg-white/10 mx-2" />
+            <div className="w-px h-8 bg-slate-200 mx-2" />
 
             <Button
               variant="destructive"
-              className="h-12 px-6 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-red-500/20"
+              className="h-12 px-6 rounded-2xl font-bold flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/15"
               onClick={() => (window.location.href = "/")}
             >
               <PhoneOff className="w-5 h-5" /> End Call
@@ -1380,9 +1380,9 @@ function InterviewRoom({
         </div>
 
         {/* ── Right: Chat Sidebar ── */}
-        <aside className="w-96 border-l border-white/5 bg-[#0a0a0f] flex flex-col z-10">
-          <div className="p-6 border-b border-white/5 flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-400 uppercase tracking-widest">
+        <aside className="w-96 border-l border-slate-200 bg-white flex flex-col z-10">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-600 uppercase tracking-widest">
               Live Transcript
             </h3>
             <div className="flex items-center gap-2">
@@ -1392,15 +1392,15 @@ function InterviewRoom({
                     ? "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"
                     : recordingState === "transcribing"
                     ? "bg-amber-500 animate-pulse"
-                    : "bg-slate-500"
+                    : "bg-slate-400"
                 }`}
               />
               <span
                 className={`text-[10px] font-bold uppercase tracking-widest ${
                   recordingState === "recording"
-                    ? "text-red-400"
+                    ? "text-rose-600"
                     : recordingState === "transcribing"
-                    ? "text-amber-400"
+                    ? "text-amber-600"
                     : "text-slate-500"
                 }`}
               >
@@ -1426,13 +1426,13 @@ function InterviewRoom({
                 <div
                   className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
                     msg.role === "ai"
-                      ? "bg-indigo-600/10 text-indigo-200 border border-indigo-500/20 rounded-tl-none"
-                      : "bg-white/5 text-slate-200 border border-white/5 rounded-tr-none"
+                      ? "bg-indigo-50 text-indigo-950 border border-indigo-100 rounded-tl-none shadow-xs"
+                      : "bg-slate-100 text-slate-900 border border-slate-200/80 rounded-tr-none shadow-xs"
                   }`}
                 >
                   {msg.content}
                 </div>
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mt-2 px-1">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2 px-1">
                   {msg.role === "ai" ? "Sarah AI" : "You"} &bull;{" "}
                   {new Date().toLocaleTimeString([], {
                     hour: "2-digit",
@@ -1446,7 +1446,7 @@ function InterviewRoom({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-indigo-400 text-sm"
+                className="flex items-center gap-2 text-indigo-600 text-sm font-medium"
               >
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Generating your interview questions...</span>
@@ -1456,7 +1456,7 @@ function InterviewRoom({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-amber-400 text-sm"
+                className="flex items-center gap-2 text-amber-600 text-sm font-medium"
               >
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Evaluating your responses...</span>
@@ -1466,7 +1466,7 @@ function InterviewRoom({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-rose-400 text-sm"
+                className="flex items-center gap-2 text-rose-600 text-sm font-medium"
               >
                 <ShieldAlert className="w-4 h-4" />
                 <span>
@@ -1480,7 +1480,7 @@ function InterviewRoom({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-red-400 text-xs"
+                className="flex items-center gap-2 text-rose-600 text-xs font-semibold"
               >
                 <div className="flex gap-0.5">
                   <motion.div
@@ -1490,7 +1490,7 @@ function InterviewRoom({
                       duration: 0.8,
                       delay: 0,
                     }}
-                    className="w-1.5 h-1.5 rounded-full bg-red-400"
+                    className="w-1.5 h-1.5 rounded-full bg-rose-600"
                   />
                   <motion.div
                     animate={{ scale: [1, 1.3, 1] }}
@@ -1499,7 +1499,7 @@ function InterviewRoom({
                       duration: 0.8,
                       delay: 0.2,
                     }}
-                    className="w-1.5 h-1.5 rounded-full bg-red-400"
+                    className="w-1.5 h-1.5 rounded-full bg-rose-600"
                   />
                   <motion.div
                     animate={{ scale: [1, 1.3, 1] }}
@@ -1508,7 +1508,7 @@ function InterviewRoom({
                       duration: 0.8,
                       delay: 0.4,
                     }}
-                    className="w-1.5 h-1.5 rounded-full bg-red-400"
+                    className="w-1.5 h-1.5 rounded-full bg-rose-600"
                   />
                 </div>
                 <span>Recording — speak now, then press Done</span>
@@ -1519,7 +1519,7 @@ function InterviewRoom({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-amber-400 text-xs"
+                className="flex items-center gap-2 text-amber-600 text-xs font-semibold"
               >
                 <Loader2 className="w-3 h-3 animate-spin" />
                 <span>Processing your response...</span>
@@ -1531,13 +1531,13 @@ function InterviewRoom({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-3"
+                className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3"
               >
                 <div className="flex items-start gap-2">
-                  <MicOff className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                  <MicOff className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                   <div className="space-y-1">
-                    <p className="text-sm text-amber-200">{errorMessage}</p>
-                    <p className="text-xs text-amber-400/60">
+                    <p className="text-sm text-amber-900 font-medium">{errorMessage}</p>
+                    <p className="text-xs text-amber-700">
                       You can always type your answer below.
                     </p>
                   </div>
@@ -1546,7 +1546,7 @@ function InterviewRoom({
                   <Button
                     size="sm"
                     onClick={retryRecording}
-                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold h-8 px-4"
+                    className="bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 rounded-xl text-xs font-bold h-8 px-4"
                   >
                     <Mic className="w-3 h-3 mr-1.5" /> Try Voice Again
                   </Button>
@@ -1557,8 +1557,8 @@ function InterviewRoom({
             <div ref={chatEndRef} />
           </div>
 
-          <div className="p-6 border-t border-white/5 bg-black/20">
-            <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl p-3 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
+          <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl p-3 focus-within:ring-2 focus-within:ring-indigo-500/20 shadow-xs transition-all">
               <Input
                 placeholder={
                   interviewStep === "waiting_permission"
@@ -1580,7 +1580,7 @@ function InterviewRoom({
                     handleUserResponseRef.current(typedText);
                   }
                 }}
-                className="bg-transparent border-none focus-visible:ring-0 text-sm h-auto p-0 text-white"
+                className="bg-transparent border-none focus-visible:ring-0 text-sm h-auto p-0 text-slate-900 placeholder:text-slate-400"
               />
               <Button
                 size="icon"
@@ -1592,7 +1592,7 @@ function InterviewRoom({
                     handleUserResponseRef.current(typedText);
                   }
                 }}
-                className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors"
+                className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-xs"
               >
                 <Send className="w-4 h-4" />
               </Button>
@@ -1622,14 +1622,14 @@ function InfoItem({
   value: string;
 }) {
   return (
-    <div className="bg-white/[0.03] border border-slate-800/40 rounded-2xl p-4 ring-1 ring-white/5">
+    <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
       <div className="flex items-center gap-2 mb-1">
         {icon}
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
           {label}
         </span>
       </div>
-      <p className="text-sm font-bold text-slate-200">{value}</p>
+      <p className="text-sm font-bold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -1654,24 +1654,24 @@ function InterviewSummaryViewer({
     totalScore === null
       ? "text-slate-400"
       : totalScore >= 75
-      ? "text-emerald-400"
+      ? "text-emerald-600"
       : totalScore >= 50
-      ? "text-amber-400"
-      : "text-red-400";
+      ? "text-amber-600"
+      : "text-rose-600";
 
   const scoreBarColor =
     totalScore === null
-      ? "bg-slate-600"
+      ? "bg-slate-300"
       : totalScore >= 75
       ? "bg-emerald-500"
       : totalScore >= 50
       ? "bg-amber-500"
-      : "bg-red-500";
+      : "bg-rose-500";
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-50 flex flex-col items-center px-6 py-16 relative overflow-y-auto font-sans">
-      <div className="absolute top-0 left-1/4 w-[600px] h-[400px] opacity-10 pointer-events-none blur-[140px] bg-emerald-500 rounded-full" />
-      <div className="absolute top-1/2 right-0 w-[400px] h-[400px] opacity-10 pointer-events-none blur-[140px] bg-indigo-500 rounded-full" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center px-6 py-16 relative overflow-y-auto font-sans">
+      <div className="absolute top-0 left-1/4 w-[600px] h-[400px] opacity-20 pointer-events-none blur-[140px] bg-emerald-300 rounded-full" />
+      <div className="absolute top-1/2 right-0 w-[400px] h-[400px] opacity-20 pointer-events-none blur-[140px] bg-indigo-300 rounded-full" />
 
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -1681,19 +1681,19 @@ function InterviewSummaryViewer({
       >
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full">
+          <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-xs">
             <ShieldCheck className="w-3.5 h-3.5" /> Interview Complete
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight mt-2">
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mt-2">
             Your Results, {name}
           </h1>
-          <p className="text-slate-400">
+          <p className="text-slate-600">
             Here is your full AI-generated performance breakdown.
           </p>
         </div>
 
         {/* Score Card */}
-        <Card className="p-8 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl flex flex-col md:flex-row items-center gap-8">
+        <Card className="p-8 bg-white border border-slate-200/80 rounded-[2.5rem] shadow-sm flex flex-col md:flex-row items-center gap-8">
           <div className="text-center md:text-left shrink-0">
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
               Final Score
@@ -1703,10 +1703,10 @@ function InterviewSummaryViewer({
                 className={`text-8xl font-black tabular-nums leading-none ${scoreColor}`}
               >
                 {totalScore}
-                <span className="text-3xl text-slate-600 font-bold">/100</span>
+                <span className="text-3xl text-slate-400 font-bold">/100</span>
               </div>
             ) : (
-              <div className="text-4xl font-black text-slate-500">
+              <div className="text-4xl font-black text-slate-400">
                 Pending Analysis
               </div>
             )}
@@ -1718,7 +1718,7 @@ function InterviewSummaryViewer({
                   <span>Score</span>
                   <span>{totalScore}%</span>
                 </div>
-                <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${totalScore}%` }}
@@ -1729,12 +1729,12 @@ function InterviewSummaryViewer({
               </div>
             )}
             {summary && (
-              <p className="text-sm text-slate-300 leading-relaxed italic border-l-2 border-indigo-500/40 pl-4">
+              <p className="text-sm text-slate-700 leading-relaxed italic border-l-2 border-indigo-500/50 pl-4 bg-indigo-50/30 py-2 rounded-r-xl">
                 &ldquo;{summary}&rdquo;
               </p>
             )}
             {!analysis && (
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-500">
                 This interview was completed before detailed analysis was
                 enabled.
               </p>
@@ -1752,16 +1752,16 @@ function InterviewSummaryViewer({
               const marks = (item.marks as number) ?? 0;
               const markColor =
                 marks >= 7
-                  ? "text-emerald-400"
+                  ? "text-emerald-600"
                   : marks >= 4
-                  ? "text-amber-400"
-                  : "text-red-400";
+                  ? "text-amber-600"
+                  : "text-rose-600";
               const markBarColor =
                 marks >= 7
                   ? "bg-emerald-500"
                   : marks >= 4
                   ? "bg-amber-500"
-                  : "bg-red-500";
+                  : "bg-rose-500";
               return (
                 <motion.div
                   key={i}
@@ -1769,13 +1769,13 @@ function InterviewSummaryViewer({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + i * 0.06 }}
                 >
-                  <Card className="bg-[#0c0c14] border-slate-800/50 rounded-[2rem] overflow-hidden">
+                  <Card className="bg-white border border-slate-200/80 rounded-[2rem] overflow-hidden shadow-xs">
                     <div className="flex items-start justify-between gap-4 p-6 pb-4">
                       <div className="space-y-1 flex-1">
-                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                           Question {i + 1}
                         </span>
-                        <p className="text-sm font-semibold text-white leading-snug">
+                        <p className="text-sm font-semibold text-slate-900 leading-snug">
                           {item.question as string}
                         </p>
                       </div>
@@ -1784,11 +1784,11 @@ function InterviewSummaryViewer({
                           className={`text-2xl font-black tabular-nums leading-none ${markColor}`}
                         >
                           {marks}
-                          <span className="text-slate-600 text-sm font-bold">
+                          <span className="text-slate-400 text-sm font-bold">
                             /10
                           </span>
                         </div>
-                        <div className="h-1.5 w-full bg-white/5 rounded-full mt-2 overflow-hidden">
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full mt-2 overflow-hidden">
                           <div
                             className={`h-full rounded-full ${markBarColor}`}
                             style={{ width: `${marks * 10}%` }}
@@ -1798,20 +1798,20 @@ function InterviewSummaryViewer({
                     </div>
 
                     <div className="px-6 pb-6 space-y-3">
-                      <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-2xl p-4 space-y-1.5">
-                        <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 space-y-1.5">
+                        <span className="text-[9px] font-bold text-indigo-700 uppercase tracking-widest flex items-center gap-1.5">
                           <Bot className="w-3 h-3" /> Expected Answer
                         </span>
-                        <p className="text-sm text-indigo-100/80 leading-relaxed">
+                        <p className="text-sm text-indigo-950 leading-relaxed">
                           {item.expectedAnswer as string}
                         </p>
                       </div>
 
-                      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-1.5">
+                      <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 space-y-1.5">
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                           <User className="w-3 h-3" /> Your Answer
                         </span>
-                        <p className="text-sm text-slate-300 italic leading-relaxed">
+                        <p className="text-sm text-slate-700 italic leading-relaxed">
                           &ldquo;
                           {(item.userAnswer as string) || "[No answer recorded]"}
                           &rdquo;
@@ -1821,10 +1821,10 @@ function InterviewSummaryViewer({
                       <div
                         className={`rounded-2xl p-4 space-y-1.5 border ${
                           marks >= 7
-                            ? "bg-emerald-500/5 border-emerald-500/15"
+                            ? "bg-emerald-50/70 border-emerald-200/70"
                             : marks >= 4
-                            ? "bg-amber-500/5 border-amber-500/15"
-                            : "bg-red-500/5 border-red-500/15"
+                            ? "bg-amber-50/70 border-amber-200/70"
+                            : "bg-rose-50/70 border-rose-200/70"
                         }`}
                       >
                         <span
@@ -1833,7 +1833,7 @@ function InterviewSummaryViewer({
                           <Sparkles className="w-3 h-3" /> Marks Awarded:{" "}
                           {marks} / 10
                         </span>
-                        <p className="text-sm text-slate-300 leading-relaxed">
+                        <p className="text-sm text-slate-800 leading-relaxed">
                           {item.feedback as string}
                         </p>
                       </div>
@@ -1847,7 +1847,7 @@ function InterviewSummaryViewer({
 
         {/* Final Score Summary Banner */}
         {totalScore !== null && (
-          <Card className="p-6 bg-[#0a0a0f] border-slate-800/60 rounded-[2rem] ring-1 ring-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+          <Card className="p-6 bg-white border border-slate-200/80 rounded-[2rem] shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
                 Overall Performance
@@ -1859,7 +1859,7 @@ function InterviewSummaryViewer({
                   ? "👍 Good"
                   : "📚 Needs Improvement"}
               </p>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className="text-slate-600 text-sm mt-1">
                 {totalScore >= 75
                   ? "Outstanding performance — highly recommended!"
                   : totalScore >= 50
@@ -1869,7 +1869,7 @@ function InterviewSummaryViewer({
             </div>
             <div className={`text-5xl font-black tabular-nums ${scoreColor}`}>
               {totalScore}
-              <span className="text-slate-600 text-2xl font-bold">/100</span>
+              <span className="text-slate-400 text-2xl font-bold">/100</span>
             </div>
           </Card>
         )}
@@ -1878,7 +1878,7 @@ function InterviewSummaryViewer({
         <div className="pb-12">
           <Button
             onClick={() => (window.location.href = "/")}
-            className="w-full h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all"
+            className="w-full h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg shadow-md shadow-indigo-600/15 transition-all"
           >
             Return to Dashboard
           </Button>

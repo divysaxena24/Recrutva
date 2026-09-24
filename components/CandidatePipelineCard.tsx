@@ -278,10 +278,10 @@ export default function CandidatePipelineCard({
   // ─── Loading state ────────────────────────────────────────────
   if (loading) {
     return (
-      <Card className="p-8 bg-[#0a0a0f] border-slate-800/60 rounded-2xl">
+      <Card className="p-8 bg-white border-slate-200 rounded-2xl shadow-xs">
         <div className="flex items-center justify-center gap-3">
-          <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
-          <span className="text-sm text-slate-400">Loading pipeline...</span>
+          <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+          <span className="text-sm font-medium text-slate-500">Loading pipeline...</span>
         </div>
       </Card>
     );
@@ -290,10 +290,10 @@ export default function CandidatePipelineCard({
   // ─── Error state ──────────────────────────────────────────────
   if (error && !pipeline) {
     return (
-      <Card className="p-6 bg-[#0a0a0f] border-slate-800/60 rounded-2xl">
+      <Card className="p-6 bg-white border-slate-200 rounded-2xl shadow-xs">
         <div className="flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-          <span className="text-sm text-rose-400">{error}</span>
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+          <span className="text-sm text-rose-600 font-medium">{error}</span>
         </div>
       </Card>
     );
@@ -302,9 +302,9 @@ export default function CandidatePipelineCard({
   // ─── No pipeline state ──────────────────────────────────────
   if (!pipeline || pipeline.rounds.length === 0) {
     return (
-      <Card className="p-6 bg-[#0a0a0f] border-slate-800/60 rounded-2xl">
+      <Card className="p-6 bg-white border-slate-200 rounded-2xl shadow-xs">
         <div className="flex items-center gap-3">
-          <Circle className="w-5 h-5 text-slate-600" />
+          <Circle className="w-5 h-5 text-slate-400" />
           <span className="text-sm text-slate-500">
             No pipeline configured for this candidate&apos;s job.
           </span>
@@ -319,15 +319,15 @@ export default function CandidatePipelineCard({
   const needsReview = activeRound?.type === "MANUAL_REVIEW";
 
   return (
-    <Card className="bg-[#0a0a0f] border-slate-800/60 rounded-2xl overflow-hidden">
+    <Card className="bg-white border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
       {/* Error toast */}
       {error && (
-        <div className="px-6 py-3 bg-rose-500/10 border-b border-rose-500/20 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span className="text-xs text-rose-400">{error}</span>
+        <div className="px-6 py-3 bg-rose-50 border-b border-rose-200 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span className="text-xs text-rose-700 font-medium">{error}</span>
           <button
             onClick={() => setError("")}
-            className="ml-auto text-rose-400 hover:text-rose-300 text-xs font-bold"
+            className="ml-auto text-rose-700 hover:text-rose-900 text-xs font-bold"
           >
             Dismiss
           </button>
@@ -335,14 +335,14 @@ export default function CandidatePipelineCard({
       )}
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-800/40 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div className="px-6 py-4 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-500/10 p-2 rounded-xl ring-1 ring-indigo-500/20">
-            <ArrowRight className="w-4 h-4 text-indigo-400" />
+          <div className="bg-indigo-50 border border-indigo-200 p-2 rounded-xl">
+            <ArrowRight className="w-4 h-4 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">Pipeline</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Pipeline</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
               {pipeline.rounds.length} rounds
             </p>
           </div>
@@ -352,7 +352,7 @@ export default function CandidatePipelineCard({
           {needsReview && (
             <Badge
               variant="outline"
-              className="bg-purple-500/10 text-purple-400 border-purple-500/20 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse"
+              className="bg-purple-50 text-purple-700 border-purple-200 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse"
             >
               Needs Review
             </Badge>
@@ -361,7 +361,7 @@ export default function CandidatePipelineCard({
           {activeRound && !needsReview && (
             <Badge
               variant="outline"
-              className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+              className="bg-indigo-50 text-indigo-700 border-indigo-200 px-3 py-1 rounded-full text-[10px] font-bold"
             >
               Current: {activeRound.name}
             </Badge>
@@ -370,16 +370,16 @@ export default function CandidatePipelineCard({
           {allPassed && (
             <Badge
               variant="outline"
-              className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+              className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1 rounded-full text-[10px] font-bold"
             >
-              <Trophy className="w-3 h-3 mr-1" /> Pipeline Completed
+              <Trophy className="w-3 h-3 mr-1 text-emerald-600" /> Pipeline Completed
             </Badge>
           )}
 
           {!activeRound && !allPassed && hasFailed && (
             <Badge
               variant="outline"
-              className="bg-rose-500/10 text-rose-400 border-rose-500/20 px-3 py-1 rounded-full text-[10px] font-bold"
+              className="bg-rose-50 text-rose-700 border-rose-200 px-3 py-1 rounded-full text-[10px] font-bold"
             >
               Round Failed
             </Badge>
@@ -390,7 +390,7 @@ export default function CandidatePipelineCard({
               variant="outline"
               size="sm"
               onClick={() => setReviewMode((v) => !v)}
-              className="h-8 px-3 rounded-lg text-[11px] font-bold border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
+              className="h-8 px-3 rounded-lg text-[11px] font-bold border-purple-200 bg-purple-50 text-purple-800 hover:bg-purple-100"
             >
               <Eye className="w-3.5 h-3.5 mr-1" />
               {reviewMode ? "Collapse Details" : "Review Candidate"}
@@ -406,7 +406,7 @@ export default function CandidatePipelineCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+                className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1" /> Resume
               </Button>
@@ -429,10 +429,10 @@ export default function CandidatePipelineCard({
                 <div
                   className={`flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-xl transition-colors ${
                     isActive && round.type === "MANUAL_REVIEW"
-                      ? "bg-purple-500/5 ring-1 ring-purple-500/20"
+                      ? "bg-purple-50/80 border border-purple-200"
                       : isActive
-                        ? "bg-indigo-500/5 ring-1 ring-indigo-500/10"
-                        : "hover:bg-white/[0.02]"
+                        ? "bg-indigo-50/60 border border-indigo-200"
+                        : "hover:bg-slate-50"
                   }`}
                 >
                   {/* Status Icon */}
@@ -442,13 +442,13 @@ export default function CandidatePipelineCard({
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       isActive
-                        ? "bg-indigo-500/10 ring-1 ring-indigo-500/20"
-                        : "bg-slate-800/50"
+                        ? "bg-indigo-100 text-indigo-700"
+                        : "bg-slate-100 text-slate-500"
                     }`}
                   >
                     <RoundIcon
                       className={`w-4 h-4 ${
-                        isActive ? "text-indigo-400" : "text-slate-500"
+                        isActive ? "text-indigo-600" : "text-slate-500"
                       }`}
                     />
                   </div>
@@ -458,12 +458,12 @@ export default function CandidatePipelineCard({
                     <div className="flex items-center gap-2">
                       <span
                         className={`text-sm font-bold ${
-                          isActive ? "text-white" : "text-slate-300"
+                          isActive ? "text-slate-900" : "text-slate-700"
                         }`}
                       >
                         {round.name}
                       </span>
-                      <span className="text-[10px] text-slate-600 font-bold uppercase">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">
                         {round.type}
                       </span>
                     </div>
@@ -472,9 +472,9 @@ export default function CandidatePipelineCard({
                     {(round.score !== null || round.feedback) && (
                       <div className="flex items-center gap-3 mt-1">
                         {round.score !== null && (
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-slate-600">
                             Score:{" "}
-                            <span className="font-bold text-white">{round.score}</span>
+                            <span className="font-bold text-slate-900">{round.score}</span>
                           </span>
                         )}
                         {round.feedback && (
@@ -487,7 +487,7 @@ export default function CandidatePipelineCard({
 
                     {/* Completed date */}
                     {round.completedAt && (
-                      <span className="text-[10px] text-slate-600 mt-0.5 block">
+                      <span className="text-[10px] text-slate-400 mt-0.5 block font-medium">
                         Completed{" "}
                         {new Date(round.completedAt).toLocaleDateString("en-US", {
                           month: "short",
@@ -518,7 +518,7 @@ export default function CandidatePipelineCard({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+                            className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-200 text-slate-700 hover:bg-slate-100"
                           >
                             <ExternalLink className="w-3.5 h-3.5 mr-1" />
                             {round.status === "ACTIVE" ? "View Assessment" : "View Result"}
@@ -540,7 +540,7 @@ export default function CandidatePipelineCard({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+                            className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-200 text-slate-700 hover:bg-slate-100"
                           >
                             <ExternalLink className="w-3.5 h-3.5 mr-1" />
                             {round.status === "ACTIVE"
@@ -556,7 +556,7 @@ export default function CandidatePipelineCard({
                           variant="outline"
                           size="sm"
                           onClick={() => openCompleteDialog(index, "PASSED")}
-                          className="h-8 px-3 rounded-lg text-[11px] font-bold border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10"
+                          className="h-8 px-3 rounded-lg text-[11px] font-bold border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Pass
                         </Button>
@@ -564,7 +564,7 @@ export default function CandidatePipelineCard({
                           variant="outline"
                           size="sm"
                           onClick={() => openCompleteDialog(index, "FAILED")}
-                          className="h-8 px-3 rounded-lg text-[11px] font-bold border-rose-500/20 text-rose-400 hover:bg-rose-500/10"
+                          className="h-8 px-3 rounded-lg text-[11px] font-bold border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
                         >
                           <XCircle className="w-3.5 h-3.5 mr-1" /> Fail
                         </Button>
@@ -598,7 +598,7 @@ export default function CandidatePipelineCard({
                   <div className="flex items-center ml-[10px] py-0">
                     <div
                       className={`w-px h-4 ${
-                        round.status === "PASSED" ? "bg-emerald-500/30" : "bg-slate-800"
+                        round.status === "PASSED" ? "bg-emerald-300" : "bg-slate-200"
                       }`}
                     />
                   </div>
@@ -610,7 +610,7 @@ export default function CandidatePipelineCard({
 
         {/* Manual Move Button */}
         {activeRound && (
-          <div className="mt-4 pt-4 border-t border-slate-800/40">
+          <div className="mt-4 pt-4 border-t border-slate-100">
             <Button
               variant="outline"
               size="sm"
@@ -618,7 +618,7 @@ export default function CandidatePipelineCard({
                 setMoveTargetRoundIndex(null);
                 setMoveDialogOpen(true);
               }}
-              className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-700 text-slate-400 hover:bg-white/5"
+              className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
             >
               <ChevronDown className="w-3.5 h-3.5 mr-1" /> Move to Round
             </Button>
@@ -628,16 +628,16 @@ export default function CandidatePipelineCard({
 
       {/* Complete Round Dialog */}
       <Dialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>
-        <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[480px] rounded-[2rem] p-0 overflow-hidden ring-1 ring-white/5">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-[480px] rounded-[2rem] p-0 overflow-hidden shadow-2xl">
           <div className="p-8">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold tracking-tight">
+              <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">
                 {completeStatus === "PASSED" ? "Mark as Passed" : "Mark as Failed"}
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-slate-500">
                 {activeRoundIndex !== null && pipeline && (
                   <>
-                    Round: <span className="font-bold text-white">{pipeline.rounds[activeRoundIndex].name}</span>
+                    Round: <span className="font-bold text-slate-900">{pipeline.rounds[activeRoundIndex].name}</span>
                   </>
                 )}
               </DialogDescription>
@@ -645,15 +645,15 @@ export default function CandidatePipelineCard({
 
             <div className="space-y-5 mt-6">
               {dialogError && (
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 flex items-center gap-2 text-rose-400 text-xs font-medium">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-center gap-2 text-rose-700 text-xs font-semibold">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                   <p>{dialogError}</p>
                 </div>
               )}
 
               {/* Score */}
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                   Score (optional)
                 </Label>
                 <Input
@@ -666,25 +666,25 @@ export default function CandidatePipelineCard({
                     if (scoreError) setScoreError(null);
                   }}
                   placeholder="0-100"
-                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                    scoreError ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 ${
+                    scoreError ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 />
                 {scoreError && (
-                  <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{scoreError}</p>
+                  <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mt-1">{scoreError}</p>
                 )}
               </div>
 
               {/* Feedback */}
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
                   Feedback (optional)
                 </Label>
                 <Textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="Add feedback for this round..."
-                  className="bg-slate-950 border-slate-800 rounded-xl focus:ring-indigo-500/30 min-h-[80px]"
+                  className="bg-slate-50 border-slate-200 text-slate-900 rounded-xl focus:ring-2 focus:ring-indigo-500/20 min-h-[80px]"
                 />
               </div>
             </div>
@@ -694,7 +694,7 @@ export default function CandidatePipelineCard({
                 type="button"
                 variant="ghost"
                 onClick={() => setCompleteDialogOpen(false)}
-                className="flex-1 h-12 rounded-xl text-slate-400 hover:bg-white/5 font-bold"
+                className="flex-1 h-12 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
               >
                 Cancel
               </Button>
@@ -702,10 +702,10 @@ export default function CandidatePipelineCard({
                 type="button"
                 disabled={submitting}
                 onClick={handleCompleteRound}
-                className={`flex-1 h-12 rounded-xl font-bold shadow-xl ${
+                className={`flex-1 h-12 rounded-xl font-bold shadow-md ${
                   completeStatus === "PASSED"
-                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20"
-                    : "bg-rose-600 hover:bg-rose-500 text-white shadow-rose-500/20"
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                    : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-500/20"
                 }`}
               >
                 {submitting ? (
@@ -723,13 +723,13 @@ export default function CandidatePipelineCard({
 
       {/* Move to Round Dialog */}
       <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
-        <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[480px] rounded-[2rem] p-0 overflow-hidden ring-1 ring-white/5">
+        <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-[480px] rounded-[2rem] p-0 overflow-hidden shadow-2xl">
           <div className="p-8">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold tracking-tight">
+              <DialogTitle className="text-xl font-bold tracking-tight text-slate-900">
                 Move to Round
               </DialogTitle>
-              <DialogDescription className="text-slate-400">
+              <DialogDescription className="text-slate-500">
                 Select the destination round for this candidate.
               </DialogDescription>
             </DialogHeader>
@@ -747,19 +747,19 @@ export default function CandidatePipelineCard({
                     disabled={isCurrentActive}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
                       moveTargetRoundIndex === index
-                        ? "bg-indigo-500/10 ring-1 ring-indigo-500/30"
+                        ? "bg-indigo-50 border border-indigo-200"
                         : isCurrentActive
                         ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-white/[0.03] ring-1 ring-transparent"
+                        : "hover:bg-slate-50 border border-transparent"
                     }`}
                   >
                     <StatusIcon status={round.status} />
-                    <div className="w-7 h-7 rounded-lg bg-slate-800/50 flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                       <RoundIcon className="w-3.5 h-3.5 text-slate-500" />
                     </div>
                     <div className="flex-1">
-                      <span className="text-sm font-bold text-white">{round.name}</span>
-                      <span className="text-[10px] text-slate-600 ml-2 uppercase">
+                      <span className="text-sm font-bold text-slate-900">{round.name}</span>
+                      <span className="text-[10px] text-slate-400 ml-2 uppercase">
                         {round.type}
                       </span>
                     </div>
@@ -779,7 +779,7 @@ export default function CandidatePipelineCard({
                 type="button"
                 variant="ghost"
                 onClick={() => setMoveDialogOpen(false)}
-                className="flex-1 h-12 rounded-xl text-slate-400 hover:bg-white/5 font-bold"
+                className="flex-1 h-12 rounded-xl text-slate-600 hover:bg-slate-100 font-bold"
               >
                 Cancel
               </Button>
@@ -787,7 +787,7 @@ export default function CandidatePipelineCard({
                 type="button"
                 disabled={submitting || moveTargetRoundIndex === null}
                 onClick={handleMoveToRound}
-                className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-xl shadow-indigo-500/20"
+                className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20"
               >
                 {submitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -802,6 +802,7 @@ export default function CandidatePipelineCard({
     </Card>
   );
 }
+
 
 // ─── Screening Evaluation Detail Component ──────────────────────
 type ScreeningEvaluationProps = {
@@ -843,7 +844,7 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
     <div className="ml-16 mt-1 mb-2">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors"
+        className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider transition-colors"
       >
         <ChevronDown
           className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -852,14 +853,14 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
       </button>
 
       {(expanded || forceExpand) && (
-        <div className="mt-3 space-y-4 bg-white/[0.02] rounded-xl p-4 ring-1 ring-white/5">
+        <div className="mt-3 space-y-4 bg-slate-50 rounded-xl p-4 border border-slate-200/80">
           {/* Summary */}
           {data.summary && (
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Summary
               </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
+              <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
                 {data.summary}
               </p>
             </div>
@@ -869,14 +870,14 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
           {typeof data.score === "number" && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Score
                 </span>
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold text-slate-900">
                   {data.score}/100
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
                     data.score >= 70
@@ -894,14 +895,14 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
           {/* Strengths */}
           {strengths.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
                 Strengths
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {strengths.map((s, i) => (
                   <span
                     key={i}
-                    className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium"
+                    className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold"
                   >
                     {s}
                   </span>
@@ -913,14 +914,14 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
           {/* Missing Requirements */}
           {missing.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">
                 Missing Requirements
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {missing.map((m, i) => (
                   <span
                     key={i}
-                    className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded-full font-medium"
+                    className="text-[10px] bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-semibold"
                   >
                     {m}
                   </span>
@@ -932,7 +933,7 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
           {/* Skill Analysis */}
           {skills.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Skill Analysis
               </span>
               <div className="space-y-1">
@@ -944,13 +945,13 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
                     <span
                       className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                         skill.match === "match"
-                          ? "bg-emerald-400"
+                          ? "bg-emerald-500"
                           : skill.match === "partial"
-                          ? "bg-amber-400"
-                          : "bg-rose-400"
+                          ? "bg-amber-500"
+                          : "bg-rose-500"
                       }`}
                     />
-                    <span className="text-slate-300 font-medium min-w-[100px]">
+                    <span className="text-slate-800 font-semibold min-w-[100px]">
                       {skill.skill}
                     </span>
                     <span className="text-slate-500">
@@ -966,20 +967,20 @@ const ScreeningEvaluation: React.FC<ScreeningEvaluationProps & { forceExpand?: b
           <div className="grid grid-cols-2 gap-3">
             {data.educationMatch && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Education
                 </span>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-slate-600 leading-relaxed">
                   {data.educationMatch}
                 </p>
               </div>
             )}
             {data.experienceMatch && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Experience
                 </span>
-                <p className="text-[10px] text-slate-400 leading-relaxed">
+                <p className="text-[10px] text-slate-600 leading-relaxed">
                   {data.experienceMatch}
                 </p>
               </div>
@@ -1032,7 +1033,7 @@ const AssessmentEvaluation: React.FC<AssessmentEvaluationProps & { forceExpand?:
     <div className="ml-16 mt-1 mb-2">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors"
+        className="flex items-center gap-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider transition-colors"
       >
         <ChevronDown
           className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -1041,14 +1042,14 @@ const AssessmentEvaluation: React.FC<AssessmentEvaluationProps & { forceExpand?:
       </button>
 
       {(expanded || forceExpand) && (
-        <div className="mt-3 space-y-4 bg-white/[0.02] rounded-xl p-4 ring-1 ring-white/5">
+        <div className="mt-3 space-y-4 bg-slate-50 rounded-xl p-4 border border-slate-200/80">
           {/* Summary */}
           {(summary || grading.summary) && (
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Summary
               </span>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
+              <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
                 {summary || grading.summary}
               </p>
             </div>
@@ -1058,14 +1059,14 @@ const AssessmentEvaluation: React.FC<AssessmentEvaluationProps & { forceExpand?:
           {typeof percentage === "number" && (
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Score
                 </span>
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold text-slate-900">
                   {totalScore}/{maxScore} ({percentage}%)
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
                     percentage >= 70
@@ -1083,32 +1084,32 @@ const AssessmentEvaluation: React.FC<AssessmentEvaluationProps & { forceExpand?:
           {/* Question Breakdown */}
           {breakdown.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 Question Breakdown
               </span>
               <div className="space-y-2">
                 {breakdown.map((entry, i) => (
                   <div
                     key={i}
-                    className="bg-white/[0.02] rounded-lg p-3 space-y-1.5"
+                    className="bg-white rounded-lg p-3 space-y-1.5 border border-slate-200/60 shadow-2xs"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-400">
+                      <span className="text-[10px] font-bold text-slate-600">
                         Q{i + 1}
                       </span>
                       <span
                         className={`text-[10px] font-bold ${
                           entry.marks >= entry.maxMarks * 0.7
-                            ? "text-emerald-400"
+                            ? "text-emerald-700"
                             : entry.marks >= entry.maxMarks * 0.4
-                            ? "text-amber-400"
-                            : "text-rose-400"
+                            ? "text-amber-700"
+                            : "text-rose-700"
                         }`}
                       >
                         {entry.marks}/{entry.maxMarks}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-400 line-clamp-2">
+                    <p className="text-[10px] text-slate-700 font-medium line-clamp-2">
                       {entry.question}
                     </p>
                     {entry.feedback && (
@@ -1126,3 +1127,4 @@ const AssessmentEvaluation: React.FC<AssessmentEvaluationProps & { forceExpand?:
     </div>
   );
 };
+

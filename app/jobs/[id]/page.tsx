@@ -155,22 +155,22 @@ export default function JobApplyPage() {
     }
   };
 
-  if (loading) return <div className="h-screen bg-[#050505] flex items-center justify-center"><Loader2 className="w-10 h-10 text-indigo-500 animate-spin" /></div>;
-  if (!job) return <div className="h-screen bg-[#050505] flex items-center justify-center text-white font-bold text-2xl px-6 text-center">Job Postings Not Found or Expired.</div>;
+  if (loading) return <div className="h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /></div>;
+  if (!job) return <div className="h-screen bg-slate-50 flex items-center justify-center text-slate-900 font-bold text-2xl px-6 text-center">Job Postings Not Found or Expired.</div>;
 
   if (success) {
     return (
-      <div className="min-h-screen bg-[#050505] text-slate-50 flex items-center justify-center p-6">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center space-y-8">
-           <div className="w-24 h-24 rounded-[2.5rem] bg-emerald-500/10 flex items-center justify-center mx-auto ring-1 ring-emerald-500/30">
-              <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-6">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="max-w-md w-full text-center space-y-8 bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs">
+           <div className="w-20 h-20 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
            </div>
            <div className="space-y-3">
-             <h2 className="text-3xl font-black">Application Sent!</h2>
-             <p className="text-slate-400">Thank you for applying! Our AI system will review your profile shortly. Keep an eye on your email for the interview invitation.</p>
+             <h2 className="text-3xl font-black text-slate-900">Application Sent!</h2>
+             <p className="text-slate-600 text-sm">Thank you for applying! Our AI system will review your profile shortly. Keep an eye on your email for the interview invitation.</p>
            </div>
            <Link href="/jobs" className="block">
-             <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-bold">Back to Job Board</Button>
+             <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 font-bold text-white shadow-xs">Back to Job Board</Button>
            </Link>
         </motion.div>
       </div>
@@ -178,55 +178,55 @@ export default function JobApplyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-50 font-sans pb-20">
-      <nav className="h-20 border-b border-white/5 bg-black/40 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
+      <nav className="h-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-50">
         <Link href="/jobs" className="flex items-center gap-3">
-          <div className="bg-indigo-500/10 p-2 rounded-xl ring-1 ring-indigo-500/20">
-            <Briefcase className="w-6 h-6 text-indigo-400" />
+          <div className="bg-indigo-50 p-2 rounded-xl ring-1 ring-indigo-100">
+            <Briefcase className="w-6 h-6 text-indigo-600" />
           </div>
-          <span className="font-bold text-xl tracking-tight">Recrutva <span className="text-indigo-500">Careers</span></span>
+          <span className="font-bold text-xl tracking-tight text-slate-900">Recrutva <span className="text-indigo-600">Careers</span></span>
         </Link>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 pt-8">
         <button 
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-slate-500 hover:text-white transition-colors group cursor-pointer"
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors group cursor-pointer"
         >
           <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
           <span className="text-xs font-bold uppercase tracking-widest">Back</span>
         </button>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 pt-16">
+      <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 pt-10">
         {/* Left: Job Details */}
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="space-y-10">
-          <div className="space-y-6">
-             <Badge className="bg-indigo-500/10 text-indigo-400 border-none px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">{job.location}</Badge>
-             <h1 className="text-5xl font-black text-white leading-tight">{job.title}</h1>
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
+          <div className="space-y-4">
+             <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">{job.location}</Badge>
+             <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight">{job.title}</h1>
              <div className="flex items-center gap-6 text-slate-500 font-bold uppercase text-[11px] tracking-widest">
-                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-400" /> Full-time</div>
-                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-indigo-400" /> {job.location}</div>
+                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-600" /> Full-time</div>
+                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-indigo-600" /> {job.location}</div>
              </div>
           </div>
 
           <div className="space-y-8">
-            <section className="space-y-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                <Sparkles className="w-5 h-5 text-indigo-400" /> About the Role
+            <section className="space-y-3">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-indigo-600" /> About the Role
               </h3>
-              <p className="text-slate-400 leading-relaxed text-lg">{job.description}</p>
+              <p className="text-slate-600 leading-relaxed text-base">{job.description}</p>
             </section>
 
             {job.requirements && (
-              <section className="space-y-4">
-                <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                  <ShieldCheck className="w-5 h-5 text-indigo-400" /> Requirements
+              <section className="space-y-3">
+                <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5 text-indigo-600" /> Requirements
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {job.requirements.split('\n').map((req: string, i: number) => (
-                    <div key={i} className="flex gap-3 text-slate-400">
-                      <span className="text-indigo-500 font-bold">•</span>
+                    <div key={i} className="flex gap-3 text-slate-600 text-base">
+                      <span className="text-indigo-600 font-bold">•</span>
                       <span>{req}</span>
                     </div>
                   ))}
@@ -235,86 +235,86 @@ export default function JobApplyPage() {
             )}
           </div>
 
-          <Card className="p-6 bg-indigo-600/10 border-indigo-500/20 rounded-[2rem] ring-1 ring-indigo-500/20">
+          <Card className="p-6 bg-indigo-50 border-indigo-200 rounded-3xl shadow-xs">
              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-indigo-400" />
+                <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Bot className="w-6 h-6 text-indigo-600" />
                 </div>
                 <div>
-                   <h4 className="font-bold text-white">AI-Powered Application</h4>
-                   <p className="text-xs text-indigo-200/70">Sarah, our AI Recruiter, will review your resume and guide your screening interview.</p>
+                   <h4 className="font-bold text-slate-900">AI-Powered Application</h4>
+                   <p className="text-xs text-indigo-900/80 mt-0.5">Sarah, our AI Recruiter, will review your resume and guide your screening interview.</p>
                 </div>
              </div>
           </Card>
         </motion.div>
 
         {/* Right: Application Form */}
-        <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
-          <Card className="bg-[#0a0a0f] border-slate-800/60 rounded-[3rem] p-10 ring-1 ring-white/5 shadow-2xl sticky top-32">
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="bg-white border-slate-200/80 rounded-3xl p-8 lg:p-10 shadow-xs sticky top-32">
             {alreadyApplied ? (
-              <div className="space-y-8 text-center py-10">
-                <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center mx-auto ring-1 ring-emerald-500/20">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+              <div className="space-y-6 text-center py-8">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                 </div>
-                <div className="space-y-3">
-                  <h2 className="text-2xl font-bold text-white">Application Received</h2>
-                  <p className="text-sm text-slate-400">You have already applied for this position on {new Date(alreadyApplied.createdAt).toLocaleDateString()}. Check your dashboard for updates.</p>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-slate-900">Application Received</h2>
+                  <p className="text-sm text-slate-600">You have already applied for this position on {new Date(alreadyApplied.createdAt).toLocaleDateString()}. Check your dashboard for updates.</p>
                 </div>
                 <Link href="/candidate-dashboard" className="block">
-                  <Button className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold ring-1 ring-white/10 transition-all">Go to Dashboard</Button>
+                  <Button className="w-full h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs">Go to Dashboard</Button>
                 </Link>
               </div>
             ) : (
               <>
-                <h2 className="text-3xl font-bold text-white mb-8">Apply for this position</h2>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <h2 className="text-2xl font-bold text-slate-900 mb-6">Apply for this position</h2>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                   {error && (
-                    <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-center gap-3 text-rose-400 text-sm">
+                    <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-center gap-3 text-rose-700 text-sm">
                       <AlertCircle className="w-4 h-4 shrink-0" />
                       <p className="font-medium">{error}</p>
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Full Name *</Label>
+                    <Label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ml-1">Full Name *</Label>
                     <Input 
                       placeholder="Jane Cooper" 
                       {...register("name")}
-                      className={`h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 focus:ring-indigo-500/30 ${
-                        errors.name ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                      className={`h-12 bg-white border-slate-200 text-slate-900 rounded-xl pl-4 focus:ring-indigo-500/20 ${
+                        errors.name ? "border-rose-500 focus:ring-rose-500/20" : ""
                       }`}
                     />
-                    {errors.name && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{errors.name.message}</p>}
+                    {errors.name && <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider ml-1 mt-1">{errors.name.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Email Address *</Label>
+                    <Label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ml-1">Email Address *</Label>
                     <Input 
                       type="email" 
                       placeholder="jane@example.com" 
                       {...register("email")}
-                      className={`h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 focus:ring-indigo-500/30 ${
-                        errors.email ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                      className={`h-12 bg-white border-slate-200 text-slate-900 rounded-xl pl-4 focus:ring-indigo-500/20 ${
+                        errors.email ? "border-rose-500 focus:ring-rose-500/20" : ""
                       }`}
                     />
-                    {errors.email && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{errors.email.message}</p>}
+                    {errors.email && <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider ml-1 mt-1">{errors.email.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Phone Number *</Label>
+                    <Label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ml-1">Phone Number *</Label>
                     <Input 
                       placeholder="+1 (555) 000-0000" 
                       {...register("phone")}
-                      className={`h-14 bg-slate-950 border-slate-800 rounded-2xl pl-5 focus:ring-indigo-500/30 ${
-                        errors.phone ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                      className={`h-12 bg-white border-slate-200 text-slate-900 rounded-xl pl-4 focus:ring-indigo-500/20 ${
+                        errors.phone ? "border-rose-500 focus:ring-rose-500/20" : ""
                       }`}
                     />
-                    {errors.phone && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{errors.phone.message}</p>}
+                    {errors.phone && <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider ml-1 mt-1">{errors.phone.message}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Resume / CV *</Label>
+                    <Label className="text-[10px] font-bold text-slate-600 uppercase tracking-widest ml-1">Resume / CV *</Label>
                     <div 
                       onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer ${
-                        fileError ? 'border-rose-500/50 bg-rose-500/5' : file ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/5'
+                      className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        fileError ? 'border-rose-300 bg-rose-50/50' : file ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
                       }`}
                     >
                       <input 
@@ -326,26 +326,26 @@ export default function JobApplyPage() {
                       />
                       {file ? (
                         <div className="text-center">
-                           <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-                           <p className="text-sm font-bold text-white">{file.name}</p>
-                           <p className="text-[10px] text-slate-500 uppercase mt-2">Ready to upload</p>
+                           <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+                           <p className="text-sm font-bold text-slate-900">{file.name}</p>
+                           <p className="text-[10px] text-slate-500 uppercase mt-1 font-bold">Ready to upload</p>
                         </div>
                       ) : (
                         <>
-                          <Upload className="w-8 h-8 text-slate-600 mb-2" />
-                          <p className="text-sm font-bold text-slate-400">Upload PDF, DOC, or DOCX</p>
-                          <p className="text-[10px] text-slate-600 uppercase mt-2">Max size 10MB</p>
+                          <Upload className="w-7 h-7 text-slate-400 mb-2" />
+                          <p className="text-sm font-bold text-slate-700">Upload PDF, DOC, or DOCX</p>
+                          <p className="text-[10px] text-slate-400 uppercase mt-1 font-bold">Max size 10MB</p>
                         </>
                       )}
                     </div>
-                    {fileError && <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider ml-1 mt-1">{fileError}</p>}
+                    {fileError && <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider ml-1 mt-1">{fileError}</p>}
                   </div>
 
-                  <div className="pt-6">
-                    <Button type="submit" disabled={submitting} className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg shadow-2xl shadow-indigo-500/30">
-                      {submitting ? <Loader2 className="w-6 h-6 animate-spin" /> : "Submit Application"}
+                  <div className="pt-4">
+                    <Button type="submit" disabled={submitting} className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base shadow-xs">
+                      {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Application"}
                     </Button>
-                    <p className="text-center text-[10px] text-slate-600 font-bold uppercase mt-6 tracking-widest">By applying, you agree to our terms & privacy policy</p>
+                    <p className="text-center text-[10px] text-slate-400 font-bold uppercase mt-4 tracking-widest">By applying, you agree to our terms & privacy policy</p>
                   </div>
                 </form>
               </>

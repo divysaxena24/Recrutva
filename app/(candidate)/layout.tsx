@@ -29,29 +29,29 @@ export default function CandidateLayout({
   const { user } = useUser();
 
   return (
-    <div className="flex h-screen bg-[#050505] text-slate-50 overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-[#0a0a0f] border-r border-slate-800/60 transform transition-transform duration-300 ease-in-out
+        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200/80 transform transition-transform duration-300 ease-in-out shadow-xs
         lg:relative lg:translate-x-0
         ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
         <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 px-6 py-8">
-            <div className="bg-emerald-500/10 p-2.5 rounded-2xl ring-1 ring-emerald-500/30">
-              <Bot className="w-6 h-6 text-emerald-400" />
+          <div className="flex items-center gap-3 px-6 py-7 border-b border-slate-100">
+            <div className="bg-emerald-600 text-white p-2.5 rounded-2xl shadow-md shadow-emerald-500/20">
+              <Bot className="w-6 h-6" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-xl tracking-tight leading-none">Recrutva</span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Candidate</span>
+              <span className="font-extrabold text-xl tracking-tight leading-none text-slate-900">Recrutva</span>
+              <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-1">Candidate</span>
             </div>
           </div>
 
@@ -63,43 +63,43 @@ export default function CandidateLayout({
                   key={item.name}
                   href={item.href}
                   className={`
-                    flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group
+                    flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group font-semibold text-sm
                     ${isActive 
-                      ? "bg-emerald-600/10 text-emerald-400 ring-1 ring-emerald-500/20" 
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-100"}
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-xs" 
+                      : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900"}
                   `}
                 >
-                  <item.icon className={`w-5 h-5 ${isActive ? "text-emerald-400" : "group-hover:text-emerald-300"}`} />
-                  <span className="font-semibold text-sm">{item.name}</span>
+                  <item.icon className={`w-5 h-5 ${isActive ? "text-emerald-600" : "text-slate-400 group-hover:text-emerald-600"}`} />
+                  <span className="tracking-tight">{item.name}</span>
                 </Link>
               );
             })}
           </nav>
 
           {/* Dashboard Switcher */}
-          <div className="px-4 py-3 border-t border-slate-800/60">
+          <div className="px-4 py-3 border-t border-slate-100">
             <Link
               href="/dashboard"
-              className="flex items-center justify-between p-3 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 transition-all group shadow-md"
+              className="flex items-center justify-between p-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 text-indigo-800 transition-all group shadow-xs"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
-                  <UserCheck className="w-4 h-4 text-indigo-400" />
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <UserCheck className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-white truncate">Recruiter Portal</span>
-                  <span className="text-[9px] text-indigo-300/70 font-semibold">Switch Dashboard</span>
+                  <span className="text-xs font-bold text-slate-900 truncate">Recruiter Portal</span>
+                  <span className="text-[9px] text-indigo-700 font-bold uppercase tracking-wider">Switch Dashboard</span>
                 </div>
               </div>
-              <ArrowRightLeft className="w-4 h-4 text-indigo-400 opacity-60 group-hover:opacity-100 group-hover:rotate-180 transition-all shrink-0" />
+              <ArrowRightLeft className="w-4 h-4 text-indigo-700 opacity-70 group-hover:opacity-100 group-hover:rotate-180 transition-all shrink-0" />
             </Link>
           </div>
 
-          <div className="p-4 space-y-3 border-t border-slate-800/60">
-            <div className="flex items-center gap-3 bg-white/[0.03] rounded-2xl p-3 ring-1 ring-white/5">
-              <UserButton appearance={{ elements: { userButtonAvatarBox: "w-9 h-9" } }} />
+          <div className="p-4 space-y-3 border-t border-slate-100">
+            <div className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100 transition-all rounded-2xl p-3 border border-slate-200/80">
+              <UserButton appearance={{ elements: { userButtonAvatarBox: "w-9 h-9 shadow-xs" } }} />
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-bold text-white truncate">{user?.fullName || "Candidate"}</span>
+                <span className="text-sm font-bold text-slate-900 truncate">{user?.fullName || "Candidate"}</span>
                 <span className="text-[10px] text-slate-500 font-bold uppercase">Candidate</span>
               </div>
             </div>
@@ -108,17 +108,17 @@ export default function CandidateLayout({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-20 flex items-center justify-between px-6 lg:px-10 bg-[#050505] border-b border-slate-800/40">
+        <header className="h-20 flex items-center justify-between px-6 lg:px-10 bg-white/80 backdrop-blur-md border-b border-slate-200/80">
           <div className="flex items-center gap-4 flex-1">
-            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-slate-400">
+            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-slate-600">
               <Menu className="w-6 h-6" />
             </Button>
-            <h2 className="text-lg font-bold text-white hidden lg:block">Candidate Dashboard</h2>
+            <h2 className="text-lg font-bold text-slate-900 hidden lg:block">Candidate Dashboard</h2>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="hidden sm:inline-flex">
-              <Button variant="outline" className="h-9 px-4 rounded-full border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 text-xs font-bold gap-2">
-                <ArrowRightLeft className="w-3.5 h-3.5" /> Recruiter Portal
+              <Button variant="outline" className="h-9 px-4 rounded-full border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100 text-xs font-bold gap-2 shadow-xs">
+                <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-600" /> Recruiter Portal
               </Button>
             </Link>
             <UserButton />
@@ -134,3 +134,4 @@ export default function CandidateLayout({
     </div>
   );
 }
+

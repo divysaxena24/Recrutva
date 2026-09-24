@@ -45,10 +45,10 @@ type Application = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  Ready: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  Calling: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  Completed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  Scheduled: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+  Ready: "bg-slate-100 text-slate-700 border-slate-200",
+  Calling: "bg-amber-50 text-amber-700 border-amber-200",
+  Completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Scheduled: "bg-indigo-50 text-indigo-700 border-indigo-200",
 };
 
 export default function ApplicationsPage({
@@ -101,23 +101,23 @@ export default function ApplicationsPage({
 
   if (loading) {
     return (
-      <div className="space-y-10 pb-20">
+      <div className="space-y-8 pb-16">
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-1"
           >
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest mb-2">
+            <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-widest mb-1.5">
               <Users className="w-4 h-4" /> Loading
             </div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Loading applications...
             </h1>
           </motion.div>
         </section>
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -125,26 +125,26 @@ export default function ApplicationsPage({
 
   if (error) {
     return (
-      <div className="space-y-10 pb-20">
+      <div className="space-y-8 pb-16">
         <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-1"
           >
-            <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-widest mb-2">
+            <div className="flex items-center gap-2 text-rose-600 font-bold text-xs uppercase tracking-widest mb-1.5">
               <AlertCircle className="w-4 h-4" /> Error
             </div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Unable to load applications
             </h1>
-            <p className="text-slate-400 text-lg max-w-xl">{error}</p>
+            <p className="text-slate-600 text-base max-w-xl">{error}</p>
           </motion.div>
         </section>
         <Link href="/dashboard/jobs">
           <Button
             variant="outline"
-            className="h-10 px-4 rounded-xl border-slate-800 text-slate-400 hover:bg-white/5 text-xs font-bold"
+            className="h-10 px-4 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs"
           >
             <ArrowRight className="w-4 h-4 rotate-180 mr-2" /> Back to Jobs
           </Button>
@@ -154,21 +154,21 @@ export default function ApplicationsPage({
   }
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-8 pb-16">
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-1"
         >
-          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest mb-2">
+          <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-widest mb-1.5">
             <Users className="w-4 h-4" /> Applications
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             {jobTitle} Applications
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl">
+          <p className="text-slate-600 text-base max-w-xl">
             {applications.length === 0
               ? "No applications yet for this position."
               : `${applications.length} candidate${applications.length === 1 ? "" : "s"} applied`}
@@ -178,7 +178,7 @@ export default function ApplicationsPage({
         <Link href="/dashboard/jobs">
           <Button
             variant="outline"
-            className="h-10 px-4 rounded-xl border-slate-800 text-slate-400 hover:bg-white/5 text-xs font-bold"
+            className="h-10 px-4 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold shadow-xs"
           >
             <ArrowRight className="w-4 h-4 rotate-180 mr-2" /> Back to Jobs
           </Button>
@@ -186,28 +186,28 @@ export default function ApplicationsPage({
       </section>
 
       {/* Job info bar */}
-      <Card className="p-4 bg-indigo-600/10 border-indigo-500/20 rounded-2xl ring-1 ring-indigo-500/20 flex items-center gap-3">
-        <Briefcase className="w-4 h-4 text-indigo-400 shrink-0" />
-        <span className="text-sm font-medium text-indigo-200">
+      <Card className="p-4 bg-indigo-50 border-indigo-200 rounded-2xl flex items-center gap-3 shadow-xs">
+        <Briefcase className="w-4 h-4 text-indigo-600 shrink-0" />
+        <span className="text-sm font-medium text-indigo-950">
           Viewing applications for{" "}
-          <span className="font-bold text-white">{jobTitle}</span>
+          <span className="font-bold text-indigo-700">{jobTitle}</span>
         </span>
       </Card>
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by name, email, or phone..."
-          className="pl-10 h-12 bg-[#0a0a0f] border-slate-800/60 rounded-2xl text-sm focus:ring-indigo-500/50"
+          className="pl-10 h-12 bg-white border-slate-200 rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 focus:ring-indigo-500/20"
         />
       </div>
 
       {/* Applications Table */}
-      <Card className="bg-[#0a0a0f] border-slate-800/60 overflow-hidden rounded-[2.5rem] ring-1 ring-white/5 shadow-2xl">
-        <div className="p-8 border-b border-slate-800/60 flex items-center justify-between bg-white/[0.01]">
+      <Card className="bg-white border-slate-200/80 overflow-hidden rounded-3xl shadow-xs">
+        <div className="p-6 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/50">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
             {filteredApplications.length} application
             {filteredApplications.length === 1 ? "" : "s"}
@@ -215,9 +215,9 @@ export default function ApplicationsPage({
         </div>
 
         <Table>
-          <TableHeader className="bg-white/[0.02]">
-            <TableRow className="border-slate-800/60 hover:bg-transparent uppercase tracking-wider text-[10px]">
-              <TableHead className="text-slate-500 font-bold py-6 px-8">
+          <TableHeader className="bg-slate-50/80">
+            <TableRow className="border-slate-200 hover:bg-transparent uppercase tracking-wider text-[10px]">
+              <TableHead className="text-slate-500 font-bold py-4 px-8">
                 Candidate
               </TableHead>
               <TableHead className="text-slate-500 font-bold">
@@ -242,16 +242,16 @@ export default function ApplicationsPage({
             {filteredApplications.map((app) => (
               <React.Fragment key={app.id}>
               <TableRow
-                className="border-slate-800/40 hover:bg-white/[0.02] transition-colors group"
+                className="border-slate-100 hover:bg-slate-50/80 transition-colors group"
               >
                 {/* Candidate Name */}
-                <TableCell className="py-6 px-8">
+                <TableCell className="py-4 px-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold text-xs ring-1 ring-indigo-500/20 group-hover:bg-indigo-500 group-hover:text-white transition-all shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-xs ring-1 ring-indigo-200 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
                       {app.name.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-white text-sm group-hover:text-indigo-300 transition-colors">
+                      <div className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">
                         {app.name}
                       </div>
                       <div className="text-[11px] text-slate-500">
@@ -264,14 +264,14 @@ export default function ApplicationsPage({
                 {/* Contact */}
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                      <Mail className="w-3 h-3 text-slate-600" />
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate max-w-[180px]">
                         {app.email}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                      <Phone className="w-3 h-3 text-slate-600" />
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{app.phone}</span>
                     </div>
                   </div>
@@ -282,12 +282,12 @@ export default function ApplicationsPage({
                   {app.matchScore ? (
                     <Badge
                       variant="outline"
-                      className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 px-3 py-1 rounded-full text-[11px] font-bold"
+                      className="bg-indigo-50 text-indigo-700 border-indigo-200 px-3 py-1 rounded-full text-[11px] font-bold"
                     >
                       {app.matchScore}%
                     </Badge>
                   ) : (
-                    <span className="text-xs text-slate-600">—</span>
+                    <span className="text-xs text-slate-400">—</span>
                   )}
                 </TableCell>
 
@@ -310,14 +310,14 @@ export default function ApplicationsPage({
                       href={app.resumeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       View Resume
-                      <ExternalLink className="w-3 h-3 opacity-50" />
+                      <ExternalLink className="w-3 h-3 opacity-60" />
                     </a>
                   ) : (
-                    <span className="text-xs text-slate-600">
+                    <span className="text-xs text-slate-400">
                       No resume uploaded
                     </span>
                   )}
@@ -326,7 +326,7 @@ export default function ApplicationsPage({
                 {/* Applied Date */}
                 <TableCell className="text-right px-8">
                   <div className="flex items-center gap-2 justify-end text-xs text-slate-500">
-                    <Calendar className="w-3 h-3" />
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
                     <span>
                       {new Date(app.createdAt).toLocaleDateString("en-US", {
                         month: "short",
@@ -347,8 +347,8 @@ export default function ApplicationsPage({
                     }
                     className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
                       expandedCandidateId === app.id
-                        ? "bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20"
-                        : "text-slate-600 hover:text-slate-400 hover:bg-white/5"
+                        ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200"
+                        : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     <ChevronRight
@@ -362,8 +362,8 @@ export default function ApplicationsPage({
 
               {/* Expanded Pipeline Row */}
               {expandedCandidateId === app.id && (
-                <TableRow className="border-slate-800/40 hover:bg-transparent">
-                  <TableCell colSpan={7} className="px-8 py-4 bg-white/[0.01]">
+                <TableRow className="border-slate-100 hover:bg-transparent">
+                  <TableCell colSpan={7} className="px-8 py-4 bg-slate-50/50">
                     <CandidatePipelineCard candidateId={app.id} />
                   </TableCell>
                 </TableRow>
@@ -372,10 +372,10 @@ export default function ApplicationsPage({
             ))}
 
             {filteredApplications.length === 0 && (
-              <TableRow className="border-slate-800/40 hover:bg-transparent">
+              <TableRow className="border-slate-100 hover:bg-transparent">
                 <TableCell colSpan={7} className="px-8 py-14 text-center">
                   <div className="space-y-2">
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold text-slate-900">
                       No applications yet
                     </p>
                     <p className="text-xs text-slate-500">

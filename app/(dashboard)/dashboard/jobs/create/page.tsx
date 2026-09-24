@@ -45,7 +45,7 @@ import {
 } from "@/lib/schemas/jd";
 
 const LABEL_CLASS =
-  "text-[10px] font-bold text-slate-500 uppercase tracking-widest";
+  "text-[10px] font-bold text-slate-600 uppercase tracking-widest";
 
 const EMPTY_FORM: GenerateJobInput = {
   title: "",
@@ -86,11 +86,11 @@ export default function CreateJobPage() {
 
 function PageShell() {
   return (
-    <div className="space-y-10 pb-20">
-      <div className="h-12 w-72 rounded-2xl bg-[#0a0a0f] border border-slate-800/60 animate-pulse" />
+    <div className="space-y-8 pb-16">
+      <div className="h-12 w-72 rounded-2xl bg-slate-100 border border-slate-200 animate-pulse" />
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        <div className="h-96 rounded-[2.5rem] bg-[#0a0a0f] border border-slate-800/60 animate-pulse" />
-        <div className="h-96 rounded-[2.5rem] bg-[#0a0a0f] border border-slate-800/60 animate-pulse" />
+        <div className="h-96 rounded-3xl bg-slate-100 border border-slate-200 animate-pulse" />
+        <div className="h-96 rounded-3xl bg-slate-100 border border-slate-200 animate-pulse" />
       </div>
     </div>
   );
@@ -106,8 +106,6 @@ function CreateJobView() {
   const [form, setForm] = useState<GenerateJobInput>(EMPTY_FORM);
   const [skillsText, setSkillsText] = useState("");
   const [jd, setJd] = useState<JobDescription | null>(null);
-  // Kept separately so "Reset to generated version" and the regenerate
-  // warning can compare against the last AI output, not the edited JD.
   const [generatedJd, setGeneratedJd] = useState<JobDescription | null>(null);
   const [jobId, setJobId] = useState<number | null>(initialJobId);
   const [publishedId, setPublishedId] = useState<number | null>(null);
@@ -123,7 +121,6 @@ function CreateJobView() {
 
   const busy = generating || saving || publishing;
 
-  // ─── Load an existing draft for editing ─────────────────────────
   useEffect(() => {
     if (initialJobId === null) return;
 
@@ -170,8 +167,6 @@ function CreateJobView() {
       cancelled = true;
     };
   }, [initialJobId]);
-
-  // ─── Generation ─────────────────────────────────────────────────
 
   const runGeneration = useCallback(
     async (input: GenerateJobInput) => {
@@ -242,7 +237,6 @@ function CreateJobView() {
       return;
     }
 
-    // Always regenerate from the recruiter's original input.
     await handleGenerate();
   };
 
@@ -251,8 +245,6 @@ function CreateJobView() {
     setJd(generatedJd);
     setNotice("Reverted to the last AI-generated version.");
   };
-
-  // ─── Persistence ────────────────────────────────────────────────
 
   const buildPayload = () => {
     const parsed = GenerateJobInputSchema.safeParse({
@@ -285,7 +277,6 @@ function CreateJobView() {
         setError(result.error);
         return;
       }
-      // Track the id so a later save updates this row instead of duplicating it.
       setJobId(result.jobId);
       setNotice("Draft saved. It is not visible to candidates until you publish it.");
     } catch {
@@ -328,12 +319,12 @@ function CreateJobView() {
     jd !== null && generatedJd !== null && JSON.stringify(jd) !== JSON.stringify(generatedJd);
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-16">
       {/* Header */}
       <section className="space-y-3">
         <Link
           href="/dashboard/jobs"
-          className="inline-flex items-center gap-2 text-slate-500 hover:text-white transition-colors group"
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span className="text-[10px] font-bold uppercase tracking-widest">Back to Jobs</span>
@@ -341,18 +332,18 @@ function CreateJobView() {
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest mb-2">
+            <div className="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-widest mb-1.5">
               <Briefcase className="w-4 h-4" /> {jobId ? "Edit Job" : "Create Job"}
             </div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Build a Job Description
             </h1>
-            <p className="text-slate-400 text-lg max-w-2xl">
+            <p className="text-slate-600 text-base max-w-2xl">
               Generate a professional job description from your requirements.
             </p>
           </div>
           {jobId && (
-            <Badge className="bg-white/[0.03] text-slate-400 border-none ring-1 ring-white/5 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest h-fit">
+            <Badge className="bg-slate-100 text-slate-600 border-none px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest h-fit">
               Job #{jobId.toString().padStart(4, "0")}
             </Badge>
           )}
@@ -363,20 +354,20 @@ function CreateJobView() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4"
+          className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-2xl p-4"
         >
-          <AlertTriangle className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
-          <p className="text-sm text-rose-300">{error}</p>
+          <AlertTriangle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-rose-800">{error}</p>
         </div>
       )}
 
       {notice && (
         <div
           role="status"
-          className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4"
+          className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl p-4"
         >
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-          <p className="text-sm text-emerald-300">{notice}</p>
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-emerald-800">{notice}</p>
         </div>
       )}
 
@@ -384,7 +375,7 @@ function CreateJobView() {
         <Link href={`/jobs/${publishedId}`} target="_blank">
           <Button
             variant="outline"
-            className="h-11 px-5 rounded-full border-slate-800 text-slate-300 hover:bg-white/5 text-sm font-bold"
+            className="h-11 px-5 rounded-full border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-bold shadow-xs"
           >
             <ExternalLink className="w-4 h-4 mr-2" /> View public listing
           </Button>
@@ -392,10 +383,10 @@ function CreateJobView() {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
-        {/* ── Basic Job Information ─────────────────────────────── */}
-        <Card className="bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] p-8 ring-1 ring-white/5 shadow-2xl space-y-6">
+        {/* Basic Job Information */}
+        <Card className="bg-white border-slate-200/80 rounded-3xl p-8 shadow-xs space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-tight">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">
               Basic Job Information
             </h2>
             <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">
@@ -416,12 +407,12 @@ function CreateJobView() {
                 setForm({ ...form, title: e.target.value });
                 if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: "" });
               }}
-              className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                fieldErrors.title ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+              className={`bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900 ${
+                fieldErrors.title ? "border-rose-500 focus:ring-rose-500/20" : ""
               }`}
             />
             {fieldErrors.title && (
-              <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{fieldErrors.title}</p>
+              <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mt-1">{fieldErrors.title}</p>
             )}
           </div>
 
@@ -436,7 +427,7 @@ function CreateJobView() {
                 disabled={busy}
                 placeholder="e.g. Engineering"
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                className="bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900"
               />
             </div>
 
@@ -450,7 +441,7 @@ function CreateJobView() {
                 disabled={busy}
                 placeholder="e.g. Bangalore, India"
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                className="bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900"
               />
             </div>
 
@@ -468,7 +459,7 @@ function CreateJobView() {
                     employmentType: e.target.value as GenerateJobInput["employmentType"],
                   })
                 }
-                className="w-full h-12 px-4 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50"
+                className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
               >
                 {EMPLOYMENT_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -489,7 +480,7 @@ function CreateJobView() {
                 onChange={(e) =>
                   setForm({ ...form, workMode: e.target.value as GenerateJobInput["workMode"] })
                 }
-                className="w-full h-12 px-4 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50"
+                className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
               >
                 {WORK_MODES.map((mode) => (
                   <option key={mode} value={mode}>
@@ -509,7 +500,7 @@ function CreateJobView() {
                 disabled={busy}
                 placeholder="e.g. 2-4 years"
                 onChange={(e) => setForm({ ...form, experience: e.target.value })}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                className="bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900"
               />
             </div>
 
@@ -523,7 +514,7 @@ function CreateJobView() {
                 disabled={busy}
                 placeholder="e.g. 12-18 LPA"
                 onChange={(e) => setForm({ ...form, salaryRange: e.target.value })}
-                className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+                className="bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900"
               />
             </div>
           </div>
@@ -542,14 +533,14 @@ function CreateJobView() {
                 setSkillsText(e.target.value);
                 if (fieldErrors.skills) setFieldErrors({ ...fieldErrors, skills: "" });
               }}
-              className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                fieldErrors.skills ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+              className={`bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900 ${
+                fieldErrors.skills ? "border-rose-500 focus:ring-rose-500/20" : ""
               }`}
             />
             {fieldErrors.skills && (
-              <p className="text-[10px] font-bold text-rose-400 uppercase tracking-wider mt-1">{fieldErrors.skills}</p>
+              <p className="text-[10px] font-bold text-rose-600 uppercase tracking-wider mt-1">{fieldErrors.skills}</p>
             )}
-            <p id="skills-hint" className="text-[11px] text-slate-600">
+            <p id="skills-hint" className="text-[11px] text-slate-500">
               Separate skills with commas.
             </p>
             {splitSkills(skillsText).length > 0 && (
@@ -557,7 +548,7 @@ function CreateJobView() {
                 {splitSkills(skillsText).map((skill) => (
                   <Badge
                     key={skill}
-                    className="bg-indigo-500/10 text-indigo-300 border-none px-3 py-1 rounded-full text-[10px] font-bold"
+                    className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full text-[10px] font-bold"
                   >
                     {skill}
                   </Badge>
@@ -576,7 +567,7 @@ function CreateJobView() {
               disabled={busy}
               placeholder="Anything you already know about the day-to-day of this role."
               onChange={(e) => setForm({ ...form, responsibilities: e.target.value })}
-              className="bg-slate-950 border-slate-800 min-h-[110px] rounded-2xl p-4 focus:ring-indigo-500/30 resize-y"
+              className="bg-white border-slate-200 min-h-[110px] rounded-2xl p-4 focus:ring-indigo-500/20 text-slate-900 resize-y"
             />
           </div>
 
@@ -590,7 +581,7 @@ function CreateJobView() {
               disabled={busy}
               placeholder="Certifications, notice period, domain experience, etc."
               onChange={(e) => setForm({ ...form, additionalRequirements: e.target.value })}
-              className="bg-slate-950 border-slate-800 min-h-[90px] rounded-2xl p-4 focus:ring-indigo-500/30 resize-y"
+              className="bg-white border-slate-200 min-h-[90px] rounded-2xl p-4 focus:ring-indigo-500/20 text-slate-900 resize-y"
             />
           </div>
 
@@ -598,7 +589,7 @@ function CreateJobView() {
             type="button"
             onClick={handleGenerate}
             disabled={busy}
-            className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-xl shadow-indigo-500/20"
+            className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-xs"
           >
             {generating ? (
               <>
@@ -612,11 +603,11 @@ function CreateJobView() {
           </Button>
         </Card>
 
-        {/* ── AI Generated JD Preview ───────────────────────────── */}
-        <Card className="bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] p-8 ring-1 ring-white/5 shadow-2xl space-y-6">
+        {/* AI Generated JD Preview */}
+        <Card className="bg-white border-slate-200/80 rounded-3xl p-8 shadow-xs space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                 Generated Job Description
               </h2>
               <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">
@@ -628,7 +619,7 @@ function CreateJobView() {
               </p>
             </div>
             {jd && (
-              <Badge className="bg-indigo-500/10 text-indigo-300 border-none px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0">
+              <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0">
                 <Wand2 className="w-3 h-3 mr-1" /> AI Draft
               </Badge>
             )}
@@ -639,16 +630,16 @@ function CreateJobView() {
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-11 rounded-xl bg-slate-950 border border-slate-800/60 animate-pulse"
+                  className="h-11 rounded-xl bg-slate-100 animate-pulse"
                 />
               ))}
             </div>
           ) : jd ? (
             <>
               {hasEdits && (
-                <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                  <p className="text-xs text-amber-300">
+                <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-800">
                     You have edited this draft. Regenerating will replace your changes.
                   </p>
                 </div>
@@ -656,13 +647,13 @@ function CreateJobView() {
 
               <JDEditor value={jd} onChange={setJd} disabled={busy} />
 
-              <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-800/60">
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-100">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleRegenerate}
                   disabled={busy}
-                  className="h-12 px-5 rounded-2xl border-slate-800 text-slate-300 hover:bg-white/5 font-bold"
+                  className="h-12 px-5 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50 font-bold shadow-xs"
                 >
                   {generating ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -677,7 +668,7 @@ function CreateJobView() {
                   variant="outline"
                   onClick={handleReset}
                   disabled={busy || !hasEdits}
-                  className="h-12 px-5 rounded-2xl border-slate-800 text-slate-300 hover:bg-white/5 font-bold"
+                  className="h-12 px-5 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50 font-bold shadow-xs"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" /> Reset to generated
                 </Button>
@@ -689,7 +680,7 @@ function CreateJobView() {
                   variant="outline"
                   onClick={handleSaveDraft}
                   disabled={busy}
-                  className="flex-1 h-14 rounded-2xl border-slate-800 text-slate-200 hover:bg-white/5 font-bold"
+                  className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-800 hover:bg-slate-50 font-bold shadow-xs"
                 >
                   {saving ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -702,7 +693,7 @@ function CreateJobView() {
                   type="button"
                   onClick={handlePublish}
                   disabled={busy}
-                  className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xl shadow-emerald-500/20"
+                  className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-xs"
                 >
                   {publishing ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -714,12 +705,12 @@ function CreateJobView() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center py-16 text-slate-500">
-              <div className="w-14 h-14 rounded-2xl bg-white/[0.03] ring-1 ring-white/5 flex items-center justify-center mb-4">
-                <Sparkles className="w-7 h-7 opacity-30" />
+            <div className="flex flex-col items-center justify-center text-center py-16 text-slate-500 bg-slate-50/50 rounded-2xl border border-slate-100">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                <Sparkles className="w-7 h-7 text-slate-400" />
               </div>
-              <p className="text-sm font-bold text-slate-400">No draft yet</p>
-              <p className="text-xs text-slate-600 mt-1 max-w-xs">
+              <p className="text-sm font-bold text-slate-900">No draft yet</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-xs">
                 Generate a professional job description from your requirements. It stays a
                 draft until you publish it.
               </p>

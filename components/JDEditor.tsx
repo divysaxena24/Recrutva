@@ -22,7 +22,7 @@ interface JDEditorProps {
 }
 
 const LABEL_CLASS =
-  "text-[10px] font-bold text-slate-500 uppercase tracking-widest";
+  "text-[10px] font-bold text-slate-600 uppercase tracking-widest";
 
 export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
   const patch = (changes: Partial<JobDescription>) =>
@@ -39,7 +39,7 @@ export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
           value={value.title}
           disabled={disabled}
           onChange={(e) => patch({ title: e.target.value })}
-          className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+          className="bg-white border-slate-200 h-12 rounded-xl text-slate-900 focus:ring-indigo-500/20 shadow-xs"
         />
       </div>
 
@@ -53,7 +53,7 @@ export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
           disabled={disabled}
           onChange={(e) => patch({ summary: e.target.value })}
           placeholder="A short overview of the role, team and impact."
-          className="bg-slate-950 border-slate-800 min-h-[110px] rounded-2xl p-4 focus:ring-indigo-500/30 resize-y"
+          className="bg-white border-slate-200 min-h-[110px] rounded-2xl p-4 text-slate-900 focus:ring-indigo-500/20 shadow-xs resize-y"
         />
       </div>
 
@@ -105,7 +105,7 @@ export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
             onChange={(e) =>
               patch({ employmentType: e.target.value as JobDescription["employmentType"] })
             }
-            className="w-full h-12 px-4 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50"
+            className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-xs disabled:opacity-50"
           >
             {EMPLOYMENT_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -126,7 +126,7 @@ export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
             onChange={(e) =>
               patch({ workMode: e.target.value as JobDescription["workMode"] })
             }
-            className="w-full h-12 px-4 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500/30 disabled:opacity-50"
+            className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-xs disabled:opacity-50"
           >
             {WORK_MODES.map((mode) => (
               <option key={mode} value={mode}>
@@ -146,7 +146,7 @@ export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
             disabled={disabled}
             placeholder="2-4 years"
             onChange={(e) => patch({ experience: e.target.value })}
-            className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+            className="bg-white border-slate-200 h-12 rounded-xl text-slate-900 focus:ring-indigo-500/20 shadow-xs"
           />
         </div>
 
@@ -160,7 +160,7 @@ export default function JDEditor({ value, onChange, disabled }: JDEditorProps) {
             disabled={disabled}
             placeholder="Bangalore, India"
             onChange={(e) => patch({ location: e.target.value })}
-            className="bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30"
+            className="bg-white border-slate-200 h-12 rounded-xl text-slate-900 focus:ring-indigo-500/20 shadow-xs"
           />
         </div>
       </div>
@@ -220,21 +220,21 @@ function EditableList({
           size="sm"
           disabled={disabled}
           onClick={add}
-          className="h-7 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg gap-1.5"
+          className="h-7 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg gap-1.5"
         >
           <Plus className="w-3 h-3" /> Add
         </Button>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-slate-600 italic">
+        <p className="text-xs text-slate-500 italic">
           Nothing here yet — use Add to write one.
         </p>
       ) : (
         <div className="space-y-2">
           {items.map((item, index) => (
             <div key={index} className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/60 shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />
               <Input
                 id={`${id}-${index}`}
                 value={item}
@@ -242,7 +242,7 @@ function EditableList({
                 placeholder={placeholder}
                 aria-label={`${label} item ${index + 1}`}
                 onChange={(e) => update(index, e.target.value)}
-                className="bg-slate-950 border-slate-800 h-11 rounded-xl text-sm focus:ring-indigo-500/30"
+                className="bg-white border-slate-200 h-11 rounded-xl text-sm text-slate-900 focus:ring-indigo-500/20 shadow-xs"
               />
               <Button
                 type="button"
@@ -251,7 +251,7 @@ function EditableList({
                 disabled={disabled}
                 onClick={() => remove(index)}
                 aria-label={`Remove ${label} item ${index + 1}`}
-                className="shrink-0 rounded-xl text-slate-600 hover:bg-rose-500/10 hover:text-rose-400"
+                className="shrink-0 rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600"
               >
                 <X className="w-4 h-4" />
               </Button>

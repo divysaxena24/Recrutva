@@ -52,87 +52,87 @@ const STATE_META: Record<
 > = {
   completed: {
     label: "Completed",
-    iconBg: "bg-emerald-500/10 ring-emerald-500/30",
-    iconColor: "text-emerald-400",
-    text: "text-emerald-500/80",
+    iconBg: "bg-emerald-50 ring-emerald-200",
+    iconColor: "text-emerald-600",
+    text: "text-emerald-700",
   },
   current: {
     label: "In Progress",
-    iconBg: "bg-indigo-500/10 ring-indigo-500/30",
-    iconColor: "text-indigo-400",
-    text: "text-indigo-400",
+    iconBg: "bg-indigo-50 ring-indigo-200",
+    iconColor: "text-indigo-600",
+    text: "text-indigo-700",
   },
   upcoming: {
     label: "Upcoming",
-    iconBg: "bg-white/[0.03] ring-white/10",
-    iconColor: "text-slate-500",
-    text: "text-slate-600",
+    iconBg: "bg-slate-100 ring-slate-200",
+    iconColor: "text-slate-400",
+    text: "text-slate-500",
   },
   failed: {
     label: "Not Progressing",
-    iconBg: "bg-rose-500/10 ring-rose-500/30",
-    iconColor: "text-rose-400",
-    text: "text-rose-400",
+    iconBg: "bg-rose-50 ring-rose-200",
+    iconColor: "text-rose-600",
+    text: "text-rose-700",
   },
   skipped: {
     label: "Skipped",
-    iconBg: "bg-white/[0.03] ring-white/10",
-    iconColor: "text-slate-500",
-    text: "text-slate-600",
+    iconBg: "bg-slate-100 ring-slate-200",
+    iconColor: "text-slate-400",
+    text: "text-slate-500",
   },
   "not-available": {
     label: "Not Available",
-    iconBg: "bg-white/[0.02] ring-white/5",
-    iconColor: "text-slate-700",
-    text: "text-slate-700",
+    iconBg: "bg-slate-50 ring-slate-100",
+    iconColor: "text-slate-300",
+    text: "text-slate-400",
   },
 };
 
 const TONE_BADGE: Record<StatusTone, string> = {
-  emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  indigo: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
-  amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  rose: "bg-rose-500/10 text-rose-400 border-rose-500/20",
-  purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  slate: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  indigo: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  amber: "bg-amber-50 text-amber-700 border-amber-200",
+  rose: "bg-rose-50 text-rose-700 border-rose-200",
+  purple: "bg-purple-50 text-purple-700 border-purple-200",
+  slate: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
 const ACCENT = {
   indigo: {
-    text: "text-indigo-400",
-    bg: "bg-indigo-500/10",
-    ring: "ring-indigo-500/20",
-    btn: "bg-indigo-600 hover:bg-indigo-500",
+    text: "text-indigo-700",
+    bg: "bg-indigo-50",
+    ring: "ring-indigo-200",
+    btn: "bg-indigo-600 hover:bg-indigo-700",
   },
   emerald: {
-    text: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    ring: "ring-emerald-500/20",
-    btn: "bg-emerald-600 hover:bg-emerald-500",
+    text: "text-emerald-700",
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-200",
+    btn: "bg-emerald-600 hover:bg-emerald-700",
   },
   amber: {
-    text: "text-amber-400",
-    bg: "bg-amber-500/10",
-    ring: "ring-amber-500/20",
-    btn: "bg-amber-600 hover:bg-amber-500",
+    text: "text-amber-700",
+    bg: "bg-amber-50",
+    ring: "ring-amber-200",
+    btn: "bg-amber-600 hover:bg-amber-700",
   },
   purple: {
-    text: "text-purple-400",
-    bg: "bg-purple-500/10",
-    ring: "ring-purple-500/20",
-    btn: "bg-purple-600 hover:bg-purple-500",
+    text: "text-purple-700",
+    bg: "bg-purple-50",
+    ring: "ring-purple-200",
+    btn: "bg-purple-600 hover:bg-purple-700",
   },
   rose: {
-    text: "text-rose-400",
-    bg: "bg-rose-500/10",
-    ring: "ring-rose-500/20",
-    btn: "bg-rose-600 hover:bg-rose-500",
+    text: "text-rose-700",
+    bg: "bg-rose-50",
+    ring: "ring-rose-200",
+    btn: "bg-rose-600 hover:bg-rose-700",
   },
   slate: {
-    text: "text-slate-400",
-    bg: "bg-white/[0.03]",
-    ring: "ring-white/10",
-    btn: "bg-slate-700 hover:bg-slate-600",
+    text: "text-slate-700",
+    bg: "bg-slate-100",
+    ring: "ring-slate-200",
+    btn: "bg-indigo-600 hover:bg-indigo-700 text-white",
   },
 };
 
@@ -156,9 +156,6 @@ export default function CandidateDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Loader shared by the mount effect and the retry button. State is only
-  // written from promise callbacks: React forbids setState calls made
-  // synchronously from an effect, directly or through a called function.
   const loadApplications = useCallback(() => {
     return getCandidateApplications()
       .then((data) => {
@@ -181,34 +178,31 @@ export default function CandidateDashboardPage() {
   useEffect(() => {
     loadApplications();
 
-    // Live status refresh (keeps scheduled/interview state current).
     const interval = setInterval(() => {
       getCandidateApplications()
         .then(setApplications)
-        .catch(() => {
-          // Keep last known data on transient failures.
-        });
+        .catch(() => {});
     }, 5000);
 
     return () => clearInterval(interval);
   }, [loadApplications]);
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-8 pb-16">
       {/* Header */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-1"
         >
-          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-widest mb-2">
+          <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs uppercase tracking-widest mb-1.5">
             <Users className="w-4 h-4" /> Candidate Portal
           </div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Welcome Back!
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl">
+          <p className="text-slate-600 text-base max-w-xl">
             Track your applications and see exactly where you are in the hiring
             process.
           </p>
@@ -217,10 +211,10 @@ export default function CandidateDashboardPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.1 }}
         >
           <Link href="/jobs">
-            <Button className="h-12 px-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20">
+            <Button className="h-12 px-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-xs">
               Explore More Jobs <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
@@ -237,12 +231,12 @@ export default function CandidateDashboardPage() {
 
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">
+              <h3 className="text-xl font-bold text-slate-900">
                 Your Applications
               </h3>
               <Badge
                 variant="outline"
-                className="border-slate-800 text-slate-500"
+                className="border-slate-200 text-slate-500 bg-white"
               >
                 Live Status
               </Badge>
@@ -279,38 +273,38 @@ function SummaryCards({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-      <Card className="bg-[#0a0a0f] border-slate-800/60 p-6 rounded-3xl ring-1 ring-white/5 flex flex-col justify-between shadow-xl">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-          <Briefcase className="w-4 h-4 text-emerald-400" /> Total Applications
+      <Card className="bg-white border-slate-200/80 p-6 rounded-3xl shadow-xs flex flex-col justify-between">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Briefcase className="w-4 h-4 text-emerald-600" /> Total Applications
         </h3>
-        <div className="text-4xl font-black text-white">{total}</div>
+        <div className="text-4xl font-black text-slate-900">{total}</div>
       </Card>
       <Card
-        className={`p-6 rounded-3xl ring-1 flex flex-col justify-between transition-all shadow-xl ${
+        className={`p-6 rounded-3xl border flex flex-col justify-between transition-all shadow-xs ${
           actionRequired > 0
-            ? "bg-amber-500/10 border-amber-500/30 ring-amber-500/20"
-            : "bg-[#0a0a0f] border-slate-800/60 ring-1 ring-white/5"
+            ? "bg-amber-50/80 border-amber-200"
+            : "bg-white border-slate-200/80"
         }`}
       >
         <h3
           className={`text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2 ${
-            actionRequired > 0 ? "text-amber-400" : "text-slate-400"
+            actionRequired > 0 ? "text-amber-700" : "text-slate-500"
           }`}
         >
           <AlertTriangle
             className={`w-4 h-4 ${
-              actionRequired > 0 ? "text-amber-400 animate-pulse" : "text-slate-500"
+              actionRequired > 0 ? "text-amber-600 animate-pulse" : "text-slate-400"
             }`}
           />
           Action Required
         </h3>
-        <div className="text-4xl font-black text-white">{actionRequired}</div>
+        <div className="text-4xl font-black text-slate-900">{actionRequired}</div>
       </Card>
-      <Card className="bg-[#0a0a0f] border-slate-800/60 p-6 rounded-3xl ring-1 ring-white/5 flex flex-col justify-between shadow-xl">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-indigo-400" /> Completed
+      <Card className="bg-white border-slate-200/80 p-6 rounded-3xl shadow-xs flex flex-col justify-between">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-indigo-600" /> Completed
         </h3>
-        <div className="text-4xl font-black text-white">{completed}</div>
+        <div className="text-4xl font-black text-slate-900">{completed}</div>
       </Card>
     </div>
   );
@@ -325,34 +319,34 @@ function ApplicationCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
+      transition={{ delay: index * 0.05 }}
     >
-      <Card className="bg-[#0a0a0f] border-slate-800/60 rounded-[2rem] p-6 lg:p-8 ring-1 ring-white/5 shadow-xl space-y-6">
+      <Card className="bg-white border-slate-200/80 rounded-3xl p-6 lg:p-8 shadow-xs space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-              <Briefcase className="w-6 h-6 text-slate-400" />
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+              <Briefcase className="w-6 h-6 text-slate-500" />
             </div>
             <div className="min-w-0">
-              <h4 className="font-bold text-white break-words">
+              <h4 className="font-bold text-slate-900 break-words text-lg">
                 {app.jobTitle}
               </h4>
-              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1.5 flex-wrap">
+              <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 flex-wrap">
                 <span className="flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Applied{" "}
                   {new Date(app.createdAt).toLocaleDateString()}
                 </span>
                 {app.scheduledAt && (
-                  <span className="flex items-center gap-1 text-indigo-500/70">
+                  <span className="flex items-center gap-1 text-indigo-600">
                     <Calendar className="w-3 h-3" />{" "}
                     {new Date(app.scheduledAt).toLocaleString()}
                   </span>
                 )}
                 {app.score && (
-                  <span className="flex items-center gap-1 text-emerald-500/80">
+                  <span className="flex items-center gap-1 text-emerald-600">
                     <CheckCircle2 className="w-3 h-3" /> AI Score {app.score}
                     /100
                   </span>
@@ -377,9 +371,9 @@ function ApplicationCard({
               {app.progressPercent}%
             </span>
           </div>
-          <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+              className="h-full bg-indigo-600 rounded-full transition-all duration-500"
               style={{ width: `${app.progressPercent}%` }}
             />
           </div>
@@ -422,7 +416,7 @@ function PipelineTimeline({ stages }: { stages: CandidateStageView[] }) {
               </div>
               {!isLast && (
                 <div
-                  className={`w-px flex-1 my-1 ${connectorDone ? "bg-emerald-500/30" : "bg-slate-800"}`}
+                  className={`w-px flex-1 my-1 ${connectorDone ? "bg-emerald-400" : "bg-slate-200"}`}
                 />
               )}
             </div>
@@ -430,12 +424,12 @@ function PipelineTimeline({ stages }: { stages: CandidateStageView[] }) {
               className={`pb-5 pt-1 min-w-0 ${dimmed ? "opacity-50" : ""}`}
             >
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-bold text-white truncate">
+                <p className="text-sm font-bold text-slate-900 truncate">
                   {stage.name}
                 </p>
                 {stage.status === "current" && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 ring-1 ring-indigo-500/20 px-2 py-0.5 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
                     Current
                   </span>
                 )}
@@ -460,11 +454,11 @@ function NextActionPanel({ action }: { action: CandidateNextAction }) {
 
   return (
     <div
-      className={`h-full rounded-3xl p-5 ring-1 ${accent.bg} ${accent.ring} flex flex-col justify-between gap-4`}
+      className={`h-full rounded-2xl p-5 border ${accent.bg} ${accent.ring} flex flex-col justify-between gap-4`}
     >
       <div className="space-y-3">
         <div
-          className={`w-10 h-10 rounded-2xl ${accent.bg} ring-1 ${accent.ring} flex items-center justify-center`}
+          className={`w-10 h-10 rounded-2xl ${accent.bg} border ${accent.ring} flex items-center justify-center`}
         >
           <Icon className={`w-5 h-5 ${accent.text}`} />
         </div>
@@ -475,7 +469,7 @@ function NextActionPanel({ action }: { action: CandidateNextAction }) {
           <p className={`text-base font-bold leading-snug ${accent.text}`}>
             {action.label}
           </p>
-          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+          <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
             {action.description}
           </p>
         </div>
@@ -483,7 +477,7 @@ function NextActionPanel({ action }: { action: CandidateNextAction }) {
       {action.href && (
         <Link href={action.href} className="w-full">
           <Button
-            className={`w-full h-11 rounded-xl font-bold text-white shadow-lg ${accent.btn}`}
+            className={`w-full h-11 rounded-xl font-bold text-white shadow-xs ${accent.btn}`}
           >
             {action.kind === "interview" ? (
               <>
@@ -505,19 +499,19 @@ function NextActionPanel({ action }: { action: CandidateNextAction }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="h-36 rounded-3xl bg-[#0a0a0f] border border-slate-800/60 ring-1 ring-white/5 animate-pulse"
+            className="h-36 rounded-3xl bg-white border border-slate-200/80 animate-pulse"
           />
         ))}
       </div>
       {[0, 1].map((i) => (
         <div
           key={i}
-          className="h-72 rounded-[2rem] bg-[#0a0a0f] border border-slate-800/60 ring-1 ring-white/5 animate-pulse"
+          className="h-72 rounded-3xl bg-white border border-slate-200/80 animate-pulse"
         />
       ))}
     </div>
@@ -526,18 +520,18 @@ function LoadingSkeleton() {
 
 function EmptyState() {
   return (
-    <Card className="bg-[#0a0a0f] border-slate-800/60 p-12 text-center rounded-[2.5rem] ring-1 ring-white/5">
-      <div className="w-16 h-16 rounded-2xl bg-white/[0.03] ring-1 ring-white/5 flex items-center justify-center mx-auto mb-5">
-        <Briefcase className="w-8 h-8 text-slate-600" />
+    <Card className="bg-white border-slate-200/80 p-12 text-center rounded-3xl shadow-xs">
+      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
+        <Briefcase className="w-8 h-8 text-slate-400" />
       </div>
-      <p className="text-slate-400 font-bold">
+      <p className="text-slate-900 font-bold text-base">
         You haven&apos;t applied to any jobs yet.
       </p>
-      <p className="text-xs text-slate-600 mt-2">
+      <p className="text-xs text-slate-500 mt-2">
         Browse open roles and submit your first application to get started.
       </p>
       <Link href="/jobs" className="inline-block">
-        <Button className="mt-6 h-11 px-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20">
+        <Button className="mt-6 h-11 px-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-xs">
           Browse Open Roles <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </Link>
@@ -547,11 +541,11 @@ function EmptyState() {
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <Card className="p-10 bg-[#0a0a0f] border-slate-800/60 rounded-[2.5rem] ring-1 ring-white/5 flex flex-col items-center justify-center text-center py-20">
-      <div className="w-14 h-14 rounded-2xl bg-rose-500/10 ring-1 ring-rose-500/20 flex items-center justify-center mb-4">
-        <AlertTriangle className="w-7 h-7 text-rose-400" />
+    <Card className="p-10 bg-white border-slate-200/80 rounded-3xl shadow-xs flex flex-col items-center justify-center text-center py-20">
+      <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center mb-4">
+        <AlertTriangle className="w-7 h-7 text-rose-600" />
       </div>
-      <h3 className="text-lg font-bold text-white">
+      <h3 className="text-lg font-bold text-slate-900">
         Couldn&apos;t load your applications
       </h3>
       <p className="text-sm text-slate-500 mt-1 max-w-sm">
@@ -560,7 +554,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       </p>
       <Button
         onClick={onRetry}
-        className="mt-6 h-11 px-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-500/20"
+        className="mt-6 h-11 px-6 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-xs"
       >
         <RefreshCw className="w-4 h-4 mr-2" /> Retry
       </Button>

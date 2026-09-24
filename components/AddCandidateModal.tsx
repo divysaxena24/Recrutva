@@ -166,23 +166,23 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
       }
     }}>
       <DialogTrigger render={
-        <Button className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-full px-6 h-12 font-bold shadow-lg shadow-indigo-500/20 group">
+        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 h-12 font-bold shadow-md shadow-indigo-500/20 group">
           <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
           Add Candidate
         </Button>
       } />
-      <DialogContent className="bg-[#0a0a0f] border-slate-800 text-white sm:max-w-[550px] rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/5 shadow-2xl">
+      <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-[550px] rounded-[2rem] p-0 overflow-hidden shadow-2xl">
         <div className="p-8 space-y-6">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold tracking-tight">Add New Candidate</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">Add New Candidate</DialogTitle>
+            <DialogDescription className="text-slate-500">
               Import candidate details and upload their resume for AI matching.
             </DialogDescription>
           </DialogHeader>
 
           {serverError && (
-            <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-center gap-3 text-rose-400 text-xs font-medium">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center gap-3 text-rose-700 text-xs font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <p>{serverError}</p>
             </div>
           )}
@@ -190,52 +190,52 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Full Name *</Label>
+                <Label htmlFor="name" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Full Name *</Label>
                 <Input 
                   id="name" 
                   placeholder="e.g. Divya Saxena" 
                   {...register("name")}
-                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                    errors.name ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 ${
+                    errors.name ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 />
-                {errors.name && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.name.message}</p>}
+                {errors.name && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.name.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Phone Number *</Label>
+                <Label htmlFor="phone" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Phone Number *</Label>
                 <Input 
                   id="phone" 
                   placeholder="7024296567" 
                   {...register("phone")}
-                  className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                    errors.phone ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 ${
+                    errors.phone ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 />
-                {errors.phone && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.phone.message}</p>}
+                {errors.phone && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.phone.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Email Address *</Label>
+              <Label htmlFor="email" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Email Address *</Label>
               <Input 
                 id="email" 
                 type="email" 
                 placeholder="divysaxena2402@gmail.com" 
                 {...register("email")}
-                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 ${
-                  errors.email ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 ${
+                  errors.email ? "border-rose-400 focus:ring-rose-500/20" : ""
                 }`}
               />
-              {errors.email && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Resume Document *</Label>
+              <Label className="text-xs font-bold text-slate-600 uppercase tracking-wider">Resume Document *</Label>
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className={`
                   border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all cursor-pointer group
-                  ${fileError ? 'border-rose-500/50 bg-rose-500/5' : file ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-500/5'}
+                  ${fileError ? 'border-rose-400 bg-rose-50' : file ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/50'}
                 `}
               >
                 <input 
@@ -247,39 +247,39 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
                 />
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
-                    <span className="text-sm font-bold text-white">{file.name}</span>
+                    <span className="text-sm font-bold text-slate-900">{file.name}</span>
                     <button 
                       type="button" 
                       onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                      className="text-[10px] text-slate-500 hover:text-rose-400 font-bold uppercase flex items-center gap-1"
+                      className="text-[10px] text-slate-500 hover:text-rose-600 font-bold uppercase flex items-center gap-1"
                     >
                       <X className="w-3 h-3" /> Remove File
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-500 group-hover:text-indigo-400 group-hover:bg-indigo-500/20 transition-all mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200/80 flex items-center justify-center text-slate-600 group-hover:text-indigo-600 group-hover:bg-indigo-100 transition-all mb-2">
                       <Upload className="w-5 h-5" />
                     </div>
-                    <p className="text-sm font-bold text-slate-400">Click to upload or drag & drop</p>
-                    <p className="text-[10px] text-slate-600 font-medium uppercase mt-1">PDF, DOC, DOCX up to 10MB</p>
+                    <p className="text-sm font-bold text-slate-700">Click to upload or drag & drop</p>
+                    <p className="text-[10px] text-slate-500 font-medium uppercase mt-1">PDF, DOC, DOCX up to 10MB</p>
                   </>
                 )}
               </div>
-              {fileError && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{fileError}</p>}
+              {fileError && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{fileError}</p>}
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Select Job Role *</Label>
+                <Label htmlFor="targetJobId" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Select Job Role *</Label>
                 <select 
                   id="targetJobId"
                   {...register("targetJobId")}
-                  className={`w-full bg-slate-950 border border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 px-4 appearance-none outline-none transition-all ${
-                    errors.targetJobId ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                  className={`w-full bg-slate-50 border border-slate-200 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 text-slate-900 px-4 appearance-none outline-none transition-all ${
+                    errors.targetJobId ? "border-rose-400 focus:ring-rose-500/20" : ""
                   }`}
                 >
                   <option value="">-- Select a Job Opening --</option>
@@ -287,28 +287,28 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
                     <option key={job.id} value={job.id.toString()}>{job.title} (#{job.id.toString().padStart(4, '0')})</option>
                   ))}
                 </select>
-                {errors.targetJobId && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.targetJobId.message}</p>}
+                {errors.targetJobId && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.targetJobId.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-500 uppercase tracking-widest">Schedule Interview Date & Time *</Label>
+              <Label htmlFor="scheduledAt" className="text-xs font-bold text-slate-600 uppercase tracking-wider">Schedule Interview Date & Time *</Label>
               <Input 
                 id="scheduledAt" 
                 type="datetime-local"
                 {...register("scheduledAt")}
-                className={`bg-slate-950 border-slate-800 h-12 rounded-xl focus:ring-indigo-500/30 text-slate-200 [color-scheme:dark] ${
-                  errors.scheduledAt ? "border-rose-500/50 focus:ring-rose-500/30" : ""
+                className={`bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 [color-scheme:light] ${
+                  errors.scheduledAt ? "border-rose-400 focus:ring-rose-500/20" : ""
                 }`}
               />
-              {errors.scheduledAt && <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider mt-1">{errors.scheduledAt.message}</p>}
+              {errors.scheduledAt && <p className="text-[10px] text-rose-600 font-bold uppercase tracking-wider mt-1">{errors.scheduledAt.message}</p>}
             </div>
 
             <div className="pt-4 flex gap-4">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1 h-12 rounded-xl text-slate-400 hover:bg-white/5 font-bold">
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1 h-12 rounded-xl text-slate-600 hover:bg-slate-100 font-bold">
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-xl shadow-indigo-500/20">
+              <Button type="submit" disabled={isSubmitting} className="flex-1 h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-500/20">
                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Import Candidate"}
               </Button>
             </div>
@@ -318,3 +318,4 @@ export default function AddCandidateModal({ onSuccess }: AddCandidateModalProps)
     </Dialog>
   );
 }
+
