@@ -30,6 +30,7 @@ import {
 import { getJobPipelineOverview } from "@/app/actions/candidate-pipeline";
 import CandidatePipelineCard from "@/components/CandidatePipelineCard";
 import DeleteJobAlertModal from "@/components/DeleteJobAlertModal";
+import { getValidResumeUrl } from "@/lib/utils";
 
 type OverviewData = Awaited<ReturnType<typeof getJobPipelineOverview>>;
 type PipelineCandidate = NonNullable<OverviewData>["rounds"][number]["passedCandidates"][number];
@@ -328,7 +329,7 @@ export default function JobCandidatesPage({
                     <td className="py-4 px-6 text-right">
                       {candidate.resumeUrl ? (
                         <a
-                          href={candidate.resumeUrl}
+                          href={getValidResumeUrl(candidate.resumeUrl) ?? "#"}
                           target="_blank"
                           rel="noreferrer"
                         >

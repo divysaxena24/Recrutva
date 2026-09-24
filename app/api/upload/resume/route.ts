@@ -53,7 +53,7 @@ async function uploadToCloudinary(
   try{
     const result = await cloudinary.uploader.upload(dataUri, {
       folder,
-      resource_type: "auto",
+      resource_type: "raw",
       public_id: publicId,
     });
     return { secure_url: result.secure_url, public_id: result.public_id };
@@ -64,7 +64,7 @@ async function uploadToCloudinary(
       http_code: cloudErr.http_code,
       name: cloudErr.name,
       folder,
-      resource_type: "auto",
+      resource_type: "raw",
       public_id: publicId,
       format: ext,
     });

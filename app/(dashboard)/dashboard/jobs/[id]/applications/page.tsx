@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table";
 import React, { useState, useEffect, use } from "react";
 import { getApplicationsByJobId } from "@/app/actions/application";
+import { getValidResumeUrl } from "@/lib/utils";
 import Link from "next/link";
 
 type Application = {
@@ -307,7 +308,7 @@ export default function ApplicationsPage({
                 <TableCell>
                   {app.resumeUrl ? (
                     <a
-                      href={app.resumeUrl}
+                      href={getValidResumeUrl(app.resumeUrl) ?? "#"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"

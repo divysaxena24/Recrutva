@@ -36,6 +36,7 @@ import {
   completeCandidateRound,
   moveCandidateToRound,
 } from "@/app/actions/candidate-pipeline";
+import { getValidResumeUrl } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────
 type RoundData = {
@@ -399,7 +400,7 @@ export default function CandidatePipelineCard({
 
           {pipeline.candidate.resumeUrl && (
             <a
-              href={pipeline.candidate.resumeUrl}
+              href={getValidResumeUrl(pipeline.candidate.resumeUrl) ?? "#"}
               target="_blank"
               rel="noreferrer"
             >

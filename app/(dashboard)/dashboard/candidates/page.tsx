@@ -53,6 +53,7 @@ import AddCandidateModal from "@/components/AddCandidateModal";
 import EditCandidateModal from "@/components/EditCandidateModal";
 import { getCandidates } from "@/app/actions/candidate";
 import { getJobById } from "@/app/actions/job";
+import { getValidResumeUrl } from "@/lib/utils";
 
 /** A candidate row as returned by the getCandidates server action. */
 type CandidateRow = Awaited<ReturnType<typeof getCandidates>>[number];
@@ -828,7 +829,7 @@ function CandidatesPage() {
                           <div className="flex items-center justify-end gap-2">
                             {candidate.resumeUrl && (
                               <a
-                                href={candidate.resumeUrl}
+                                href={getValidResumeUrl(candidate.resumeUrl) ?? "#"}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
