@@ -45,7 +45,7 @@ export interface JDGenerationFailure {
 
 export type JDGenerationResult = JDGenerationSuccess | JDGenerationFailure;
 
-const MAX_TOKENS = 2048;
+const MAX_TOKENS = 800;
 const TEMPERATURE = 0.4;
 
 // ─── Prompt ────────────────────────────────────────────────────────

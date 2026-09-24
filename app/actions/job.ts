@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { jobs, pipelines, pipelineRounds, PUBLIC_JOB_STATUSES } from "@/db/schema";
+import { jobs, pipelines, pipelineRounds, candidateRounds, applicants, PUBLIC_JOB_STATUSES } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { eq, and, inArray } from "drizzle-orm";
@@ -115,7 +115,49 @@ export async function deleteJob(id: number) {
   }
 
   try {
-    const deleted = await db.delete(jobs)
+    // 1. Verify job exists and caller is owner
+    const existing = await db
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(and(eq(jobs.id, id), eq(jobs.userId, userId)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return { success: false, error: "Job not found or access denied" };
+    }
+
+    // 2. Cascade delete pipeline & applicant relationships to prevent FK constraint errors
+    const jobPipelines = await db
+      .select({ id: pipelines.id })
+      .from(pipelines)
+      .where(eq(pipelines.jobId, id));
+
+    if (jobPipelines.length > 0) {
+      const pipelineIds = jobPipelines.map((p) => p.id);
+
+      const rounds = await db
+        .select({ id: pipelineRounds.id })
+        .from(pipelineRounds)
+        .where(inArray(pipelineRounds.pipelineId, pipelineIds));
+
+      if (rounds.length > 0) {
+        const roundIds = rounds.map((r) => r.id);
+        await db.delete(candidateRounds).where(inArray(candidateRounds.roundId, roundIds));
+        await db.delete(pipelineRounds).where(inArray(pipelineRounds.pipelineId, pipelineIds));
+      }
+
+      await db.delete(pipelines).where(eq(pipelines.jobId, id));
+    }
+
+    // Unlink applicants associated with this job
+    await db
+      .update(applicants)
+      .set({ targetJobId: null })
+      .where(eq(applicants.targetJobId, id));
+
+    // 3. Delete the job row itself
+    const deleted = await db
+      .delete(jobs)
       .where(and(eq(jobs.id, id), eq(jobs.userId, userId)))
       .returning({ id: jobs.id });
 

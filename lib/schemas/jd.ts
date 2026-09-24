@@ -69,7 +69,13 @@ export function normalizeStringList(
 }
 
 const shortField = (label: string) =>
-  z.string().trim().max(BOUNDS.shortField, `${label} is too long`).optional().default("");
+  z
+    .preprocess(
+      (val) => (val === null || val === undefined ? "" : String(val)),
+      z.string().trim().max(BOUNDS.shortField, `${label} is too long`),
+    )
+    .optional()
+    .default("");
 
 const listItemSchema = z
   .string()
@@ -88,18 +94,20 @@ export const GenerateJobInputSchema = z.object({
   department: shortField("Department"),
 
   location: z
-    .string()
-    .trim()
-    .max(BOUNDS.shortField, "Location is too long")
+    .preprocess(
+      (val) => (val === null || val === undefined ? "Remote" : String(val)),
+      z.string().trim().max(BOUNDS.shortField, "Location is too long"),
+    )
     .optional()
     .default("Remote"),
 
   employmentType: EmploymentTypeSchema,
 
   experience: z
-    .string()
-    .trim()
-    .max(BOUNDS.shortField, "Experience is too long")
+    .preprocess(
+      (val) => (val === null || val === undefined ? "" : String(val)),
+      z.string().trim().max(BOUNDS.shortField, "Experience is too long"),
+    )
     .optional()
     .default(""),
 
@@ -116,23 +124,26 @@ export const GenerateJobInputSchema = z.object({
     ),
 
   responsibilities: z
-    .string()
-    .trim()
-    .max(BOUNDS.freeText, "Responsibilities are too long")
+    .preprocess(
+      (val) => (val === null || val === undefined ? "" : String(val)),
+      z.string().trim().max(BOUNDS.freeText, "Responsibilities are too long"),
+    )
     .optional()
     .default(""),
 
   additionalRequirements: z
-    .string()
-    .trim()
-    .max(BOUNDS.freeText, "Additional requirements are too long")
+    .preprocess(
+      (val) => (val === null || val === undefined ? "" : String(val)),
+      z.string().trim().max(BOUNDS.freeText, "Additional requirements are too long"),
+    )
     .optional()
     .default(""),
 
   salaryRange: z
-    .string()
-    .trim()
-    .max(BOUNDS.shortField, "Salary range is too long")
+    .preprocess(
+      (val) => (val === null || val === undefined ? "" : String(val)),
+      z.string().trim().max(BOUNDS.shortField, "Salary range is too long"),
+    )
     .optional()
     .default(""),
 
@@ -169,10 +180,26 @@ export const GeneratedJDSchema = z.object({
 
   // Echoed by the model but NEVER trusted — the service overwrites these with
   // the recruiter's own input so nothing is fabricated.
-  experience: z.string().trim().max(BOUNDS.shortField).optional(),
-  location: z.string().trim().max(BOUNDS.shortField).optional(),
-  employmentType: z.string().trim().max(50).optional(),
-  workMode: z.string().trim().max(50).optional(),
+  experience: z
+    .preprocess(
+      (val) => (val === null ? undefined : val),
+      z.string().trim().max(BOUNDS.shortField).optional(),
+    ),
+  location: z
+    .preprocess(
+      (val) => (val === null ? undefined : val),
+      z.string().trim().max(BOUNDS.shortField).optional(),
+    ),
+  employmentType: z
+    .preprocess(
+      (val) => (val === null ? undefined : val),
+      z.string().trim().max(50).optional(),
+    ),
+  workMode: z
+    .preprocess(
+      (val) => (val === null ? undefined : val),
+      z.string().trim().max(50).optional(),
+    ),
 });
 
 export type GeneratedJDRaw = z.infer<typeof GeneratedJDSchema>;
