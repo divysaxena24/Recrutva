@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Sparkles,
   FileText,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -210,13 +211,23 @@ export default function JobDetailsModal({ job, trigger }: JobDetailsModalProps) 
 
         {/* Footer Actions */}
         <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3 shrink-0">
-          <Button
-            variant="ghost"
-            onClick={() => setOpen(false)}
-            className="rounded-xl h-11 px-5 font-bold text-slate-600 hover:bg-slate-200/60"
-          >
-            Close
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setOpen(false)}
+              className="rounded-xl h-11 px-5 font-bold text-slate-600 hover:bg-slate-200/60"
+            >
+              Close
+            </Button>
+            <Link href={`/dashboard/jobs/create?jobId=${job.id}`}>
+              <Button
+                variant="outline"
+                className="rounded-xl h-11 px-5 font-bold border-slate-200 text-slate-700 hover:bg-slate-100"
+              >
+                <Pencil className="w-4 h-4 mr-2 text-indigo-600" /> Edit Job
+              </Button>
+            </Link>
+          </div>
 
           <Link href={`/jobs/${job.id}`} target="_blank">
             <Button className="rounded-xl h-11 px-6 font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20">

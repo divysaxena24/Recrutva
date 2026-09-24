@@ -20,11 +20,14 @@ import {
   Filter,
   Eye,
   SlidersHorizontal,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getJobPipelineOverview } from "@/app/actions/candidate-pipeline";
+import { deleteJob } from "@/app/actions/job";
 import CandidatePipelineCard from "@/components/CandidatePipelineCard";
 
 type OverviewData = Awaited<ReturnType<typeof getJobPipelineOverview>>;
@@ -44,12 +48,22 @@ export default function JobCandidatesPage({
   const resolvedParams = use(params);
   const jobId = parseInt(resolvedParams.id, 10);
 
+  const router = useRouter();
   const [overview, setOverview] = useState<OverviewData>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"table" | "pipeline">("table");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFailed, setShowFailed] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
+
+  const handleDeleteJob = async () => {
+    if (confirm("Are you sure you want to delete this job position and all its candidates?")) {
+      const res = await deleteJob(jobId);
+      if (res.success) {
+        router.push("/dashboard/jobs");
+      }
+    }
+  };
 
   const loadData = useCallback(async () => {
     if (isNaN(jobId)) return;
@@ -148,14 +162,33 @@ export default function JobCandidatesPage({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-50 border border-slate-200 px-5 py-3 rounded-2xl text-center">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="bg-slate-50 border border-slate-200 px-5 py-3 rounded-2xl text-center min-w-[110px]">
               <span className="block text-2xl font-extrabold text-slate-900">{allCandidates.length}</span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Candidates</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Candidates</span>
             </div>
-            <div className="bg-indigo-50 border border-indigo-200 px-5 py-3 rounded-2xl text-center">
+            <div className="bg-indigo-50 border border-indigo-200 px-5 py-3 rounded-2xl text-center min-w-[110px]">
               <span className="block text-2xl font-extrabold text-indigo-600">{rounds.length}</span>
-              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Pipeline Rounds</span>
+              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Rounds</span>
+            </div>
+
+            {/* Owner Actions: Edit & Delete */}
+            <div className="flex items-center gap-2 ml-0 sm:ml-2">
+              <Link href={`/dashboard/jobs/create?jobId=${job.id}`}>
+                <Button
+                  variant="outline"
+                  className="h-12 px-4 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider"
+                >
+                  <Pencil className="w-4 h-4 mr-1.5 text-indigo-600" /> Edit Job
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={handleDeleteJob}
+                className="h-12 px-4 rounded-2xl border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-100 text-xs font-bold uppercase tracking-wider"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5 text-rose-600" /> Delete
+              </Button>
             </div>
           </div>
         </div>

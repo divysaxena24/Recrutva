@@ -131,28 +131,53 @@ export default function JobsPage() {
           >
             <Card className="h-full bg-white border-slate-200/80 rounded-3xl p-6 flex flex-col justify-between group hover:border-indigo-300 transition-all shadow-xs hover:shadow-md">
               <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
                     <Briefcase className="w-6 h-6 text-indigo-600" />
                   </div>
-                  <Badge
-                    className={`border px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                      isDraft(job.status)
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : isPublicStatus(job.status)
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-slate-100 text-slate-600 border-slate-200"
-                    }`}
-                  >
-                    {job.status}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {job.userId === user?.id && (
+                      <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/70">
+                        <Link href={`/dashboard/jobs/create?jobId=${job.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Edit Job"
+                            className="w-7 h-7 rounded-lg hover:bg-white hover:text-indigo-600 text-slate-500 transition-all"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(job.id)}
+                          title="Delete Job"
+                          className="w-7 h-7 rounded-lg hover:bg-white hover:text-rose-600 text-slate-500 transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
+                    <Badge
+                      className={`border px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        isDraft(job.status)
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : isPublicStatus(job.status)
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                      }`}
+                    >
+                      {job.status}
+                    </Badge>
+                  </div>
                 </div>
                 
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                     {job.title} <span className="text-slate-400 text-sm font-semibold ml-1">(#{job.id.toString().padStart(4, '0')})</span>
                   </h3>
-                  <div className="flex items-center gap-4 mt-2 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                  <div className="flex flex-wrap items-center gap-4 mt-2 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {job.location}</div>
                     <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {new Date(job.createdAt).toLocaleDateString()}</div>
                   </div>
@@ -172,7 +197,7 @@ export default function JobsPage() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
+              <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <JobDetailsModal
                   job={job}
                   trigger={
@@ -195,17 +220,6 @@ export default function JobsPage() {
                     View Candidates
                   </Button>
                 </Link>
-                {job.userId === user?.id && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(job.id)}
-                    title="Delete Job"
-                    className="w-10 h-10 rounded-xl hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-all shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
               </div>
             </Card>
           </motion.div>
