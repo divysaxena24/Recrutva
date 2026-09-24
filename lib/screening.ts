@@ -1,5 +1,6 @@
 import { groq, AI_MODELS } from "@/lib/ai";
 import { ScreeningResultSchema, type ScreeningResult } from "@/lib/schemas/screening";
+import { calculateSkillSyncScore } from "@/lib/skillsync";
 
 // ─── Input types ─────────────────────────────────────────────────
 export interface ScreeningInput {
@@ -36,7 +37,7 @@ export interface ScreeningError {
 const MAX_RESUME_CHARS = 12000;
 const MAX_JOB_DESC_CHARS = 5000;
 
-function buildScreeningPrompt(input: ScreeningInput): string {
+function buildScreeningPrompt(input: ScreeningInput, skillSyncInfo: string): string {
   const resumeText = input.resumeText.slice(0, MAX_RESUME_CHARS);
   const jobDesc = input.jobDescription.slice(0, MAX_JOB_DESC_CHARS);
 
@@ -60,12 +61,15 @@ function buildScreeningPrompt(input: ScreeningInput): string {
       ? input.responsibilities.join("; ")
       : "Not specified";
 
-  return `You are an expert AI ATS (Applicant Tracking System) resume screener. Evaluate the following candidate against the exact job requirements and produce an accurate ATS Match Score (0 to 100) and structured analysis.
+  return `You are an expert AI ATS (Applicant Tracking System) resume screener. Evaluate the following candidate against the exact job requirements and produce structured analysis.
 
 ## Role Title: ${input.jobTitle}
 - Department: ${input.department || "General"}
 - Required Experience: ${input.experience || "Not specified"}
 - Employment Type: ${input.employmentType || "Full-time"}
+
+## SkillSync NLP Analysis Context:
+${skillSyncInfo}
 
 ## Required Key Skills (PRIMARY MATCH SIGNALS)
 ${reqSkillsStr}
@@ -85,12 +89,6 @@ ${input.jobRequirements ? `Additional Notes: ${input.jobRequirements}` : ""}
 
 ## Candidate Resume
 ${resumeText}
-
-## ATS Scoring Methodology (0 - 100 scale)
-- **85 - 100 (Strong Match)**: Candidate demonstrates strong proficiency in required key skills, appropriate experience level, and clear relevant domain background.
-- **70 - 84 (Good Match)**: Candidate covers most required skills with solid technical skills, minor gaps in optional/preferred skills or years.
-- **50 - 69 (Moderate Match)**: Candidate exhibits partial skill match or transferable experience, but lacks 1 or 2 critical required skills or hands-on depth.
-- **0 - 49 (Low Match)**: Candidate lacks core required skills, has completely unrelated domain experience, or missing critical qualifications.
 
 You MUST return ONLY a valid JSON object matching this exact schema — no markdown, no code fences, no explanation text:
 
@@ -119,10 +117,26 @@ Return ONLY the JSON object. Do not wrap it in code fences or add any text befor
 export async function runResumeScreening(
   input: ScreeningInput
 ): Promise<ScreeningOutput | ScreeningError> {
-  const prompt = buildScreeningPrompt(input);
+  // 1. Run exact SkillSync NLP Trained Model first
+  const fullJd = [
+    input.jobTitle,
+    input.jobDescription,
+    input.jobRequirements,
+    input.department,
+    input.experience,
+    input.requiredSkills?.join(" "),
+    input.preferredSkills?.join(" "),
+    input.qualifications?.join(" "),
+    input.responsibilities?.join(" "),
+  ].filter(Boolean).join("\n");
+
+  const skillSyncResult = calculateSkillSyncScore(input.resumeText, fullJd);
+  const skillSyncInfo = `SkillSync Score: ${skillSyncResult.finalScore}/100 (${skillSyncResult.verdict}) [Skill Match: ${skillSyncResult.skillScore}%, TF-IDF Similarity: ${skillSyncResult.tfidfScore}%]. Matched Skills: ${skillSyncResult.matchedSkills.join(", ") || "None"}. Missing Skills: ${skillSyncResult.missingSkills.join(", ") || "None"}.`;
+
+  const prompt = buildScreeningPrompt(input, skillSyncInfo);
 
   try {
-    // 1. Call Groq
+    // 2. Call Groq for structured qualitative evaluation
     const chatCompletion = await groq.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
       model: AI_MODELS.screening,
@@ -140,10 +154,9 @@ export async function runResumeScreening(
       return { success: false, error: "AI returned an empty response" };
     }
 
-    // 2. Parse JSON (handle potential markdown code fences)
+    // 3. Parse JSON (handle potential markdown code fences)
     let parsed: unknown;
     try {
-      // Strip markdown code fences if present
       const cleaned = rawResponse
         .replace(/^```(?:json)?\s*\n?/i, "")
         .replace(/\n?```\s*$/i, "")
@@ -164,7 +177,7 @@ export async function runResumeScreening(
       };
     }
 
-    // 3. Validate with Zod
+    // 4. Validate with Zod
     const validationResult = ScreeningResultSchema.safeParse(parsed);
 
     if (!validationResult.success) {
@@ -184,12 +197,13 @@ export async function runResumeScreening(
 
     const result = validationResult.data;
 
-    // 4. Determine PASS/FAIL based on configured threshold
+    // 5. Override score with exact SkillSync NLP model score
+    result.score = skillSyncResult.finalScore;
+
+    // 6. Determine PASS/FAIL based on configured threshold
     const decision: "PASS" | "FAIL" =
       result.score >= input.passThreshold ? "PASS" : "FAIL";
 
-    // 5. Override the AI's decision with our threshold-based decision
-    //    (The AI's decision field is informational; the actual gate is the threshold)
     result.decision = decision;
 
     return {
@@ -205,10 +219,10 @@ export async function runResumeScreening(
       model: AI_MODELS.screening,
       error: error instanceof Error ? error.message : String(error),
     });
-    // Never leak AI provider internals to the client
     return {
       success: false,
       error: "AI screening failed. Please try again.",
     };
   }
 }
+

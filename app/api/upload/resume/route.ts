@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import cloudinary from "@/lib/cloudinary";
 // Import from lib directly to bypass index.js debug mode that tries to load test files
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { rateLimitOrReject } from "@/lib/rate-limit";
@@ -8,7 +7,7 @@ import { rateLimitOrReject } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
+const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".txt"];
 
 function getExtension(filename: string): string {
   const idx = filename.lastIndexOf(".");
@@ -32,46 +31,6 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
   return result.value || "";
 }
 
-/**
- * Upload a file buffer to Cloudinary as a raw resource.
- * Uses base64 data URI to avoid upload_stream issues with raw resources.
- */
-async function uploadToCloudinary(
-  buffer: Buffer,
-  folder: string,
-  filename: string
-): Promise<{ secure_url: string; public_id: string }> {
-  const ext = getExtension(filename).replace(".", "") || "bin";
-  const mimeType = ext === "pdf" ? "application/pdf"
-    : ext === "docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    : ext === "doc" ? "application/msword"
-    : "application/octet-stream";
-
-  const dataUri = `data:${mimeType};base64,${buffer.toString("base64")}`;
-  const publicId = `${Date.now()}_${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-
-  try{
-    const result = await cloudinary.uploader.upload(dataUri, {
-      folder,
-      resource_type: "raw",
-      public_id: publicId,
-    });
-    return { secure_url: result.secure_url, public_id: result.public_id };
-  } catch (err: unknown) {
-    const cloudErr = err as { message?: string; http_code?: number; name?: string };
-    console.error("Cloudinary upload error:", {
-      message: cloudErr.message,
-      http_code: cloudErr.http_code,
-      name: cloudErr.name,
-      folder,
-      resource_type: "raw",
-      public_id: publicId,
-      format: ext,
-    });
-    throw err;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
     // Rate limit — this endpoint is reachable by unauthenticated applicants
@@ -82,9 +41,6 @@ export async function POST(req: NextRequest) {
     );
     if (blocked) return blocked;
 
-    // Reject oversized bodies up front (Content-Length) with a clean 413.
-    // req.formData() itself fails to parse bodies at/above ~10MB in the Next
-    // node runtime, so we must reject before parsing to return 413, not 400.
     const contentLength = Number(req.headers.get("content-length") ?? 0);
     if (contentLength > MAX_FILE_SIZE) {
       return NextResponse.json(
@@ -93,7 +49,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Reject non-multipart requests with a clean 400 instead of crashing
     let formData: FormData;
     try {
       formData = await req.formData();
@@ -142,36 +97,38 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Extract text based on file type
+    // Extract text in-memory based on file type (no external storage)
     let resumeText = "";
     try {
       if (ext === ".pdf") {
         resumeText = await extractPdfText(buffer);
       } else if (ext === ".docx") {
         resumeText = await extractDocxText(buffer);
+      } else if (ext === ".txt") {
+        resumeText = buffer.toString("utf-8");
       } else if (ext === ".doc") {
-        // .doc files — we store the file but text extraction is limited
         resumeText = `[DOC file uploaded: ${file.name}. Text extraction for legacy .doc format is not supported. Please convert to PDF or DOCX.]`;
       }
     } catch (extractError) {
       console.error("Text extraction error:", extractError);
-      resumeText = `[Text extraction failed for ${file.name}. The file was uploaded successfully.]`;
+      return NextResponse.json(
+        { error: "Failed to parse text from resume file. Please ensure it is a valid PDF or DOCX." },
+        { status: 400 }
+      );
     }
 
-    // Upload to Cloudinary
-    const uploadResult = await uploadToCloudinary(buffer, "recrutva/resumes", file.name);
-
     return NextResponse.json({
-      resumeUrl: uploadResult.secure_url,
+      resumeUrl: null,
       resumeFileName: file.name,
-      resumePublicId: uploadResult.public_id,
+      resumePublicId: null,
       resumeText: resumeText.trim() || "",
     });
   } catch (error) {
-    console.error("Resume upload error:", error);
+    console.error("Resume upload/parsing error:", error);
     return NextResponse.json(
-      { error: "Upload failed. Please try again." },
+      { error: "Resume parsing failed. Please try again." },
       { status: 500 }
     );
   }
 }
+

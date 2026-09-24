@@ -30,7 +30,7 @@ import {
 import { getJobPipelineOverview } from "@/app/actions/candidate-pipeline";
 import CandidatePipelineCard from "@/components/CandidatePipelineCard";
 import DeleteJobAlertModal from "@/components/DeleteJobAlertModal";
-import { getValidResumeUrl } from "@/lib/utils";
+import ParsedResumeModal from "@/components/ParsedResumeModal";
 
 type OverviewData = Awaited<ReturnType<typeof getJobPipelineOverview>>;
 type PipelineCandidate = NonNullable<OverviewData>["rounds"][number]["passedCandidates"][number];
@@ -50,6 +50,11 @@ export default function JobCandidatesPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [showFailed, setShowFailed] = useState(false);
   const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
+  const [viewingResumeCandidate, setViewingResumeCandidate] = useState<{
+    name: string;
+    resumeFileName?: string | null;
+    resumeText?: string | null;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     if (isNaN(jobId)) return;
@@ -327,20 +332,19 @@ export default function JobCandidatesPage({
 
                     {/* View Resume Button */}
                     <td className="py-4 px-6 text-right">
-                      {candidate.resumeUrl ? (
-                        <a
-                          href={getValidResumeUrl(candidate.resumeUrl) ?? "#"}
-                          target="_blank"
-                          rel="noreferrer"
+                      {(candidate.resumeText || candidate.resumeUrl) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingResumeCandidate({
+                            name: candidate.name,
+                            resumeFileName: candidate.resumeFileName,
+                            resumeText: candidate.resumeText,
+                          })}
+                          className="h-9 px-3 rounded-xl border-slate-200 text-indigo-600 hover:bg-indigo-50 text-xs font-bold"
                         >
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-3 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Resume
-                          </Button>
-                        </a>
+                          <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Resume
+                        </Button>
                       ) : (
                         <span className="text-xs text-slate-400 italic">No Resume</span>
                       )}
@@ -514,6 +518,14 @@ export default function JobCandidatesPage({
           </div>
         </DialogContent>
       </Dialog>
+
+      <ParsedResumeModal
+        isOpen={!!viewingResumeCandidate}
+        onClose={() => setViewingResumeCandidate(null)}
+        candidateName={viewingResumeCandidate?.name || ""}
+        resumeFileName={viewingResumeCandidate?.resumeFileName}
+        resumeText={viewingResumeCandidate?.resumeText ?? null}
+      />
     </div>
   );
 }

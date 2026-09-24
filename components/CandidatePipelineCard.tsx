@@ -53,6 +53,8 @@ type RoundData = {
   completedAt: Date | null;
 };
 
+import ParsedResumeModal from "@/components/ParsedResumeModal";
+
 type PipelineData = {
   candidate: {
     id: number;
@@ -60,6 +62,8 @@ type PipelineData = {
     email: string;
     targetJobId: number | null;
     resumeUrl: string | null;
+    resumeText?: string | null;
+    resumeFileName?: string | null;
   };
   rounds: RoundData[];
 };
@@ -151,6 +155,9 @@ export default function CandidatePipelineCard({
 
   // Review mode: force-expands evaluation details (used for manual review).
   const [reviewMode, setReviewMode] = useState(false);
+
+  // Parsed Resume Modal state
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
 
   const mountedRef = useRef(true);
 
@@ -398,20 +405,21 @@ export default function CandidatePipelineCard({
             </Button>
           )}
 
-          {pipeline.candidate.resumeUrl && (
-            <a
-              href={getValidResumeUrl(pipeline.candidate.resumeUrl) ?? "#"}
-              target="_blank"
-              rel="noreferrer"
+          {(pipeline.candidate.resumeText || pipeline.candidate.resumeUrl) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (pipeline.candidate.resumeText) {
+                  setIsResumeModalOpen(true);
+                } else if (pipeline.candidate.resumeUrl) {
+                  window.open(pipeline.candidate.resumeUrl, "_blank");
+                }
+              }}
+              className="h-8 px-3 rounded-lg text-[11px] font-bold border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
             >
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 rounded-lg text-[11px] font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
-              >
-                <ExternalLink className="w-3.5 h-3.5 mr-1" /> Resume
-              </Button>
-            </a>
+              <FileText className="w-3.5 h-3.5 mr-1" /> Resume
+            </Button>
           )}
         </div>
       </div>
@@ -800,6 +808,16 @@ export default function CandidatePipelineCard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {pipeline?.candidate && (
+        <ParsedResumeModal
+          isOpen={isResumeModalOpen}
+          onClose={() => setIsResumeModalOpen(false)}
+          candidateName={pipeline.candidate.name}
+          resumeFileName={pipeline.candidate.resumeFileName}
+          resumeText={pipeline.candidate.resumeText ?? null}
+        />
+      )}
     </Card>
   );
 }

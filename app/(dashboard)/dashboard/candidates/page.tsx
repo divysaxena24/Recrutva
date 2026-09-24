@@ -51,9 +51,9 @@ import React, { useCallback, useEffect, useMemo, useState, Suspense } from "reac
 import { useSearchParams, useRouter } from "next/navigation";
 import AddCandidateModal from "@/components/AddCandidateModal";
 import EditCandidateModal from "@/components/EditCandidateModal";
+import ParsedResumeModal from "@/components/ParsedResumeModal";
 import { getCandidates } from "@/app/actions/candidate";
 import { getJobById } from "@/app/actions/job";
-import { getValidResumeUrl } from "@/lib/utils";
 
 /** A candidate row as returned by the getCandidates server action. */
 type CandidateRow = Awaited<ReturnType<typeof getCandidates>>[number];
@@ -211,6 +211,7 @@ function CandidatesPage() {
     null
   );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [viewingResumeCandidate, setViewingResumeCandidate] = useState<CandidateRow | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] =
@@ -827,20 +828,15 @@ function CandidatesPage() {
                         </TableCell>
                         <TableCell className="text-right px-8">
                           <div className="flex items-center justify-end gap-2">
-                            {candidate.resumeUrl && (
-                              <a
-                                href={getValidResumeUrl(candidate.resumeUrl) ?? "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            {(candidate.resumeText || candidate.resumeUrl) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setViewingResumeCandidate(candidate)}
+                                className="h-8 px-2.5 rounded-lg border-slate-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-[11px] font-bold"
                               >
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 px-2.5 rounded-lg border-slate-200 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 text-[11px] font-bold"
-                                >
-                                  <FileText className="w-3.5 h-3.5 mr-1" /> Resume
-                                </Button>
-                              </a>
+                                <FileText className="w-3.5 h-3.5 mr-1" /> Resume
+                              </Button>
                             )}
                             {candidate.needsReview && (
                               <Button
@@ -911,6 +907,14 @@ function CandidatesPage() {
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         onSuccess={fetchCandidates}
+      />
+
+      <ParsedResumeModal
+        isOpen={!!viewingResumeCandidate}
+        onClose={() => setViewingResumeCandidate(null)}
+        candidateName={viewingResumeCandidate?.name || ""}
+        resumeFileName={viewingResumeCandidate?.resumeFileName}
+        resumeText={viewingResumeCandidate?.resumeText ?? null}
       />
     </div>
   );

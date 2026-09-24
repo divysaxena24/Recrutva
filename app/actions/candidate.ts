@@ -28,20 +28,31 @@ export async function createCandidate(data: {
   }
   data = validation.data as typeof data;
 
-  let { userId } = await auth();
+  const { userId: currentAuthUserId } = await auth();
 
-  // The candidate's own Clerk ID (for authenticated applicants)
-  const candidateClerkUserId = userId;
+  // The candidate's own Clerk ID (if logged in as an applicant)
+  const candidateClerkUserId = currentAuthUserId;
 
-  // If no logged-in user (public application), we assign to the job's creator
-  if (!userId && data.targetJobId) {
-    const jobData = await db.select({ userId: jobs.userId }).from(jobs).where(eq(jobs.id, data.targetJobId)).limit(1);
+  let recruiterUserId: string | null = null;
+
+  // If applying for a job, assign ownership to the posting recruiter who created the job
+  if (data.targetJobId) {
+    const jobData = await db
+      .select({ userId: jobs.userId })
+      .from(jobs)
+      .where(eq(jobs.id, data.targetJobId))
+      .limit(1);
     if (jobData[0]) {
-      userId = jobData[0].userId;
+      recruiterUserId = jobData[0].userId;
     }
   }
 
-  if (!userId) {
+  // Fallback to current authenticated user if manually created without a target job
+  if (!recruiterUserId) {
+    recruiterUserId = currentAuthUserId;
+  }
+
+  if (!recruiterUserId) {
     throw new Error("Unauthorized or Job not found");
   }
 
@@ -75,7 +86,7 @@ export async function createCandidate(data: {
     }
 
     const newCandidate = await db.insert(applicants).values({
-      userId: userId,
+      userId: recruiterUserId, // Always assigned to the recruiter who created the job
       clerkUserId: candidateClerkUserId || null, // Link to candidate's Clerk identity (null for anonymous)
       targetJobId: data.targetJobId,
       jobTitle: finalJobTitle,

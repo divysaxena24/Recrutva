@@ -38,6 +38,7 @@ export async function getApplicationsByJobId(jobId: number) {
         phone: applicants.phone,
         resumeUrl: applicants.resumeUrl,
         resumeFileName: applicants.resumeFileName,
+        resumeText: applicants.resumeText,
         matchScore: applicants.matchScore,
         status: applicants.status,
         analysis: applicants.analysis,

@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 import React, { useState, useEffect, use } from "react";
 import { getApplicationsByJobId } from "@/app/actions/application";
-import { getValidResumeUrl } from "@/lib/utils";
+import ParsedResumeModal from "@/components/ParsedResumeModal";
 import Link from "next/link";
 
 type Application = {
@@ -39,6 +39,7 @@ type Application = {
   phone: string;
   resumeUrl: string | null;
   resumeFileName: string | null;
+  resumeText?: string | null;
   matchScore: string | null;
   status: string;
   analysis: unknown;
@@ -66,6 +67,11 @@ export default function ApplicationsPage({
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCandidateId, setExpandedCandidateId] = useState<number | null>(null);
+  const [viewingResumeCandidate, setViewingResumeCandidate] = useState<{
+    name: string;
+    resumeFileName?: string | null;
+    resumeText?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -306,17 +312,20 @@ export default function ApplicationsPage({
 
                 {/* Resume */}
                 <TableCell>
-                  {app.resumeUrl ? (
-                    <a
-                      href={getValidResumeUrl(app.resumeUrl) ?? "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                  {(app.resumeText || app.resumeUrl) ? (
+                    <button
+                      type="button"
+                      onClick={() => setViewingResumeCandidate({
+                        name: app.name,
+                        resumeFileName: app.resumeFileName,
+                        resumeText: app.resumeText,
+                      })}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       View Resume
                       <ExternalLink className="w-3 h-3 opacity-60" />
-                    </a>
+                    </button>
                   ) : (
                     <span className="text-xs text-slate-400">
                       No resume uploaded
@@ -391,6 +400,14 @@ export default function ApplicationsPage({
           </TableBody>
         </Table>
       </Card>
+
+      <ParsedResumeModal
+        isOpen={!!viewingResumeCandidate}
+        onClose={() => setViewingResumeCandidate(null)}
+        candidateName={viewingResumeCandidate?.name || ""}
+        resumeFileName={viewingResumeCandidate?.resumeFileName}
+        resumeText={viewingResumeCandidate?.resumeText ?? null}
+      />
     </div>
   );
 }

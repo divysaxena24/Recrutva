@@ -49,6 +49,8 @@ export async function getCandidatePipeline(candidateId: number) {
         email: applicants.email,
         targetJobId: applicants.targetJobId,
         resumeUrl: applicants.resumeUrl,
+        resumeText: applicants.resumeText,
+        resumeFileName: applicants.resumeFileName,
       })
       .from(applicants)
       .where(and(eq(applicants.id, candidateId), eq(applicants.userId, userId)))
