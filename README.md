@@ -7,6 +7,7 @@ An AI-powered recruitment and candidate evaluation platform that streamlines end
 ## 📐 System Architecture Diagram
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TD
     subgraph Frontend ["Frontend Layer"]
         Recruiter["Recruiter Dashboard"]
@@ -30,14 +31,16 @@ graph TD
         Email["Nodemailer (Email Notifications)"]
     end
 
-    Recruiter & Candidate --> Auth
-    Recruiter & Candidate --> Pipeline
+    Recruiter --> Auth
+    Candidate --> Auth
+    Recruiter --> Pipeline
+    Candidate --> Pipeline
     Pipeline --> AIEngine
     Pipeline --> DB
     Pipeline --> Storage
+    Pipeline --> Email
     AIEngine --> Groq
     AIEngine --> TTS
-    Pipeline --> Email
 ```
 
 ---
