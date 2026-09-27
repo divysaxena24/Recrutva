@@ -8,61 +8,36 @@ An AI-powered recruitment and candidate evaluation platform that streamlines end
 
 ```mermaid
 graph TD
-    subgraph Client Layer
-        RecruiterApp["Recruiter Dashboard (React 19 / Next.js 16)"]
-        CandidateApp["Candidate Portal & AI Interview Room"]
+    subgraph Frontend ["Frontend Layer"]
+        Recruiter["Recruiter Dashboard"]
+        Candidate["Candidate Portal & Interview Room"]
     end
 
-    subgraph Authentication & Security
-        ClerkAuth["Clerk Auth (RBAC: Recruiter / Candidate)"]
-        UpstashRedis["Upstash Redis (Rate Limiting & Caching)"]
+    subgraph Backend ["Next.js App Router (Backend & Server Actions)"]
+        Auth["Clerk Auth (RBAC)"]
+        Pipeline["Hiring Pipeline Engine"]
+        AIEngine["AI Services Engine"]
     end
 
-    subgraph Core Application Server
-        NextRouter["Next.js App Router & Server Actions"]
-        PipelineEngine["Hiring Pipeline Engine (Internal Router)"]
-        JDGen["AI Job Description Generator"]
-        ScreeningEngine["ATS & SkillSync Resume Matcher"]
-        AssessmentEngine["AI Assessment & Auto-Grader"]
-        InterviewRoom["AI Voice Interview Engine"]
-        NotificationService["Email & Reminder Engine"]
+    subgraph StorageLayer ["Database & Storage"]
+        DB[("Neon Postgres (Drizzle ORM)")]
+        Storage["Cloudinary (Resume PDFs/DOCX)"]
     end
 
-    subgraph Data & Storage Layer
-        NeonDB[("Neon PostgreSQL Database (Drizzle ORM)")]
-        Cloudinary["Cloudinary (Resume PDF/DOCX Storage)"]
+    subgraph ExternalServices ["External Services"]
+        Groq["Groq AI (GPT-120B / Qwen 3.8 / Whisper)"]
+        TTS["Google TTS (Voice Playback)"]
+        Email["Nodemailer (Email Notifications)"]
     end
 
-    subgraph External AI & Voice Services
-        GroqAI["Groq Cloud AI (GPT-OSS 120B / Qwen 3.8 27B / Whisper Turbo)"]
-        GoogleTTS["Google TTS API (Audio Streaming)"]
-        Nodemailer["Nodemailer (Gmail SMTP Server)"]
-    end
-
-    RecruiterApp --> ClerkAuth
-    CandidateApp --> ClerkAuth
-
-    RecruiterApp --> NextRouter
-    CandidateApp --> NextRouter
-
-    NextRouter --> UpstashRedis
-    NextRouter --> PipelineEngine
-
-    PipelineEngine --> ScreeningEngine
-    PipelineEngine --> AssessmentEngine
-    PipelineEngine --> InterviewRoom
-
-    JDGen --> GroqAI
-    ScreeningEngine --> GroqAI
-    AssessmentEngine --> GroqAI
-    InterviewRoom --> GroqAI
-    InterviewRoom --> GoogleTTS
-
-    ScreeningEngine --> Cloudinary
-    NextRouter --> NeonDB
-
-    NotificationService --> Nodemailer
-    NextRouter --> NotificationService
+    Recruiter & Candidate --> Auth
+    Recruiter & Candidate --> Pipeline
+    Pipeline --> AIEngine
+    Pipeline --> DB
+    Pipeline --> Storage
+    AIEngine --> Groq
+    AIEngine --> TTS
+    Pipeline --> Email
 ```
 
 ---
