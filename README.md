@@ -9,38 +9,14 @@ An AI-powered recruitment and candidate evaluation platform that streamlines end
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TD
-    subgraph Frontend ["Frontend Layer"]
-        Recruiter["Recruiter Dashboard"]
-        Candidate["Candidate Portal & Interview Room"]
-    end
+    Client["💻 Client Layer<br/>(Recruiter Dashboard & Candidate Web App)"]
+    Server["⚡ Next.js Application Server<br/>(App Router, Server Actions, Hiring Pipeline Engine)"]
+    Storage["💾 Database & Storage<br/>(Neon PostgreSQL Database & Cloudinary Resumes)"]
+    External["🤖 Integrations & AI<br/>(Clerk Auth, Groq AI Engine, Google TTS, Nodemailer)"]
 
-    subgraph Backend ["Next.js App Router (Backend & Server Actions)"]
-        Auth["Clerk Auth (RBAC)"]
-        Pipeline["Hiring Pipeline Engine"]
-        AIEngine["AI Services Engine"]
-    end
-
-    subgraph StorageLayer ["Database & Storage"]
-        DB[("Neon Postgres (Drizzle ORM)")]
-        Storage["Cloudinary (Resume PDFs/DOCX)"]
-    end
-
-    subgraph ExternalServices ["External Services"]
-        Groq["Groq AI (GPT-120B / Qwen 3.8 / Whisper)"]
-        TTS["Google TTS (Voice Playback)"]
-        Email["Nodemailer (Email Notifications)"]
-    end
-
-    Recruiter --> Auth
-    Candidate --> Auth
-    Recruiter --> Pipeline
-    Candidate --> Pipeline
-    Pipeline --> AIEngine
-    Pipeline --> DB
-    Pipeline --> Storage
-    Pipeline --> Email
-    AIEngine --> Groq
-    AIEngine --> TTS
+    Client --> Server
+    Server --> Storage
+    Server --> External
 ```
 
 ---
