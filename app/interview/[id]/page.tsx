@@ -15,6 +15,7 @@ import {
   Database,
   Layers,
   Sparkles,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -176,12 +177,12 @@ export default function TechnicalInterviewPage() {
   };
 
   // Submit Technical Interview
-  const handleSubmit = async () => {
+  const handleSubmit = async (isForce = false) => {
     const unanswered = state.questions.filter(
       (q) => !state.answers[q.id] || state.answers[q.id].trim().length === 0
     );
 
-    if (unanswered.length > 0 && !confirmUnanswered) {
+    if (!isForce && unanswered.length > 0 && !confirmUnanswered) {
       setConfirmUnanswered(true);
       setState((s) => ({
         ...s,
@@ -251,18 +252,32 @@ export default function TechnicalInterviewPage() {
     );
   }
 
-  // ─── Error View ──────────────────────────────────────────────────
+  // ─── Error / Access Window View ─────────────────────────────────
   if (state.error && !state.questions.length && !state.completed) {
+    const isAccessWindow = state.error.toLowerCase().includes("access window");
+
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <Card className="max-w-md w-full bg-white border border-slate-200/80 p-8 rounded-3xl text-center space-y-4 shadow-xs">
-          <AlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
-          <h2 className="text-xl font-bold text-slate-900">Unable to Open Interview</h2>
-          <p className="text-sm text-slate-600">{state.error}</p>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
+        <Card className="max-w-md w-full bg-slate-800 border border-slate-700/80 p-8 rounded-3xl text-center space-y-5 shadow-2xl text-slate-100">
+          {isAccessWindow ? (
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+              <Clock className="w-7 h-7" />
+            </div>
+          ) : (
+            <AlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
+          )}
+          <h2 className="text-xl font-bold text-white">
+            {isAccessWindow ? "Interview Access Window Notice" : "Unable to Open Interview"}
+          </h2>
+          <p className="text-sm text-slate-300 leading-relaxed">{state.error}</p>
+          {isAccessWindow && (
+            <p className="text-xs text-amber-300/80 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+              Scheduled interviews are accessible within their configured access window (10 minutes before start time until 15 minutes after end time).
+            </p>
+          )}
           <Button
             onClick={() => router.push("/candidate-dashboard")}
-            variant="outline"
-            className="border-slate-200 text-slate-700 hover:bg-slate-100 rounded-xl"
+            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl"
           >
             Back to Candidate Dashboard
           </Button>
@@ -381,6 +396,9 @@ export default function TechnicalInterviewPage() {
       candidateRoundId={state.candidateRoundId || parseInt(candidateId, 10)}
       roundTitle={`Technical Interview — ${state.jobTitle}`}
       config={state.config}
+      onTimeExpired={() => handleSubmit(true)}
+      onAutoSubmit={() => handleSubmit(true)}
+      onSessionTerminated={() => handleSubmit(true)}
     >
       <div className="space-y-8">
         {/* Header */}
@@ -499,7 +517,7 @@ export default function TechnicalInterviewPage() {
             </Button>
           ) : (
             <Button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={state.submitting}
               className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-600/15"
             >

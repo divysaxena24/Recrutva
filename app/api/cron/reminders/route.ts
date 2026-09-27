@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { applicants } from "@/db/schema";
-import { eq, and, isNull, lt, or } from "drizzle-orm";
+import { eq, and, isNull, lt, or, inArray } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail, getAppUrl } from "@/lib/email";
 
@@ -50,16 +50,29 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Find candidates with pending interviews not yet notified in the last 24h
-    const pendingCandidates = await db
-      .select()
-      .from(applicants)
+    const { schedules } = await import("@/db/schema");
+    const { generateICS } = await import("@/lib/ics");
+
+    // Query formal active schedules first
+    const activeSchedules = await db
+      .select({
+        scheduleId: schedules.id,
+        scheduledAt: schedules.scheduledAt,
+        durationMinutes: schedules.durationMinutes,
+        timezone: schedules.timezone,
+        status: schedules.status,
+        meetingUrl: schedules.meetingUrl,
+        candidateId: applicants.id,
+        name: applicants.name,
+        email: applicants.email,
+        jobTitle: applicants.jobTitle,
+        lastNotifiedAt: applicants.lastNotifiedAt,
+      })
+      .from(schedules)
+      .innerJoin(applicants, eq(schedules.candidateId, applicants.id))
       .where(
         and(
-          or(
-            eq(applicants.status, "Scheduled"),
-            eq(applicants.status, "Ready")
-          ),
+          inArray(schedules.status, ["SCHEDULED", "CONFIRMED", "RESCHEDULED"]),
           or(
             isNull(applicants.lastNotifiedAt),
             lt(applicants.lastNotifiedAt, twentyFourHoursAgo)
@@ -67,25 +80,31 @@ export async function GET(req: NextRequest) {
         )
       );
 
-    // Only send to those whose interview is still in the future
-    const activeCandidates = pendingCandidates.filter(
-      (c) => c.scheduledAt && new Date(c.scheduledAt) > now
+    // Filter to future scheduled sessions
+    const targetReminders = activeSchedules.filter(
+      (s) => new Date(s.scheduledAt) > now
     );
 
-    console.log(`[CRON] Sending reminders to ${activeCandidates.length} candidates.`);
+    console.log(`[CRON] Sending schedule reminders to ${targetReminders.length} candidates.`);
 
     const results: { name: string; email: string; status: string }[] = [];
 
-    for (const candidate of activeCandidates) {
-      const interviewDate = candidate.scheduledAt
-        ? new Date(candidate.scheduledAt).toLocaleString("en-IN", {
-            timeZone: "Asia/Kolkata",
-            dateStyle: "full",
-            timeStyle: "short",
-          })
-        : "your scheduled slot";
+    for (const item of targetReminders) {
+      const interviewDate = new Date(item.scheduledAt).toLocaleString("en-US", {
+        timeZone: item.timezone || "Asia/Kolkata",
+        dateStyle: "full",
+        timeStyle: "short",
+      });
 
-      const interviewLink = `${getAppUrl()}/interview/${candidate.id}`;
+      const interviewLink = item.meetingUrl || `${getAppUrl()}/interview/${item.candidateId}`;
+
+      const icsAttachment = generateICS({
+        title: `Reminder: Recrutva Interview - ${item.jobTitle || "Role"}`,
+        description: `Reminder for your upcoming interview on ${interviewDate}`,
+        location: interviewLink,
+        startTime: new Date(item.scheduledAt),
+        durationMinutes: item.durationMinutes,
+      });
 
       const htmlBody = `
         <!DOCTYPE html>
@@ -104,11 +123,11 @@ export async function GET(req: NextRequest) {
             <!-- Body -->
             <div style="padding:40px;">
               <p style="color:#94a3b8;font-size:14px;margin:0 0 4px;">Hello,</p>
-              <h2 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 24px;">${candidate.name}</h2>
+              <h2 style="color:#fff;font-size:22px;font-weight:800;margin:0 0 24px;">${item.name}</h2>
 
               <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin:0 0 24px;">
                 This is your daily reminder that your AI screening interview for
-                <strong style="color:#a78bfa;">${candidate.jobTitle}</strong>
+                <strong style="color:#a78bfa;">${item.jobTitle}</strong>
                 is scheduled and waiting for you to begin.
               </p>
 
@@ -118,13 +137,13 @@ export async function GET(req: NextRequest) {
                   <tr>
                     <td style="padding:10px 0;border-bottom:1px solid #1e1e3f;">
                       <span style="color:#6366f1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:4px;">📅 Scheduled For</span>
-                      <span style="color:#fff;font-size:15px;font-weight:700;">${interviewDate} IST</span>
+                      <span style="color:#fff;font-size:15px;font-weight:700;">${interviewDate} (${item.timezone})</span>
                     </td>
                   </tr>
                   <tr>
                     <td style="padding:10px 0;">
                       <span style="color:#6366f1;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:4px;">💼 Position</span>
-                      <span style="color:#fff;font-size:15px;font-weight:700;">${candidate.jobTitle}</span>
+                      <span style="color:#fff;font-size:15px;font-weight:700;">${item.jobTitle}</span>
                     </td>
                   </tr>
                 </table>
@@ -150,7 +169,7 @@ export async function GET(req: NextRequest) {
               </div>
 
               <p style="color:#334155;font-size:12px;line-height:1.6;margin:0;">
-                You'll receive this reminder every day at 3:50 PM IST until your interview is submitted.
+                You'll receive this reminder until your interview is submitted.
               </p>
             </div>
 
@@ -169,9 +188,16 @@ export async function GET(req: NextRequest) {
 
       // sendEmail never throws; failures are logged and do not corrupt state.
       const result = await sendEmail({
-        to: candidate.email,
-        subject: `⏰ Reminder: Your AI Interview for "${candidate.jobTitle}" is Waiting`,
+        to: item.email,
+        subject: `⏰ Reminder: Your AI Interview for "${item.jobTitle}" is Waiting`,
         html: htmlBody,
+        attachments: [
+          {
+            filename: "interview-reminder.ics",
+            content: icsAttachment,
+            contentType: "text/calendar; method=REQUEST",
+          },
+        ],
       });
 
       if (result.success) {
@@ -179,19 +205,19 @@ export async function GET(req: NextRequest) {
         await db
           .update(applicants)
           .set({ lastNotifiedAt: now })
-          .where(eq(applicants.id, candidate.id));
+          .where(eq(applicants.id, item.candidateId));
 
-        console.log(`[EMAIL SENT] ✅ ${candidate.email}`);
-        results.push({ name: candidate.name, email: candidate.email, status: "Sent" });
+        console.log(`[EMAIL SENT] ✅ ${item.email}`);
+        results.push({ name: item.name, email: item.email, status: "Sent" });
       } else {
-        console.error(`[EMAIL ERROR] ❌ ${candidate.email}: ${result.error}`);
-        results.push({ name: candidate.name, email: candidate.email, status: "Failed" });
+        console.error(`[EMAIL ERROR] ❌ ${item.email}: ${result.error}`);
+        results.push({ name: item.name, email: item.email, status: "Failed" });
       }
     }
 
     return NextResponse.json({
       success: true,
-      processed: activeCandidates.length,
+      processed: targetReminders.length,
       results,
     });
   } catch (error) {

@@ -68,6 +68,23 @@ export async function GET(req: NextRequest) {
     );
     if (blocked) return blocked;
 
+    // 1.5 Access Window Validation (Server-side Enforcement)
+    const { validateAccessWindow } = await import("@/lib/scheduling");
+    const windowCheck = await validateAccessWindow(parsedId);
+    if (!windowCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: windowCheck.reason === "TOO_EARLY"
+            ? "Interview Access Window Not Open Yet"
+            : "Interview Access Window Expired",
+          code: windowCheck.reason,
+          windowOpenTime: windowCheck.windowOpenTime,
+          scheduledAt: windowCheck.scheduledAt,
+        },
+        { status: 403 }
+      );
+    }
+
     // Prevent generating questions for already-completed interviews
     if (candidate.status === "Completed") {
       return NextResponse.json(

@@ -1,4 +1,3 @@
-import "server-only";
 import nodemailer from "nodemailer";
 
 /**
@@ -17,12 +16,20 @@ import nodemailer from "nodemailer";
  * - If SMTP is not configured, sending is a safe no-op (development).
  */
 
+export interface EmailAttachment {
+  filename: string;
+  content: string | Buffer;
+  contentType?: string;
+}
+
 export interface EmailMessage {
   to: string;
   subject: string;
   html: string;
   /** Optional plain-text version; a stripped fallback is generated when absent. */
   text?: string;
+  /** Optional array of attachments (e.g. .ics files). */
+  attachments?: EmailAttachment[];
 }
 
 export type EmailResult =
@@ -142,6 +149,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
       subject: message.subject,
       html: message.html,
       text: message.text ?? stripHtml(message.html),
+      attachments: message.attachments,
     });
     return { success: true };
   } catch (error) {

@@ -56,6 +56,16 @@ export interface CandidateNextAction {
   href: string | null;
 }
 
+export interface CandidateScheduleDetails {
+  id: number;
+  scheduledAt: Date;
+  durationMinutes: number;
+  timezone: string;
+  status: string;
+  meetingUrl: string | null;
+  cancellationReason: string | null;
+}
+
 export interface CandidateApplicationView {
   id: number;
   jobTitle: string;
@@ -65,6 +75,7 @@ export interface CandidateApplicationView {
   statusTone: StatusTone;
   createdAt: Date;
   scheduledAt: Date | null;
+  activeSchedule: CandidateScheduleDetails | null;
   /** AI interview score (candidate-visible by design, e.g. on the result page). */
   score: string | null;
   /** Pipeline stages including Application (first) and Decision (last) bookends. */
@@ -85,6 +96,20 @@ function friendlyStageName(type: string, configuredName: string | null): string 
   return STAGE_LABELS[type] ?? configuredName ?? "Stage";
 }
 
+export async function confirmScheduleCandidateAction(scheduleId: number) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  try {
+    const { confirmSchedule } = await import("@/lib/scheduling");
+    const res = await confirmSchedule({ scheduleId, candidateClerkUserId: userId });
+    return res;
+  } catch (error) {
+    console.error("Error confirming schedule:", error);
+    return { success: false, error: "Failed to confirm schedule" };
+  }
+}
+
 export async function getCandidateApplications(): Promise<CandidateApplicationView[]> {
   const { userId } = await auth();
   if (!userId) {
@@ -96,10 +121,8 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
   if (!email) return [];
 
   try {
-    // ─── 1. All applications for this candidate ─────────────────────
-    // Use clerkUserId for primary lookup (stronger than email), fall back
-    // to email for backward compatibility with existing applicants.
     const { or } = await import("drizzle-orm");
+    const { schedules } = await import("@/db/schema");
     const apps = await db
       .select({
         id: applicants.id,
@@ -158,7 +181,7 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
       }
     }
 
-    // ─── 3. Candidate's round progress (bulk) ───────────────────────
+    // ─── 3. Candidate's round progress & Schedules (bulk) ─────────────
     const candidateRoundRows = await db
       .select({
         candidateId: candidateRounds.candidateId,
@@ -167,6 +190,36 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
       })
       .from(candidateRounds)
       .where(inArray(candidateRounds.candidateId, candidateIds));
+
+    const scheduleRows = await db
+      .select({
+        id: schedules.id,
+        candidateId: schedules.candidateId,
+        scheduledAt: schedules.scheduledAt,
+        durationMinutes: schedules.durationMinutes,
+        timezone: schedules.timezone,
+        status: schedules.status,
+        meetingUrl: schedules.meetingUrl,
+        cancellationReason: schedules.cancellationReason,
+      })
+      .from(schedules)
+      .where(inArray(schedules.candidateId, candidateIds))
+      .orderBy(desc(schedules.scheduledAt));
+
+    const scheduleByCandidate = new Map<number, CandidateScheduleDetails>();
+    for (const s of scheduleRows) {
+      if (!scheduleByCandidate.has(s.candidateId)) {
+        scheduleByCandidate.set(s.candidateId, {
+          id: s.id,
+          scheduledAt: s.scheduledAt,
+          durationMinutes: s.durationMinutes,
+          timezone: s.timezone,
+          status: s.status,
+          meetingUrl: s.meetingUrl,
+          cancellationReason: s.cancellationReason,
+        });
+      }
+    }
 
     const roundsByPipeline = new Map<number, typeof roundRows>();
     for (const round of roundRows) {
@@ -186,10 +239,12 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
 
     // ─── 4. Assemble per-application view ────────────────────────────
     return apps.map((app) => {
-      // Replicate the existing smart status derivation (Missed / Scheduled).
+      const activeSchedule = scheduleByCandidate.get(app.id) ?? null;
       let appStatus = app.status;
-      if (appStatus !== "Completed" && app.scheduledAt) {
-        if (new Date(app.scheduledAt).getTime() < now) {
+      const effectiveScheduledAt = activeSchedule?.scheduledAt ?? app.scheduledAt;
+
+      if (appStatus !== "Completed" && effectiveScheduledAt) {
+        if (new Date(effectiveScheduledAt).getTime() < now && activeSchedule?.status !== "COMPLETED") {
           appStatus = "Missed";
         } else if (appStatus === "Ready") {
           appStatus = "Scheduled";
@@ -201,7 +256,6 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
         : undefined;
       const rounds = pipelineId ? (roundsByPipeline.get(pipelineId) ?? []) : [];
 
-      // Derive per-round state, respecting the actual pipeline order.
       let blocked = false;
       const roundStages: CandidateStageView[] = rounds.map((round) => {
         const crStatus = roundStatusMap.get(`${app.id}:${round.id}`);
@@ -245,13 +299,9 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
           ? Math.round((completedCount / roundStages.length) * 100)
           : 0;
 
-      // Overall human-readable status.
       const statusInfo = deriveStatus(appStatus, roundStages, app.status);
-
-      // "What's next?" — the primary action for this application.
       const nextAction = deriveNextAction(app.id, appStatus, roundStages);
 
-      // Stage bookends: Application (always completed) + Decision.
       const decisionStatus: StageState = hasFailed
         ? "failed"
         : roundStages.length > 0 &&
@@ -274,7 +324,8 @@ export async function getCandidateApplications(): Promise<CandidateApplicationVi
         status: statusInfo.label,
         statusTone: statusInfo.tone,
         createdAt: app.createdAt,
-        scheduledAt: app.scheduledAt,
+        scheduledAt: effectiveScheduledAt,
+        activeSchedule,
         score: app.score,
         stages,
         progressPercent,

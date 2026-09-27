@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { applicants, jobs, pipelines, pipelineRounds, candidateRounds } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq, and, inArray, asc } from "drizzle-orm";
+import { eq, and, inArray, asc, desc } from "drizzle-orm";
 import { sendInterviewInviteEmail } from "@/lib/interview-email";
 import { CreateCandidateSchema, UpdateCandidateSchema } from "@/lib/schemas/actions";
 
@@ -133,6 +133,7 @@ export async function createCandidate(data: {
        }
 
        // Enroll candidate in the first pipeline round (if pipeline exists)
+       let firstCandidateRoundId: number | undefined = undefined;
        if (data.targetJobId) {
          try {
            const [pipeline] = await db
@@ -150,12 +151,13 @@ export async function createCandidate(data: {
                .limit(1);
 
              if (firstRound) {
-               await db.insert(candidateRounds).values({
+               const crInserted = await db.insert(candidateRounds).values({
                  candidateId: newCandidate[0].id,
                  roundId: firstRound.id,
                  status: "ACTIVE",
                  startedAt: new Date(),
-               });
+               }).returning({ id: candidateRounds.id });
+               firstCandidateRoundId = crInserted[0]?.id;
              }
            }
          } catch (enrollError) {
@@ -164,12 +166,28 @@ export async function createCandidate(data: {
          }
 
          // Trigger automated Resume Screening (fire-and-forget)
-         // Screening failure must never block candidate creation
          try {
            const { completeScreeningRound } = await import("@/lib/pipeline-internal");
            await completeScreeningRound({ candidateId: newCandidate[0].id });
          } catch (screeningError) {
            console.error("Error running automated resume screening:", screeningError);
+         }
+       }
+
+       // Create formal Schedule entity if scheduledAt is provided
+       if (data.scheduledAt) {
+         try {
+           const { createSchedule } = await import("@/lib/scheduling");
+           await createSchedule({
+             candidateId: newCandidate[0].id,
+             candidateRoundId: firstCandidateRoundId,
+             recruiterUserId,
+             scheduledAt: new Date(data.scheduledAt),
+             durationMinutes: 45,
+             timezone: "Asia/Kolkata",
+           });
+         } catch (schedErr) {
+           console.error("Error creating formal schedule record:", schedErr);
          }
        }
     }
@@ -443,7 +461,7 @@ export async function getCandidateById(id: number) {
   }
 }
 
-export async function rescheduleCandidate(id: number, newDate: string) {
+export async function rescheduleCandidate(id: number, newDate: string, reason?: string) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
@@ -453,28 +471,127 @@ export async function rescheduleCandidate(id: number, newDate: string) {
 
   try {
     const newScheduledAt = new Date(newDate);
-    const updated = await db.update(applicants)
-      .set({ scheduledAt: newScheduledAt })
-      .where(and(eq(applicants.id, id), eq(applicants.userId, userId)))
-      .returning({ id: applicants.id });
 
-    if (updated.length === 0) {
-      return { success: false, error: "Candidate not found or access denied" };
-    }
+    // Look for existing schedule record
+    const { schedules } = await import("@/db/schema");
+    const existingSched = await db
+      .select({ id: schedules.id })
+      .from(schedules)
+      .where(and(eq(schedules.candidateId, id), eq(schedules.recruiterUserId, userId)))
+      .orderBy(desc(schedules.createdAt))
+      .limit(1);
 
-    // Send email notification to candidate about updated schedule
-    try {
-      const { notifyInterviewRescheduled } = await import("@/lib/notifications");
-      await notifyInterviewRescheduled(id, newScheduledAt);
-    } catch (notifyError) {
-      console.error("Error sending interview rescheduled email:", notifyError);
+    if (existingSched[0]?.id) {
+      const { rescheduleSchedule } = await import("@/lib/scheduling");
+      const res = await rescheduleSchedule({
+        scheduleId: existingSched[0].id,
+        newScheduledAt,
+        recruiterUserId: userId,
+        reason,
+      });
+
+      if (!res.success) {
+        return { success: false, error: res.error };
+      }
+    } else {
+      // Create new schedule if none exists yet
+      const { createSchedule } = await import("@/lib/scheduling");
+      const res = await createSchedule({
+        candidateId: id,
+        recruiterUserId: userId,
+        scheduledAt: newScheduledAt,
+      });
+
+      if (!res.success) {
+        return { success: false, error: res.error };
+      }
     }
 
     revalidatePath("/dashboard/schedules");
+    revalidatePath("/dashboard/candidates");
     return { success: true };
   } catch (error) {
     console.error("Error rescheduling candidate:", error);
-    return { success: false };
+    return { success: false, error: "Failed to reschedule" };
+  }
+}
+
+export async function cancelScheduleAction(scheduleId: number, reason?: string) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  try {
+    const { cancelSchedule } = await import("@/lib/scheduling");
+    const res = await cancelSchedule({ scheduleId, recruiterUserId: userId, reason });
+    revalidatePath("/dashboard/schedules");
+    revalidatePath("/dashboard/candidates");
+    return res;
+  } catch (error) {
+    console.error("Error cancelling schedule:", error);
+    return { success: false, error: "Failed to cancel schedule" };
+  }
+}
+
+export async function getRecruiterSchedulesAction() {
+  const { userId } = await auth();
+  if (!userId) return [];
+
+  try {
+    const { schedules, scheduleLogs, applicants, candidateRounds, pipelineRounds, jobs } = await import("@/db/schema");
+    const rows = await db
+      .select({
+        id: schedules.id,
+        candidateId: schedules.candidateId,
+        candidateRoundId: schedules.candidateRoundId,
+        scheduledAt: schedules.scheduledAt,
+        durationMinutes: schedules.durationMinutes,
+        timezone: schedules.timezone,
+        status: schedules.status,
+        meetingProvider: schedules.meetingProvider,
+        meetingUrl: schedules.meetingUrl,
+        cancellationReason: schedules.cancellationReason,
+        createdAt: schedules.createdAt,
+        candidateName: applicants.name,
+        candidateEmail: applicants.email,
+        candidatePhone: applicants.phone,
+        applicantStatus: applicants.status,
+        jobTitle: applicants.jobTitle,
+        linkedJobTitle: jobs.title,
+        roundName: pipelineRounds.name,
+        roundType: pipelineRounds.type,
+      })
+      .from(schedules)
+      .innerJoin(applicants, eq(schedules.candidateId, applicants.id))
+      .leftJoin(jobs, eq(applicants.targetJobId, jobs.id))
+      .leftJoin(candidateRounds, eq(schedules.candidateRoundId, candidateRounds.id))
+      .leftJoin(pipelineRounds, eq(candidateRounds.roundId, pipelineRounds.id))
+      .where(eq(schedules.recruiterUserId, userId))
+      .orderBy(desc(schedules.scheduledAt));
+
+    // Fetch logs for each schedule
+    const scheduleIds = rows.map((r) => r.id);
+    const logsMap = new Map<number, Array<Record<string, unknown>>>();
+    if (scheduleIds.length > 0) {
+      const logs = await db
+        .select()
+        .from(scheduleLogs)
+        .where(inArray(scheduleLogs.scheduleId, scheduleIds))
+        .orderBy(desc(scheduleLogs.createdAt));
+
+      for (const log of logs) {
+        const list = logsMap.get(log.scheduleId) || [];
+        list.push(log);
+        logsMap.set(log.scheduleId, list);
+      }
+    }
+
+    return rows.map((r) => ({
+      ...r,
+      logs: logsMap.get(r.id) || [],
+    }));
+  } catch (error) {
+    console.error("Error fetching recruiter schedules:", error);
+    return [];
   }
 }
 
@@ -500,9 +617,6 @@ export async function updateCandidate(id: number, data: {
   try {
     let finalJobTitle = data.jobTitle;
 
-    // If a targetJobId is provided, sync the jobTitle text field with the actual job title.
-    // The job lookup is scoped to this recruiter so they cannot link a candidate
-    // to another recruiter's job.
     if (data.targetJobId) {
       const jobData = await db
         .select({ title: jobs.title })
@@ -525,6 +639,33 @@ export async function updateCandidate(id: number, data: {
 
     if (updated.length === 0) {
       return { success: false, error: "Candidate not found or access denied" };
+    }
+
+    if (data.scheduledAt) {
+      const { schedules } = await import("@/db/schema");
+      const existing = await db
+        .select({ id: schedules.id })
+        .from(schedules)
+        .where(and(eq(schedules.candidateId, id), eq(schedules.recruiterUserId, userId)))
+        .orderBy(desc(schedules.createdAt))
+        .limit(1);
+
+      if (existing[0]?.id) {
+        const { rescheduleSchedule } = await import("@/lib/scheduling");
+        await rescheduleSchedule({
+          scheduleId: existing[0].id,
+          newScheduledAt: new Date(data.scheduledAt),
+          recruiterUserId: userId,
+          reason: "Candidate details updated",
+        });
+      } else {
+        const { createSchedule } = await import("@/lib/scheduling");
+        await createSchedule({
+          candidateId: id,
+          recruiterUserId: userId,
+          scheduledAt: new Date(data.scheduledAt),
+        });
+      }
     }
 
     revalidatePath("/dashboard");

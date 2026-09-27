@@ -379,6 +379,80 @@ function ApplicationCard({
           </div>
         </div>
 
+        {/* Active Schedule Panel */}
+        {app.activeSchedule && (
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-900">
+                    {new Date(app.activeSchedule.scheduledAt).toLocaleString([], {
+                      dateStyle: "full",
+                      timeStyle: "short",
+                    })}
+                  </span>
+                  <Badge className="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-2 py-0.5 rounded uppercase">
+                    {app.activeSchedule.status}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  Duration: {app.activeSchedule.durationMinutes} mins • Timezone: {app.activeSchedule.timezone}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              {app.activeSchedule.status !== "CONFIRMED" && app.activeSchedule.status !== "COMPLETED" && app.activeSchedule.status !== "CANCELLED" && (
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    const { confirmScheduleCandidateAction } = await import("@/app/actions/candidate-dashboard");
+                    const res = await confirmScheduleCandidateAction(app.activeSchedule!.id);
+                    if (res.success) window.location.reload();
+                  }}
+                  className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex-1 md:flex-none"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Confirm Slot
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const icsData = [
+                    "BEGIN:VCALENDAR",
+                    "VERSION:2.0",
+                    "PRODID:-//Recrutva//Candidate Schedule//EN",
+                    "BEGIN:VEVENT",
+                    `SUMMARY:Recrutva Technical Interview - ${app.jobTitle}`,
+                    `DTSTART:${new Date(app.activeSchedule!.scheduledAt).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`,
+                    `DTEND:${new Date(new Date(app.activeSchedule!.scheduledAt).getTime() + app.activeSchedule!.durationMinutes * 60000).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`,
+                    `DESCRIPTION:Recrutva Technical Interview for ${app.jobTitle}`,
+                    "END:VEVENT",
+                    "END:VCALENDAR",
+                  ].join("\r\n");
+
+                  const blob = new Blob([icsData], { type: "text/calendar;charset=utf-8" });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `interview-${app.id}.ics`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                className="h-9 px-4 rounded-xl text-slate-700 border-slate-300 text-xs font-bold hover:bg-slate-100 flex-1 md:flex-none"
+              >
+                Add to Calendar (.ics)
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Body: timeline + next action */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 pt-2">
           <div className="lg:col-span-3">

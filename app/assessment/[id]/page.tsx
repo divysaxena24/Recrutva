@@ -123,12 +123,12 @@ export default function AssessmentPage() {
   const [confirmUnanswered, setConfirmUnanswered] = useState(false);
 
   // Submit assessment
-  const handleSubmit = async () => {
+  const handleSubmit = async (isForce = false) => {
     const unansweredCount = state.questions.filter(
       (q) => !state.answers[q.id] || state.answers[q.id].trim().length === 0
     ).length;
 
-    if (unansweredCount > 0 && !confirmUnanswered) {
+    if (!isForce && unansweredCount > 0 && !confirmUnanswered) {
       setConfirmUnanswered(true);
       setState((s) => ({
         ...s,
@@ -346,7 +346,10 @@ export default function AssessmentPage() {
     <SecureAssessmentShell
       candidateRoundId={parseInt(candidateId, 10)}
       roundTitle="Technical Assessment"
-      config={{ secureMode: true, requireFullscreen: true, maxViolations: 3 }}
+      config={{ secureMode: true, requireFullscreen: true, maxViolations: 3, durationMinutes: 45 }}
+      onTimeExpired={() => handleSubmit(true)}
+      onAutoSubmit={() => handleSubmit(true)}
+      onSessionTerminated={() => handleSubmit(true)}
     >
       <div className="space-y-8">
         {/* Header */}
@@ -461,7 +464,7 @@ export default function AssessmentPage() {
             </Button>
           ) : (
             <Button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={state.submitting}
               className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-600/15"
             >

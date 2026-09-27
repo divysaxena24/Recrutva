@@ -114,3 +114,44 @@ export const candidateRounds = pgTable("candidate_rounds", {
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// ─── Schedule Tables ──────────────────────────────────────────────────
+
+export const scheduleStatusEnum = pgEnum("schedule_status", [
+  "SCHEDULED",
+  "CONFIRMED",
+  "RESCHEDULED",
+  "CANCELLED",
+  "COMPLETED",
+  "MISSED",
+]);
+
+export const schedules = pgTable("schedules", {
+  id: serial("id").primaryKey(),
+  candidateId: integer("candidate_id").references(() => applicants.id).notNull(),
+  candidateRoundId: integer("candidate_round_id").references(() => candidateRounds.id),
+  recruiterUserId: varchar("recruiter_user_id", { length: 255 }).notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+  durationMinutes: integer("duration_minutes").default(45).notNull(),
+  timezone: varchar("timezone", { length: 100 }).default("Asia/Kolkata").notNull(),
+  status: scheduleStatusEnum("status").default("SCHEDULED").notNull(),
+  meetingProvider: varchar("meeting_provider", { length: 50 }).default("INTERNAL").notNull(),
+  meetingUrl: text("meeting_url"),
+  cancellationReason: text("cancellation_reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const scheduleLogs = pgTable("schedule_logs", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").references(() => schedules.id).notNull(),
+  action: varchar("action", { length: 50 }).notNull(), // "CREATED", "RESCHEDULED", "CANCELLED", "CONFIRMED", "COMPLETED", "MISSED"
+  previousScheduledAt: timestamp("previous_scheduled_at", { withTimezone: true }),
+  newScheduledAt: timestamp("new_scheduled_at", { withTimezone: true }),
+  previousStatus: varchar("previous_status", { length: 50 }),
+  newStatus: varchar("new_status", { length: 50 }),
+  changedByUserId: varchar("changed_by_user_id", { length: 255 }).notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
