@@ -1,209 +1,363 @@
 # Recrutva
 
-An AI-powered recruitment platform that helps recruiters create job openings, receive candidate applications, run AI voice interviews, and evaluate candidates through a configurable hiring pipeline.
+An AI-powered recruitment and candidate evaluation platform that streamlines end-to-end hiring workflows: automated job description generation, multi-stage pipeline configuration, ATS resume screening (Groq AI & SkillSync NLP), automated online technical assessments, AI voice interviews with Google TTS & Speech-to-Text, and candidate management.
 
-## Overview
+---
 
-Recrutva connects two user groups:
+## 📐 System Architecture Diagram
 
-- **Recruiters** manage job posts, review applicants, run AI screening interviews, and track candidates through hiring stages.
-- **Candidates** browse open positions, apply with their resume, complete an AI interview with voice support, and track their application status.
+```mermaid
+graph TD
+    subgraph Client Layer
+        RecruiterApp["Recruiter Dashboard (React 19 / Next.js 16)"]
+        CandidateApp["Candidate Portal & AI Interview Room"]
+    end
 
-AI is used throughout the platform for resume-to-job match scoring, interview question generation, voice-based interview delivery, and automated evaluation with per-question breakdowns.
+    subgraph Authentication & Security
+        ClerkAuth["Clerk Auth (RBAC: Recruiter / Candidate)"]
+        UpstashRedis["Upstash Redis (Rate Limiting & Caching)"]
+    end
 
-## Features
+    subgraph Core Application Server
+        NextRouter["Next.js App Router & Server Actions"]
+        PipelineEngine["Hiring Pipeline Engine (Internal Router)"]
+        JDGen["AI Job Description Generator"]
+        ScreeningEngine["ATS & SkillSync Resume Matcher"]
+        AssessmentEngine["AI Assessment & Auto-Grader"]
+        InterviewRoom["AI Voice Interview Engine"]
+        NotificationService["Email & Reminder Engine"]
+    end
 
-### Recruiter
+    subgraph Data & Storage Layer
+        NeonDB[("Neon PostgreSQL Database (Drizzle ORM)")]
+        Cloudinary["Cloudinary (Resume PDF/DOCX Storage)"]
+    end
 
-- Secure authentication and job ownership via Clerk
-- Recruiter dashboard with hiring metrics
-- Create, list, search, and delete job openings
-- AI-assisted job description generation
-- Candidate management with search, filtering, and editing
-- View applications per job with ATS match scores
-- Resume viewing via Cloudinary-hosted URLs
-- Interview schedule management with rescheduling
-- Completed interview summary with per-question scoring and AI feedback
-- Configurable hiring pipeline per job with multiple round types
+    subgraph External AI & Voice Services
+        GroqAI["Groq Cloud AI (GPT-OSS 120B / Qwen 3.8 27B / Whisper Turbo)"]
+        GoogleTTS["Google TTS API (Audio Streaming)"]
+        Nodemailer["Nodemailer (Gmail SMTP Server)"]
+    end
 
-### Candidate
+    RecruiterApp --> ClerkAuth
+    CandidateApp --> ClerkAuth
 
-- Public job board
-- Job detail and application page with resume upload
-- Duplicate application prevention
-- Candidate dashboard for tracking applications
-- AI interview room with browser camera/microphone support
-- Speech-to-text via browser speech recognition with manual text fallback
-- AI-generated interview result page after completion
+    RecruiterApp --> NextRouter
+    CandidateApp --> NextRouter
 
-### AI & Automation
+    NextRouter --> UpstashRedis
+    NextRouter --> PipelineEngine
 
-- Groq-powered job description generation
-- Groq-powered resume-to-job match scoring (ATS score)
-- Groq-powered interview question generation (10 role-specific questions)
-- Groq-powered interview evaluation with executive summary and per-question breakdown
-- Google TTS for AI interviewer voice playback
-- Nodemailer-based interview invitation and daily reminder emails
-- Vercel cron for recurring interview reminders
+    PipelineEngine --> ScreeningEngine
+    PipelineEngine --> AssessmentEngine
+    PipelineEngine --> InterviewRoom
 
-## Tech Stack
+    JDGen --> GroqAI
+    ScreeningEngine --> GroqAI
+    AssessmentEngine --> GroqAI
+    InterviewRoom --> GroqAI
+    InterviewRoom --> GoogleTTS
+
+    ScreeningEngine --> Cloudinary
+    NextRouter --> NeonDB
+
+    NotificationService --> Nodemailer
+    NextRouter --> NotificationService
+```
+
+---
+
+## 🎯 Use Case Diagram
+
+```mermaid
+graph LR
+    subgraph Recruiter Use Cases
+        UC1["Create & Edit Job Posts"]
+        UC2["Generate Job Description using AI"]
+        UC3["Configure Multi-Stage Hiring Pipeline"]
+        UC4["View Applicants & ATS Match Scores"]
+        UC5["Move Candidates Across Pipeline Rounds"]
+        UC6["Review AI Assessment & Interview Breakdowns"]
+        UC7["Send Interview Invitations & Reminders"]
+    end
+
+    subgraph Candidate Use Cases
+        UC8["Browse Job Board & Public Jobs"]
+        UC9["Apply to Job with Resume (PDF/DOCX)"]
+        UC10["Track Application Status on Dashboard"]
+        UC11["Take AI Technical Assessment"]
+        UC12["Complete AI Voice Screening Interview"]
+        UC13["View Completed Interview Performance Summary"]
+    end
+
+    Recruiter((Recruiter / Hiring Manager)) --> UC1
+    Recruiter --> UC2
+    Recruiter --> UC3
+    Recruiter --> UC4
+    Recruiter --> UC5
+    Recruiter --> UC6
+    Recruiter --> UC7
+
+    Candidate((Candidate / Applicant)) --> UC8
+    Candidate --> UC9
+    Candidate --> UC10
+    Candidate --> UC11
+    Candidate --> UC12
+    Candidate --> UC13
+```
+
+---
+
+## 🔄 User Flow Diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Recruiter
+    actor Candidate
+    participant Platform as Recrutva Next.js
+    participant Cloudinary
+    participant GroqAI as Groq AI Engine
+    participant Email as Email Service (Nodemailer)
+    participant Database as Neon Postgres DB
+
+    rect rgb(240, 248, 255)
+        note over Recruiter, Platform: 1. Job Creation & Pipeline Setup
+        Recruiter->>Platform: Create Job (Manual or AI-assisted)
+        Platform->>GroqAI: Generate Structured Job Description
+        GroqAI-->>Platform: Return Job Title, Skills, Summary, Responsibilities
+        Platform->>Database: Save Job & Initialize Default Pipeline Rounds
+    end
+
+    rect rgb(255, 250, 240)
+        note over Candidate, Cloudinary: 2. Candidate Application & Resume Match
+        Candidate->>Platform: Submit Application (Details + Resume PDF/DOCX)
+        Platform->>Cloudinary: Upload Resume Document
+        Platform->>Platform: Extract Resume Text (pdf-parse / mammoth)
+        Platform->>GroqAI: Calculate ATS Match Score & SkillSync Analysis
+        GroqAI-->>Platform: Match Score (0-100%) + Feedback Breakdown
+        Platform->>Database: Store Applicant Record & Enroll in Round 1 (Resume Screening)
+    end
+
+    rect rgb(240, 255, 240)
+        note over Recruiter, Candidate: 3. Pipeline Progression & Invitations
+        Recruiter->>Platform: Advance Candidate to Assessment / AI Interview Round
+        Platform->>Email: Send Interactive Invitation Link with Access Code
+        Email-->>Candidate: Recruiter Invitation Email
+    end
+
+    rect rgb(255, 240, 245)
+        note over Candidate, GroqAI: 4. AI Voice Interview / Technical Assessment
+        Candidate->>Platform: Open AI Interview Room / Assessment Portal
+        Platform->>GroqAI: Generate Role-Specific Technical & Behavioral Questions
+        GroqAI-->>Platform: Question Blueprints & Expected Answers
+        loop Question Evaluation
+            Platform->>Candidate: Audio Playback (Google TTS) / Text Question
+            Candidate->>Platform: Speak Answer (Speech-to-Text) or Type Text Response
+        end
+        Platform->>GroqAI: Evaluate Responses against Blueprints
+        GroqAI-->>Platform: Score, Executive Summary, Question-by-Question Marks & Feedback
+        Platform->>Database: Record Candidate Round Completion & Evaluation JSON
+    end
+
+    rect rgb(245, 245, 255)
+        note over Recruiter, Database: 5. Recruiter Review & Decision
+        Recruiter->>Platform: View Candidate Pipeline Analytics & AI Summaries
+        Recruiter->>Platform: Mark Candidate as PASSED / FAILED / HIRED
+        Platform->>Database: Update Round Status & Complete Pipeline
+    end
+```
+
+---
+
+## 🌟 Overview
+
+Recrutva bridges recruiters and job seekers using cutting-edge AI:
+
+- **Recruiters** create and manage job postings, customize multi-round hiring pipelines (Resume Screening, Skill Assessments, AI Voice Interviews, Manual Review), track candidates stage-by-stage with strict recruiter data isolation, and view AI-generated candidate summaries.
+- **Candidates** search public job listings, submit resumes with automatic text parsing, complete online technical assessments and AI voice interviews, and monitor application status through a dedicated candidate dashboard.
+
+---
+
+## ✨ Key Features
+
+### 👔 Recruiter Portal
+- **Clerk Authentication & Role-Based Access Control**: Strict isolation ensures recruiters only access their own jobs and candidate data.
+- **AI-Assisted Job Creation**: Generate rich, structured job descriptions (responsibilities, required/preferred skills, qualifications, salary ranges, benefits) powered by Groq AI.
+- **Configurable Hiring Pipelines**: Set up custom multi-stage pipelines per job with ordered rounds (`RESUME_SCREENING`, `ASSESSMENT`, `AI_INTERVIEW`, `MANUAL_REVIEW`).
+- **ATS & SkillSync Resume Matcher**: Automated resume-to-job match scoring (0–100%) using Groq AI and NLP keyphrase parsing.
+- **Candidate Pipeline Dashboard**: Drag-and-drop or status-driven stage advancement, filtering, and single-click invitation dispatch.
+- **Interview & Assessment Viewer**: Detailed per-question scoring, transcribed audio answers, answer evaluation blueprints, and AI executive summaries.
+
+### 🎓 Candidate Portal
+- **Public Job Board**: Filter and view published jobs with full job descriptions and salary transparent details.
+- **One-Click Application & Resume Upload**: PDF and DOCX parsing with Cloudinary storage and duplicate application prevention.
+- **Candidate Dashboard**: Real-time tracking of active applications and current pipeline round status.
+- **AI Voice Interview Room**: Interactive browser interview room featuring:
+  - Speech Synthesis via **Google TTS**
+  - Speech Recognition via **Web Speech API** / **Groq Whisper Turbo** fallback
+  - Real-time text response option
+- **Automated Online Technical Assessments**: Role-specific generated questions with automatic AI scoring and feedback.
+
+### 🤖 AI & Automation Capabilities
+- **Groq AI Integration**: Centralized model configuration (`openai/gpt-oss-120b` for evaluation & ATS, `qwen/qwen3.8-27b` for questions & job specs).
+- **Google TTS**: Audio streaming for AI interviewer voice playback.
+- **Email Notifications**: Nodemailer (Gmail SMTP) for interview invitations, daily reminders, and pipeline round status updates.
+- **Scheduled Cron Reminders**: Daily automated cron job on Vercel for sending pending candidate interview reminders.
+- **Upstash Redis Caching & Rate Limiting**: Secure API key rate limiting and data caching layer.
+
+---
+
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 | --- | --- |
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript 5 |
-| UI | React 19, Tailwind CSS 4, shadcn/ui (base-nova style), Lucide icons |
-| Auth | Clerk |
-| Database | Neon PostgreSQL |
-| ORM | Drizzle ORM |
-| AI | Groq SDK |
-| Voice | Google TTS API, Web Speech API (browser) |
-| File Storage | Cloudinary |
-| Email | Nodemailer (Gmail) |
-| Charts | Recharts |
-| Animation | Framer Motion |
-| Validation | Zod, React Hook Form |
-| PDF Parsing | pdf-parse |
-| DOCX Parsing | Mammoth |
-| Deployment | Vercel |
+| **Framework** | Next.js 16 (App Router, Turbopack) |
+| **Language** | TypeScript 5 |
+| **UI Styling** | React 19, Tailwind CSS 4, shadcn/ui, Lucide Icons |
+| **Authentication** | Clerk (Role-Based Access Control) |
+| **Database** | Neon PostgreSQL |
+| **ORM** | Drizzle ORM |
+| **Caching & Rate Limiting** | Upstash Redis |
+| **AI Models** | Groq Cloud SDK (`gpt-oss-120b`, `qwen3.8-27b`, `whisper-large-v3-turbo`) |
+| **Voice & Speech** | Google TTS API, Web Speech API |
+| **File Storage** | Cloudinary (PDF / DOCX resumes) |
+| **Email Delivery** | Nodemailer (Gmail App Password) |
+| **Parsing** | `pdf-parse`, `mammoth` (DOCX) |
+| **Validation** | Zod, React Hook Form |
+| **Charts & Animation** | Recharts, Framer Motion |
+| **Deployment** | Vercel |
 
-## Database Architecture
+---
 
-Six tables defined in `db/schema.ts` with the following relationships:
+## 🗄️ Database Architecture
+
+Recrutva uses six interconnected tables managed via Drizzle ORM:
 
 ```
-jobs ──> pipelines ──> pipeline_rounds ──> candidate_rounds ──> applicants
-                                                              └──> jobs (via targetJobId)
-users ──> jobs (via userId = clerkId)
-users ──> applicants (via userId = clerkId)
+users (clerkId) ───> jobs ───> pipelines ───> pipeline_rounds ───> candidate_rounds
+  │                   │                                                   │
+  └───> applicants ───┴───────────────────────────────────────────────────┘
 ```
 
-### Tables
+### Table Definitions
 
 | Table | Purpose |
 | --- | --- |
-| `users` | Recruiter accounts (Clerk ID, name, email) |
-| `jobs` | Job openings (title, description, requirements, location, status) |
-| `applicants` | Candidates and their application data (resume, scores, transcripts, interview analysis) |
-| `pipelines` | Hiring workflows attached to jobs (one pipeline per job) |
-| `pipeline_rounds` | Configurable hiring stages within a pipeline (ordered, typed, with JSONB configuration) |
-| `candidate_rounds` | Tracks individual candidate progress through each pipeline round |
+| `users` | Stores recruiter and candidate accounts mapped to Clerk IDs. |
+| `jobs` | Job postings, structured JD fields (skills, salary, responsibilities), and status (`DRAFT`, `PUBLISHED`, `CLOSED`, `Open`). |
+| `applicants` | Candidate profiles, extracted resume text, Cloudinary URLs, ATS match scores, and interview transcripts. |
+| `pipelines` | Hiring workflow definition attached to each job. |
+| `pipeline_rounds` | Ordered stages within a pipeline (`RESUME_SCREENING`, `ASSESSMENT`, `AI_INTERVIEW`, `MANUAL_REVIEW`) with JSON configuration. |
+| `candidate_rounds` | Per-candidate progress tracking per round (`PENDING`, `ACTIVE`, `PASSED`, `FAILED`, `SKIPPED`), scores, feedback, and evaluation JSON. |
 
-### Pipeline Round Types
+---
 
-| Type | Purpose |
-| --- | --- |
-| `RESUME_SCREENING` | Initial resume review stage (default first round) |
-| `ASSESSMENT` | Skill-based assessment round |
-| `AI_INTERVIEW` | AI voice interview round |
-| `MANUAL_REVIEW` | Recruiter manual review stage |
-
-### Key Design Notes
-
-- Pipeline is automatically created when a new job is created (default: "Resume Screening" round)
-- Candidates are automatically enrolled in the first pipeline round upon application
-- `applicants.status` tracks overall lifecycle: `Ready`, `Calling`, `Scheduled`, `Completed`, `Missed`
-- `candidate_rounds.status` tracks per-round progress: `PENDING`, `ACTIVE`, `PASSED`, `FAILED`, `SKIPPED`
-- Resume data (URL, public ID, extracted text, filename) is stored directly in `applicants`
-- Interview data (transcript, summary, score, analysis JSONB) is stored directly in `applicants`
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 recrutva/
 ├── app/
-│   ├── (dashboard)/
-│   │   ├── dashboard/         # Recruiter dashboard (page, jobs, candidates, schedules)
-│   │   └── jobs/[id]/         # Job-specific views (applications)
 │   ├── (candidate)/
-│   │   └── candidate-dashboard/
-│   ├── actions/               # Server actions (jobs, candidates, pipeline, matching, etc.)
+│   │   └── candidate-dashboard/   # Candidate application tracking
+│   ├── (dashboard)/
+│   │   ├── dashboard/             # Recruiter main metrics & candidates
+│   │   └── jobs/[id]/             # Per-job pipeline & candidate management
+│   ├── actions/                   # Server Actions (Jobs, Candidates, Pipeline, Match, AI)
 │   ├── api/
-│   │   ├── ai/                # AI job description generation
-│   │   ├── candidate/[id]/    # Candidate lookup API
-│   │   ├── cron/              # Scheduled interview reminders
-│   │   ├── interview/         # Question generation and interview evaluation
-│   │   ├── tts/               # Text-to-speech streaming
-│   │   └── upload/resume/     # Resume upload and text extraction
-│   ├── interview/[id]/        # AI interview room and result view
-│   ├── jobs/                  # Public job board and application pages
-│   └── onboarding/            # Role selection after signup
-├── components/                # App-specific components (modals, viewers)
-│   └── ui/                    # shadcn/ui primitives
+│   │   ├── ai/                    # Job description generation endpoint
+│   │   ├── assessment/            # Assessment endpoints
+│   │   ├── candidate/             # Candidate API
+│   │   ├── cron/                  # Reminders cron endpoint
+│   │   ├── interview/             # Question generation & evaluation API
+│   │   ├── tts/                   # Google TTS audio streaming endpoint
+│   │   └── upload/resume/         # Resume PDF/DOCX Cloudinary upload & text extractor
+│   ├── assessment/[id]/           # Online assessment portal
+│   ├── interview/[id]/            # AI voice interview room & result view
+│   ├── jobs/                      # Public job board & application page
+│   └── onboarding/                # Role selection (Recruiter vs Candidate)
+├── components/                    # App UI components & dialogs
+│   └── ui/                        # shadcn/ui primitives
 ├── db/
-│   ├── index.ts               # Neon + Drizzle database client
-│   └── schema.ts              # All table definitions
-├── drizzle/                   # Migration files
+│   ├── index.ts                   # Neon PostgreSQL & Drizzle client
+│   └── schema.ts                  # Database tables & relations schema
 ├── lib/
-│   ├── ai.ts                  # Groq client and model configuration
-│   ├── cloudinary.ts          # Cloudinary SDK config
-│   ├── interview-email.ts     # Interview email builder and sender
-│   └── utils.ts               # Utility functions
-├── scripts/                   # Database migration and seed scripts
-└── public/                    # Static assets
+│   ├── ai.ts                      # Centralized Groq AI model configuration
+│   ├── assessment.ts              # Technical assessment question & grading engine
+│   ├── auth.ts                    # Recruiter ownership validation helpers
+│   ├── cloudinary.ts              # Cloudinary SDK client
+│   ├── email.ts                   # Nodemailer notification service
+│   ├── jd-generator.ts            # Structured job description generator
+│   ├── pipeline-internal.ts       # Pipeline navigation & status transition router
+│   ├── redis.ts                   # Upstash Redis client
+│   ├── screening.ts               # ATS & SkillSync match evaluator
+│   └── utils.ts                   # Helpers & formatting utilities
+├── public/                        # Static public assets
+├── scripts/                       # Database seed and push scripts
+└── vercel.json                    # Vercel deployment & cron config
 ```
 
-## Environment Variables
+---
 
-Create a `.env` file with the following variables:
+## ⚙️ Environment Variables
+
+Create a `.env` file in the root directory:
 
 ```env
 # Database
 DATABASE_URL="postgresql://..."
 
 # Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="..."
-CLERK_SECRET_KEY="..."
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
 
-# Groq AI
-GROQ_API_KEY="..."
+# Groq AI Key
+GROQ_API_KEY="gsk_..."
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME="..."
 CLOUDINARY_API_KEY="..."
 CLOUDINARY_API_SECRET="..."
 
-# Email (Gmail App Password)
+# Upstash Redis
+UPSTASH_REDIS_REST_URL="https://..."
+UPSTASH_REDIS_REST_TOKEN="..."
+
+# Email (Gmail SMTP App Password)
 EMAIL_USER="your-email@gmail.com"
 EMAIL_PASS="your-app-password"
 
-# App
+# App URL
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-**Notes:**
-- `DATABASE_URL` connects to your Neon PostgreSQL database
-- `GROQ_API_KEY` is required for all AI features (matching, questions, evaluation, job generation)
-- `CLOUDINARY_*` keys are required for resume file storage
-- `EMAIL_USER` and `EMAIL_PASS` are used by Nodemailer for interview invitation and reminder emails
-- `NEXT_PUBLIC_APP_URL` is used to generate interview and job links in emails
-- Clerk keys are required for authentication and user sessions
+---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- A Neon PostgreSQL database
-- Accounts for Clerk, Groq, Cloudinary, and Gmail (for email)
+- **Node.js**: `v18.0.0` or higher
+- **PostgreSQL**: Neon PostgreSQL instance
+- API accounts for **Clerk**, **Groq AI**, **Cloudinary**, and **Upstash Redis**
 
 ### Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/divysaxena24/Recrutva.git
 cd recrutva
 npm install
 ```
 
-### Database Setup
+### Database Migration
 
-Push the Drizzle schema to your database:
+Push schema updates directly to Neon PostgreSQL:
 
 ```bash
 npm run db:push
 ```
 
-Or inspect the database visually:
+Or open Drizzle Studio for visual database management:
 
 ```bash
 npm run db:studio
@@ -211,71 +365,47 @@ npm run db:studio
 
 ### Development Server
 
+Start the Turbopack development server:
+
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Access the application at [http://localhost:3000](http://localhost:3000).
 
-## How It Works
+---
 
-### Recruiter Flow
+## 🤖 AI Model Configuration
 
-1. Sign in with Clerk and choose the "Hiring Manager" path during onboarding
-2. Create a job (manually or with AI-generated description)
-3. A hiring pipeline with a default "Resume Screening" round is automatically created
-4. Candidates apply through the public job board or are added by the recruiter
-5. Each candidate is automatically enrolled in the first pipeline round
-6. AI calculates a match score by comparing the resume against the job description
-7. An interview invitation email is sent to the candidate
-8. Recruiter monitors candidates, manages schedules, and reviews completed interview results
+All AI interactions use Groq API models centrally configured in `lib/ai.ts`:
 
-### Candidate Flow
-
-1. Browse open positions on the public job board
-2. Open a job details page and submit an application with a resume (PDF/DOCX)
-3. Resume is uploaded to Cloudinary and text is extracted for AI matching
-4. Receive an interview invitation email with a link
-5. Join the AI interview room, where Sarah AI asks 10 role-specific questions
-6. Answer via speech recognition or manual text input
-7. AI evaluates the transcript and produces a score, summary, and per-question breakdown
-8. Track application status from the candidate dashboard
-
-## AI Model Configuration
-
-All AI features use models from the Groq API, configured centrally in `lib/ai.ts`:
-
-| Feature | Model | Purpose |
+| Feature | Model | Function |
 | --- | --- | --- |
-| Resume-Job Matching | `openai/gpt-oss-120b` | ATS match scoring (0-100) |
-| Interview Questions | `qwen/qwen3.6-27b` | Generate 10 role-specific questions with blueprints |
-| Interview Evaluation | `openai/gpt-oss-120b` | Score responses, generate summary and breakdown |
-| Job Description Generation | `qwen/qwen3.6-27b` | Generate structured job descriptions |
+| **Resume-Job Matching (ATS)** | `openai/gpt-oss-120b` | Structured evaluation of resume skills against job requirements |
+| **Job Description Generation** | `qwen/qwen3.8-27b` | Structured JSON generation of full job descriptions |
+| **Interview Question Generator** | `qwen/qwen3.8-27b` | Generates 10 role-tailored questions with answer blueprints |
+| **Interview Answer Evaluation** | `openai/gpt-oss-120b` | Grades audio/text transcripts against answer blueprints |
+| **Assessment Question & Grading**| `openai/gpt-oss-120b` | Technical assessment question generator and auto-grader |
+| **Speech-to-Text Fallback** | `whisper-large-v3-turbo` | Audio transcription fallback |
 
-## Available Scripts
+---
 
-```bash
-npm run dev          # Start development server
-npm run build        # Production build
-npm run start        # Start production server
-npm run lint         # Run ESLint
-npm run db:push      # Push schema to database
-npm run db:studio    # Open Drizzle Studio
-```
-
-### Utility Scripts
+## 📜 Available NPM Scripts
 
 ```bash
-npx tsx scripts/push-migration.ts      # Direct SQL migration (workaround for connectivity issues)
-npx tsx scripts/seed-test-pipeline.ts   # Seed test pipeline rounds for development
-npx tsx scripts/verify-pipeline.ts      # Verify pipeline data in database
+npm run dev          # Start local development server (Turbopack)
+npm run build        # Build production web application
+npm run start        # Launch production server
+npm run lint         # Execute ESLint checks
+npm run db:push      # Push Drizzle schema to Neon database
+npm run db:studio    # Open Drizzle Studio visual interface
 ```
 
-## Deployment
+---
 
-The project is configured for deployment on Vercel.
+## 🌐 Deployment
 
-`vercel.json` includes a cron job for daily interview reminders:
+Recrutva is optimized for Vercel deployment with background cron triggers configured in `vercel.json`:
 
 ```json
 {
@@ -288,36 +418,4 @@ The project is configured for deployment on Vercel.
 }
 ```
 
-Before deploying, configure all required environment variables in your Vercel project settings.
-
-## Implemented
-
-- Job CRUD with automatic pipeline creation
-- Candidate application with resume upload (Cloudinary)
-- PDF and DOCX text extraction from resumes
-- AI resume-to-job match scoring (ATS score)
-- Configurable hiring pipeline with ordered rounds
-- Pipeline server actions (create, read, update order, delete rounds)
-- Automatic candidate enrollment in first pipeline round
-- AI interview question generation (10 questions with answer blueprints)
-- AI interview completion with evaluation (score, summary, per-question breakdown)
-- Interview room with speech-to-text and manual text input
-- Google TTS voice playback for AI interviewer
-- Interview invitation and daily reminder emails via Nodemailer
-- Recruiter dashboard with metrics
-- Candidate management with search and filtering
-- Per-job applications page with match scores
-- Public job board
-- Candidate dashboard for application tracking
-- Clerk authentication with job ownership verification
-
-## Planned
-
-- Multi-round candidate movement through pipeline stages
-- Pipeline management UI (visual round configuration)
-- Assessment round execution and scoring
-- Manual review workflow for recruiters
-- Pipeline progress visualization on candidate and recruiter views
-- Resume skills parsing and structured data extraction
-- Batch candidate import
-- Interview scheduling integration
+Ensure all variables listed in `.env` are configured in Vercel Environment Settings.
