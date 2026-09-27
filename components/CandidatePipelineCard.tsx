@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   ExternalLink,
   Eye,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -492,6 +493,32 @@ export default function CandidatePipelineCard({
                         )}
                       </div>
                     )}
+
+                    {/* Security Violation Badge */}
+                    {(() => {
+                      const evalObj = (typeof round.evaluation === "object" && round.evaluation !== null ? round.evaluation : {}) as Record<string, unknown>;
+                      const secState = evalObj.securityState as { violationCount?: number; maxViolations?: number; terminated?: boolean } | undefined;
+                      if (!secState || typeof secState.violationCount !== "number") return null;
+                      return (
+                        <div className="mt-1">
+                          <Badge
+                            variant="outline"
+                            className={
+                              secState.terminated
+                                ? "bg-rose-50 text-rose-700 border-rose-200 text-[10px] font-bold"
+                                : secState.violationCount > 0
+                                ? "bg-amber-50 text-amber-700 border-amber-200 text-[10px] font-bold"
+                                : "bg-slate-50 text-slate-600 border-slate-200 text-[10px] font-bold"
+                            }
+                          >
+                            <Shield className="w-3 h-3 mr-1 inline" />
+                            {secState.terminated
+                              ? `Terminated (${secState.violationCount}/${secState.maxViolations || 3} Violations)`
+                              : `Security Violations: ${secState.violationCount}/${secState.maxViolations || 3}`}
+                          </Badge>
+                        </div>
+                      );
+                    })()}
 
                     {/* Completed date */}
                     {round.completedAt && (

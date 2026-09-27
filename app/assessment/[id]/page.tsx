@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { SecureAssessmentShell } from "@/components/SecureAssessmentShell";
 
 type Question = {
   id: number;
@@ -342,8 +343,12 @@ export default function AssessmentPage() {
   const progress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 lg:p-10 font-sans">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <SecureAssessmentShell
+      candidateRoundId={parseInt(candidateId, 10)}
+      roundTitle="Technical Assessment"
+      config={{ secureMode: true, requireFullscreen: true, maxViolations: 3 }}
+    >
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -478,6 +483,6 @@ export default function AssessmentPage() {
           </div>
         )}
       </div>
-    </div>
+    </SecureAssessmentShell>
   );
 }
