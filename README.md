@@ -4,15 +4,15 @@ An AI-powered recruitment and candidate evaluation platform that streamlines end
 
 ---
 
-## 📐 System Architecture Diagram
+## System Architecture Diagram
 
 ```mermaid
 %%{init: {'flowchart': {'curve': 'linear'}}}%%
 graph TD
-    Client["💻 Client Layer<br/>(Recruiter Dashboard & Candidate Web App)"]
-    Server["⚡ Next.js Application Server<br/>(App Router, Server Actions, Hiring Pipeline Engine)"]
-    Storage["💾 Database & Storage<br/>(Neon PostgreSQL Database & Cloudinary Resumes)"]
-    External["🤖 Integrations & AI<br/>(Clerk Auth, Groq AI Engine, Google TTS, Nodemailer)"]
+    Client["Client Layer<br/>(Recruiter Dashboard & Candidate Web App)"]
+    Server["Next.js Application Server<br/>(App Router, Server Actions, Hiring Pipeline Engine)"]
+    Storage["Database & Storage<br/>(Neon PostgreSQL Database & Cloudinary Resumes)"]
+    External["Integrations & AI<br/>(Clerk Auth, Groq AI Engine, Google TTS, Nodemailer)"]
 
     Client --> Server
     Server --> Storage
@@ -21,7 +21,7 @@ graph TD
 
 ---
 
-## 🎯 Use Case Diagram
+## Use Case Diagram
 
 ```mermaid
 graph LR
@@ -62,7 +62,7 @@ graph LR
 
 ---
 
-## 🌟 Overview
+## Overview
 
 Recrutva bridges recruiters and job seekers using cutting-edge AI:
 
@@ -71,9 +71,9 @@ Recrutva bridges recruiters and job seekers using cutting-edge AI:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 👔 Recruiter Portal
+### Recruiter Portal
 - **Clerk Authentication & Role-Based Access Control**: Strict isolation ensures recruiters only access their own jobs and candidate data.
 - **AI-Assisted Job Creation**: Generate rich, structured job descriptions (responsibilities, required/preferred skills, qualifications, salary ranges, benefits) powered by Groq AI.
 - **Configurable Hiring Pipelines**: Set up custom multi-stage pipelines per job with ordered rounds (`RESUME_SCREENING`, `ASSESSMENT`, `AI_INTERVIEW`, `MANUAL_REVIEW`).
@@ -81,7 +81,7 @@ Recrutva bridges recruiters and job seekers using cutting-edge AI:
 - **Candidate Pipeline Dashboard**: Drag-and-drop or status-driven stage advancement, filtering, and single-click invitation dispatch.
 - **Interview & Assessment Viewer**: Detailed per-question scoring, transcribed audio answers, answer evaluation blueprints, and AI executive summaries.
 
-### 🎓 Candidate Portal
+### Candidate Portal
 - **Public Job Board**: Filter and view published jobs with full job descriptions and salary transparent details.
 - **One-Click Application & Resume Upload**: PDF and DOCX parsing with Cloudinary storage and duplicate application prevention.
 - **Candidate Dashboard**: Real-time tracking of active applications and current pipeline round status.
@@ -91,7 +91,7 @@ Recrutva bridges recruiters and job seekers using cutting-edge AI:
   - Real-time text response option
 - **Automated Online Technical Assessments**: Role-specific generated questions with automatic AI scoring and feedback.
 
-### 🤖 AI & Automation Capabilities
+### AI & Automation Capabilities
 - **Groq AI Integration**: Centralized model configuration (`openai/gpt-oss-120b` for evaluation & ATS, `qwen/qwen3.8-27b` for questions & job specs).
 - **Google TTS**: Audio streaming for AI interviewer voice playback.
 - **Email Notifications**: Nodemailer (Gmail SMTP) for interview invitations, daily reminders, and pipeline round status updates.
@@ -100,7 +100,7 @@ Recrutva bridges recruiters and job seekers using cutting-edge AI:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
@@ -122,7 +122,7 @@ Recrutva bridges recruiters and job seekers using cutting-edge AI:
 
 ---
 
-## 🗄️ Database Architecture
+## Database Architecture
 
 Recrutva uses six interconnected tables managed via Drizzle ORM:
 
@@ -145,7 +145,7 @@ users (clerkId) ───> jobs ───> pipelines ───> pipeline_rounds 
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 recrutva/
@@ -191,7 +191,7 @@ recrutva/
 
 ---
 
-## ⚙️ Environment Variables
+## Environment Variables
 
 Create a `.env` file in the root directory:
 
@@ -225,7 +225,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -267,7 +267,7 @@ Access the application at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🤖 AI Model Configuration
+## AI Model Configuration
 
 All AI interactions use Groq API models centrally configured in `lib/ai.ts`:
 
@@ -282,7 +282,7 @@ All AI interactions use Groq API models centrally configured in `lib/ai.ts`:
 
 ---
 
-## 📜 Available NPM Scripts
+## Available NPM Scripts
 
 ```bash
 npm run dev          # Start local development server (Turbopack)
@@ -295,7 +295,7 @@ npm run db:studio    # Open Drizzle Studio visual interface
 
 ---
 
-## 🌐 Deployment
+## Deployment
 
 Recrutva is optimized for Vercel deployment with background cron triggers configured in `vercel.json`:
 
