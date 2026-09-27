@@ -80,21 +80,12 @@ export async function setUserRole(role: "RECRUITER" | "CANDIDATE") {
   }
 
   try {
-    // Check if user already has a role set
+    // Check if user already exists
     const [existing] = await db
       .select({ id: users.id, role: users.role })
       .from(users)
       .where(eq(users.clerkId, userId))
       .limit(1);
-
-    if (existing && existing.role) {
-      // Role already set — do not allow changes via onboarding
-      return {
-        success: false,
-        error: "Role already set. Contact support to change your role.",
-        redirectPath: existing.role === "RECRUITER" ? "/dashboard" : "/candidate-dashboard",
-      };
-    }
 
     // Get Clerk user data for creating the user record if needed
     const clerkUser = await currentUser();
@@ -108,13 +99,13 @@ export async function setUserRole(role: "RECRUITER" | "CANDIDATE") {
     }
 
     if (existing) {
-      // Update existing user with role
+      // Update existing user with chosen role
       await db
         .update(users)
         .set({ role })
         .where(eq(users.clerkId, userId));
     } else {
-      // Create new user with role
+      // Create new user with chosen role
       await db.insert(users).values({
         clerkId: userId,
         name: clerkUser.fullName || clerkUser.firstName || "User",

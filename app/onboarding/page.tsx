@@ -20,6 +20,8 @@ export default function OnboardingPage() {
     setLoading(role);
     setError(null);
 
+    const fallbackRedirect = role === "RECRUITER" ? "/dashboard" : "/candidate-dashboard";
+
     try {
       const result = await setUserRole(role);
 
@@ -28,13 +30,16 @@ export default function OnboardingPage() {
       } else if (result.redirectPath) {
         // Role already set — redirect to their dashboard
         router.push(result.redirectPath);
+      } else if (result.error === "Unauthorized") {
+        // If unauthenticated, redirect directly to the target path so middleware handles auth
+        router.push(fallbackRedirect);
       } else {
         setError(result.error || "Failed to set role. Please try again.");
         setLoading(null);
       }
     } catch {
-      setError("An unexpected error occurred. Please try again.");
-      setLoading(null);
+      // Fallback redirect on error
+      router.push(fallbackRedirect);
     }
   };
 
@@ -75,7 +80,8 @@ export default function OnboardingPage() {
             className="group"
           >
             <Card 
-              className={`h-full bg-white border-slate-200/80 p-10 rounded-[3rem] hover:border-indigo-300 transition-all shadow-xs hover:shadow-md flex flex-col items-center text-center space-y-6 ${loading && loading !== "RECRUITER" ? "opacity-50" : ""}`}
+              onClick={() => !loading && handleRoleSelection("RECRUITER")}
+              className={`h-full bg-white border-slate-200/80 p-10 rounded-[3rem] hover:border-indigo-300 transition-all shadow-xs hover:shadow-md flex flex-col items-center text-center space-y-6 cursor-pointer ${loading && loading !== "RECRUITER" ? "opacity-50" : ""}`}
             >
               <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center ring-1 ring-indigo-100 group-hover:bg-indigo-600 transition-all duration-500">
                 <Users className="w-10 h-10 text-indigo-600 group-hover:text-white transition-colors" />
@@ -87,9 +93,12 @@ export default function OnboardingPage() {
                 </p>
               </div>
               <Button 
-                onClick={() => handleRoleSelection("RECRUITER")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRoleSelection("RECRUITER");
+                }}
                 disabled={loading !== null}
-                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/15"
+                className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-md shadow-indigo-600/15 cursor-pointer"
               >
                 {loading === "RECRUITER" ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -106,7 +115,10 @@ export default function OnboardingPage() {
             whileTap={{ scale: loading ? 1 : 0.98 }}
             className="group"
           >
-            <Card className={`h-full bg-white border-slate-200/80 p-10 rounded-[3rem] hover:border-emerald-300 transition-all shadow-xs hover:shadow-md flex flex-col items-center text-center space-y-6 ${loading && loading !== "CANDIDATE" ? "opacity-50" : ""}`}>
+            <Card 
+              onClick={() => !loading && handleRoleSelection("CANDIDATE")}
+              className={`h-full bg-white border-slate-200/80 p-10 rounded-[3rem] hover:border-emerald-300 transition-all shadow-xs hover:shadow-md flex flex-col items-center text-center space-y-6 cursor-pointer ${loading && loading !== "CANDIDATE" ? "opacity-50" : ""}`}
+            >
               <div className="w-20 h-20 rounded-3xl bg-emerald-50 flex items-center justify-center ring-1 ring-emerald-100 group-hover:bg-emerald-600 transition-all duration-500">
                 <Briefcase className="w-10 h-10 text-emerald-600 group-hover:text-white transition-colors" />
               </div>
@@ -117,14 +129,17 @@ export default function OnboardingPage() {
                 </p>
               </div>
               <Button 
-                onClick={() => handleRoleSelection("CANDIDATE")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRoleSelection("CANDIDATE");
+                }}
                 disabled={loading !== null}
-                className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md shadow-emerald-600/15"
+                className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md shadow-emerald-600/15 cursor-pointer"
               >
                 {loading === "CANDIDATE" ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <>Go to Job Board <ArrowRight className="ml-2 w-4 h-4" /></>
+                  <>Enter Candidate Dashboard <ArrowRight className="ml-2 w-4 h-4" /></>
                 )}
               </Button>
             </Card>
