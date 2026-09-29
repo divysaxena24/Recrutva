@@ -5,7 +5,7 @@
  * then inserts:
  *   - 5 realistic Indian tech jobs (PUBLISHED) with proper JDs
  *   - 10 candidates with real Indian names, all using Divya Saxena's resume
- *     and divsaxena2402@gmail.com email
+ *     and divysaxena2402@gmail.com email
  *
  * Usage: npx tsx scripts/seed-real-data.ts
  */
@@ -23,7 +23,7 @@ const sql = neon(process.env.DATABASE_URL!);
 // ─── Resume text extracted from docs/DIVYA_RESUME_SDE.pdf ─────────────────────
 
 const RESUME_TEXT = `DIVYA SAXENA
-Phone: 7024296567 | Email: divsaxena2402@gmail.com | LinkedIn: divysaxena24 | GitHub: divysaxena24 | Portfolio
+Phone: 7024296567 | Email: divysaxena2402@gmail.com | LinkedIn: divysaxena24 | GitHub: divysaxena24 | Portfolio
 
 EDUCATION
 SRM University, AP                                                              Aug 2024 – May 2028
@@ -91,9 +91,9 @@ ACHIEVEMENTS
 // ─── Recruiter userId — pulled from Clerk session (must exist in users table) ──
 
 async function getRecruiterUserId(): Promise<string> {
-  // 1. Prioritize primary recruiter email divysaxena2402@gmail.com / divsaxena2402@gmail.com
+  // 1. Prioritize primary recruiter email divysaxena2402@gmail.com / divysaxena2402@gmail.com
   let rows = await sql.query(
-    `SELECT clerk_id FROM users WHERE email IN ('divysaxena2402@gmail.com', 'divsaxena2402@gmail.com') OR email LIKE '%divysaxena%' LIMIT 1`
+    `SELECT clerk_id FROM users WHERE email IN ('divysaxena2402@gmail.com', 'divysaxena2402@gmail.com') OR email LIKE '%divysaxena%' LIMIT 1`
   );
   if (rows.length > 0) {
     const clerkId = rows[0].clerk_id as string;
@@ -418,7 +418,7 @@ You'll be responsible for the infrastructure that runs our multi-tenant SaaS pla
 
 function getCandidates(recruiterId: string, jobIdMap: Record<number, number>) {
   // jobIdMap: index → actual db id  (0-4 corresponding to jobs above)
-  const email = "divsaxena2402@gmail.com";
+  const email = "divysaxena2402@gmail.com";
   const phone = "7024296567";
   const resumeUrl = null;
 
@@ -644,7 +644,7 @@ async function main() {
   console.log("═".repeat(60));
   console.log(`  Jobs inserted   : ${insertedJobIds.length}`);
   console.log(`  Candidates added: ${candidates.length}`);
-  console.log(`  Email used      : divsaxena2402@gmail.com`);
+  console.log(`  Email used      : divysaxena2402@gmail.com`);
   console.log(`  Resume          : Divya Saxena – SRM University AP, IIITH Research Intern`);
   console.log("═".repeat(60));
 }
