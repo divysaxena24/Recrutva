@@ -5,6 +5,7 @@ import { jobs } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { cacheDelete, CACHE_KEYS } from "@/lib/cache";
 import { composeJobDescription } from "@/lib/jd-generator";
+import { validateJobExpiryDate } from "@/lib/expiration";
 import {
   GenerateJobInputSchema,
   JobPayloadSchema,
@@ -107,6 +108,11 @@ function toJobColumns(
       salaryRange: input.salaryRange || undefined,
     }) || jd.title;
 
+  // Resolve expiry: validate recruiter input, fall back to minimum (numRounds × 2 days)
+  const numRounds = payload.numRounds ?? 3;
+  const expiryValidation = validateJobExpiryDate(payload.expiresAt, numRounds);
+  const expiresAt = expiryValidation.effectiveExpiresAt;
+
   return {
     userId,
     title: jd.title,
@@ -128,6 +134,7 @@ function toJobColumns(
     qualifications: jd.qualifications,
     benefits: jd.benefits,
     sourceInput: input as unknown as Record<string, unknown>,
+    expiresAt,
     updatedAt: new Date(),
   };
 }
@@ -160,6 +167,13 @@ export async function upsertJob(
     if (incomplete) {
       return { success: false, code: "incomplete", error: incomplete };
     }
+  }
+
+  // Validate expiry date (server-authoritative)
+  const numRounds = payload.numRounds ?? 3;
+  const expiryValidation = validateJobExpiryDate(payload.expiresAt, numRounds);
+  if (!expiryValidation.valid) {
+    return { success: false, code: "invalid", error: expiryValidation.error ?? "Invalid job expiry date" };
   }
 
   const columns = toJobColumns(userId, payload, status);

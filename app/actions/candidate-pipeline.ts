@@ -11,6 +11,7 @@ import {
   UpdateCandidateRoundStatusSchema,
   CompleteCandidateRoundSchema,
 } from "@/lib/schemas/actions";
+import { getMinimumJobExpiryDate } from "@/lib/expiration";
 
 // ─── Allowed statuses ─────────────────────────────────────────────
 const ALLOWED_STATUSES = ["PENDING", "ACTIVE", "PASSED", "FAILED", "SKIPPED"] as const;
@@ -686,6 +687,14 @@ export async function setupJobPipeline(
 
     if (roundsToInsert.length > 0) {
       await db.insert(pipelineRounds).values(roundsToInsert);
+    }
+
+    // Ensure job expiresAt is at least (number of rounds * 2 days) away from current date
+    const numRounds = customRounds.length || 1;
+    const [existingJob] = await db.select({ expiresAt: jobs.expiresAt }).from(jobs).where(eq(jobs.id, jobId)).limit(1);
+    const minRequiredExpiry = getMinimumJobExpiryDate(numRounds);
+    if (!existingJob?.expiresAt || new Date(existingJob.expiresAt) < minRequiredExpiry) {
+      await db.update(jobs).set({ expiresAt: minRequiredExpiry }).where(eq(jobs.id, jobId));
     }
 
     revalidatePath(`/dashboard/jobs/${jobId}/candidates`);

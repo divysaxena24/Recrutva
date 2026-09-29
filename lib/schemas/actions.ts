@@ -43,6 +43,10 @@ export const CreateJobSchema = z.object({
   description: z.string().trim().min(1, "Description is required").max(20000, "Description is too long"),
   requirements: z.string().max(20000, "Requirements are too long").optional(),
   location: z.string().max(100).optional(),
+  expiresAt: z
+    .string()
+    .refine((v) => !v || !Number.isNaN(Date.parse(v)), "Invalid job expiry date")
+    .optional(),
 });
 
 // ─── Pipelines ─────────────────────────────────────────────────────

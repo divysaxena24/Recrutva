@@ -15,10 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus, Sparkles, Loader2, Briefcase, MapPin, AlertCircle } from "lucide-react";
+import { Plus, Sparkles, Loader2, Briefcase, MapPin, AlertCircle, CalendarClock } from "lucide-react";
 import { createJob } from "@/app/actions/job";
 import { setupJobPipeline } from "@/app/actions/candidate-pipeline";
 import PipelineConfigurator, { DEFAULT_PIPELINE_ROUNDS, RoundConfig } from "@/components/PipelineConfigurator";
+import { getMinimumJobExpiryDate } from "@/lib/expiration";
 
 const addJobSchema = z.object({
   title: z
@@ -42,6 +43,7 @@ const addJobSchema = z.object({
     .max(2000, "Requirements cannot exceed 2000 characters")
     .optional()
     .or(z.literal("")),
+  expiresAt: z.string().optional(),
 });
 
 type AddJobFormValues = z.infer<typeof addJobSchema>;
@@ -52,6 +54,9 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
   const [generating, setGenerating] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pipelineRounds, setPipelineRounds] = useState<RoundConfig[]>(DEFAULT_PIPELINE_ROUNDS);
+
+  const minExpiryDate = getMinimumJobExpiryDate(pipelineRounds.length);
+  const minExpiryIso = minExpiryDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
 
   const {
     register,
@@ -67,6 +72,7 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
       location: "Remote",
       description: "",
       requirements: "",
+      expiresAt: "",
     },
   });
 
@@ -110,6 +116,8 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
         location: data.location,
         description: data.description,
         requirements: data.requirements || undefined,
+        expiresAt: data.expiresAt || undefined,
+        numberOfRounds: pipelineRounds.length,
       });
 
       if (res.success && res.job?.id) {
@@ -257,11 +265,29 @@ export default function AddJobModal({ onSuccess }: { onSuccess: () => void }) {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="expiresAt" className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                <CalendarClock className="w-3.5 h-3.5 text-indigo-500" />
+                Job Closing Date (Optional)
+              </Label>
+              <Input
+                id="expiresAt"
+                type="date"
+                min={minExpiryIso}
+                {...register("expiresAt")}
+                className="bg-slate-50 border-slate-200 text-slate-900 h-12 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+              />
+              <p className="text-[10px] text-slate-500 font-medium">
+                Minimum: <span className="font-bold text-indigo-600">{minExpiryIso}</span> ({pipelineRounds.length} rounds × 2 days/round). All round links expire 48h after activation.
+              </p>
+            </div>
+
             <PipelineConfigurator
               rounds={pipelineRounds}
               onChange={setPipelineRounds}
               disabled={loading}
             />
+
 
             <div className="pt-4 flex gap-4">
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)} className="flex-1 h-12 rounded-xl text-slate-600 hover:bg-slate-100 font-bold">

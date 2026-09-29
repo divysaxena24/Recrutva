@@ -8,11 +8,15 @@ import { eq, and, inArray } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheDelete, cacheDeletePattern, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 import { CreateJobSchema } from "@/lib/schemas/actions";
 
+import { validateJobExpiryDate } from "@/lib/expiration";
+
 export async function createJob(data: {
   title: string;
   description: string;
   requirements?: string;
   location?: string;
+  expiresAt?: string;
+  numberOfRounds?: number;
 }) {
   const { userId } = await auth();
   
@@ -26,7 +30,12 @@ export async function createJob(data: {
     const message = validation.error.issues[0]?.message ?? "Invalid input";
     return { success: false, error: message };
   }
-  data = validation.data as typeof data;
+  
+  const numRounds = data.numberOfRounds && data.numberOfRounds > 0 ? data.numberOfRounds : 3;
+  const expiryCheck = validateJobExpiryDate(data.expiresAt, numRounds);
+  if (!expiryCheck.valid) {
+    return { success: false, error: expiryCheck.error };
+  }
 
   try {
     const newJob = await db.insert(jobs).values({
@@ -36,6 +45,7 @@ export async function createJob(data: {
       requirements: data.requirements,
       location: data.location || "Remote",
       status: "Open",
+      expiresAt: expiryCheck.effectiveExpiresAt,
     }).returning();
 
     // Auto-create a hiring pipeline with default first round

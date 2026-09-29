@@ -12,6 +12,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { generateAssessmentQuestions } from "@/lib/assessment";
 import { parseAssessmentConfig } from "@/lib/schemas/assessment";
 import { rateLimitOrReject } from "@/lib/rate-limit";
+import { isRoundLinkExpired } from "@/lib/expiration";
 
 export async function GET(
   req: NextRequest,
@@ -123,6 +124,8 @@ export async function GET(
         status: candidateRounds.status,
         score: candidateRounds.score,
         evaluation: candidateRounds.evaluation,
+        startedAt: candidateRounds.startedAt,
+        createdAt: candidateRounds.createdAt,
       })
       .from(candidateRounds)
       .where(
@@ -138,6 +141,36 @@ export async function GET(
         { error: "Candidate is not enrolled in the assessment round" },
         { status: 400 }
       );
+    }
+
+    // 5b. Fetch job info for expiry checking
+    const [jobInfo] = await db
+      .select({ status: jobs.status, expiresAt: jobs.expiresAt })
+      .from(jobs)
+      .where(eq(jobs.id, candidate.targetJobId))
+      .limit(1);
+
+    // 5c. Enforce 48-hour round link expiry and job expiry
+    if (candidateRound.status === "ACTIVE") {
+      const expiry = isRoundLinkExpired({
+        startedAt: candidateRound.startedAt,
+        createdAt: candidateRound.createdAt,
+        jobExpiresAt: jobInfo?.expiresAt,
+        jobStatus: jobInfo?.status,
+      });
+
+      if (expiry.isExpired) {
+        const reason =
+          expiry.reason === "JOB_CLOSED"
+            ? "This job posting has been closed."
+            : expiry.reason === "JOB_EXPIRED"
+            ? "This job posting has expired."
+            : "Your 48-hour assessment window has expired. Please contact the recruiter to get a new link.";
+        return NextResponse.json(
+          { error: reason, code: expiry.reason },
+          { status: 403 }
+        );
+      }
     }
 
     // 6. If already completed, return the result (no re-generation)

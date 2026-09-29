@@ -238,6 +238,10 @@ export const JobPayloadSchema = z.object({
   input: GenerateJobInputSchema,
   /** The generated/edited JD. */
   jd: JobDescriptionSchema,
+  /** Recruiter input for job expiration date. */
+  expiresAt: z.string().optional(),
+  /** Number of rounds configured for pipeline. */
+  numRounds: z.number().optional(),
 });
 
 export type JobPayload = z.infer<typeof JobPayloadSchema>;

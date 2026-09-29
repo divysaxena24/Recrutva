@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Briefcase,
+  CalendarClock,
   CheckCircle2,
   ExternalLink,
   Loader2,
@@ -31,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import JDEditor from "@/components/JDEditor";
 import PipelineConfigurator, { DEFAULT_PIPELINE_ROUNDS, RoundConfig } from "@/components/PipelineConfigurator";
 import { setupJobPipeline } from "@/app/actions/candidate-pipeline";
+import { getMinimumJobExpiryDate } from "@/lib/expiration";
 import {
   generateJobDraft,
   getJobForEditing,
@@ -248,6 +250,9 @@ function CreateJobView() {
     setNotice("Reverted to the last AI-generated version.");
   };
 
+  const [pipelineRounds, setPipelineRounds] = useState<RoundConfig[]>(DEFAULT_PIPELINE_ROUNDS);
+  const [expiresAt, setExpiresAt] = useState<string>("");
+
   const buildPayload = () => {
     const parsed = GenerateJobInputSchema.safeParse({
       ...form,
@@ -263,10 +268,9 @@ function CreateJobView() {
       return null;
     }
 
-    return { jobId, input: parsed.data, jd };
+    return { jobId, input: parsed.data, jd, expiresAt: expiresAt || undefined, numRounds: pipelineRounds.length };
   };
 
-  const [pipelineRounds, setPipelineRounds] = useState<RoundConfig[]>(DEFAULT_PIPELINE_ROUNDS);
 
   const handleSaveDraft = async () => {
     const payload = buildPayload();
@@ -622,6 +626,32 @@ function CreateJobView() {
             onChange={setPipelineRounds}
             disabled={busy}
           />
+
+          {/* Job Expiry Date */}
+          {(() => {
+            const minExpiry = getMinimumJobExpiryDate(pipelineRounds.length);
+            const minIso = minExpiry.toISOString().slice(0, 10);
+            return (
+              <div className="space-y-2">
+                <label htmlFor="expiresAt" className="text-[10px] font-bold text-slate-600 uppercase tracking-widest flex items-center gap-1.5">
+                  <CalendarClock className="w-3.5 h-3.5 text-indigo-500" />
+                  Job Closing Date (Optional)
+                </label>
+                <Input
+                  id="expiresAt"
+                  type="date"
+                  min={minIso}
+                  value={expiresAt}
+                  disabled={busy}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="bg-white border-slate-200 h-12 rounded-xl focus:ring-indigo-500/20 text-slate-900"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Minimum: <span className="font-bold text-indigo-600">{minIso}</span> ({pipelineRounds.length} rounds × 2 days). Each round link expires 48 hours after activation.
+                </p>
+              </div>
+            );
+          })()}
 
           <Button
             type="button"

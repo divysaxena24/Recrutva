@@ -1,11 +1,12 @@
 import { db } from "@/db";
-import { applicants, jobs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { applicants, candidateRounds, pipelineRounds, pipelines, jobs } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { groq, AI_MODELS } from "@/lib/ai";
 import { rateLimitOrReject } from "@/lib/rate-limit";
 import { cacheGet, cacheSet, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
+import { isRoundLinkExpired } from "@/lib/expiration";
 
 export async function GET(req: NextRequest) {
   try {
@@ -91,6 +92,43 @@ export async function GET(req: NextRequest) {
         { error: "Interview already completed" },
         { status: 409 }
       );
+    }
+
+    // 2.5 Check 48-hour round link expiry for AI_INTERVIEW rounds
+    if (candidate.targetJobId) {
+      const [pipeline] = await db.select({ id: pipelines.id }).from(pipelines)
+        .where(eq(pipelines.jobId, candidate.targetJobId)).limit(1);
+      if (pipeline) {
+        const [aiInterviewRound] = await db.select({ id: pipelineRounds.id })
+          .from(pipelineRounds)
+          .where(and(eq(pipelineRounds.pipelineId, pipeline.id), eq(pipelineRounds.type, "AI_INTERVIEW")))
+          .limit(1);
+        if (aiInterviewRound) {
+          const [cRound] = await db.select({ status: candidateRounds.status, startedAt: candidateRounds.startedAt, createdAt: candidateRounds.createdAt })
+            .from(candidateRounds)
+            .where(and(eq(candidateRounds.candidateId, parsedId), eq(candidateRounds.roundId, aiInterviewRound.id)))
+            .limit(1);
+          if (cRound && cRound.status === "ACTIVE") {
+            const [jobInfo] = await db.select({ status: jobs.status, expiresAt: jobs.expiresAt })
+              .from(jobs).where(eq(jobs.id, candidate.targetJobId)).limit(1);
+            const expiry = isRoundLinkExpired({
+              startedAt: cRound.startedAt,
+              createdAt: cRound.createdAt,
+              jobExpiresAt: jobInfo?.expiresAt,
+              jobStatus: jobInfo?.status,
+            });
+            if (expiry.isExpired) {
+              const message =
+                expiry.reason === "JOB_CLOSED"
+                  ? "This job posting has been closed."
+                  : expiry.reason === "JOB_EXPIRED"
+                  ? "This job posting has expired."
+                  : "Your 48-hour interview window has expired. Please contact the recruiter."
+              return NextResponse.json({ error: message, code: expiry.reason }, { status: 403 });
+            }
+          }
+        }
+      }
     }
 
     // 3. Build job context (bounded to keep prompts small)

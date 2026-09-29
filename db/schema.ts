@@ -53,6 +53,7 @@ export const jobs = pgTable("jobs", {
   // the source requirements rather than previously generated/edited text.
   sourceInput: jsonb("source_input").$type<Record<string, unknown>>(),
 
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
