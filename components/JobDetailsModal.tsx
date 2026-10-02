@@ -19,6 +19,7 @@ import {
   Sparkles,
   FileText,
   Pencil,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -42,6 +43,7 @@ interface JobDetailsModalProps {
     qualifications?: string[] | null;
     benefits?: string[] | null;
     createdAt: Date | string;
+    applicantCount?: number;
   };
   trigger?: React.ReactNode;
 }
@@ -70,9 +72,14 @@ export default function JobDetailsModal({ job, trigger }: JobDetailsModalProps) 
         {/* Header */}
         <div className="p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shrink-0">
           <div className="flex items-center justify-between gap-4 mb-3">
-            <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
-              Job #{job.id.toString().padStart(4, "0")}
-            </Badge>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                Job #{job.id.toString().padStart(4, "0")}
+              </Badge>
+              <Badge className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                <Users className="w-3 h-3 text-indigo-300" /> {job.applicantCount ?? 0} Applications Submitted
+              </Badge>
+            </div>
             <Badge
               className={`border px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 job.status === "PUBLISHED" || job.status === "Open"
