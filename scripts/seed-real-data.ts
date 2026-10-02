@@ -420,7 +420,6 @@ function getCandidates(recruiterId: string, jobIdMap: Record<number, number>) {
   // jobIdMap: index → actual db id  (0-4 corresponding to jobs above)
   const email = "divysaxena2402@gmail.com";
   const phone = "7024296567";
-  const resumeUrl = null;
 
   return [
     // Job 0: Full Stack SDE — 4 candidates

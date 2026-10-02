@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   /* Enable standalone output for Docker deployment */
   output: "standalone",
 
+  /* Silence parent workspace root warning */
+  turbopack: {
+    root: __dirname,
+  },
+
   async redirects() {
     return [
       {
