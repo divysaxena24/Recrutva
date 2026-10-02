@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { chromium } from "playwright";
 import { db } from "@/db";
 import { applicants, schedules, scheduleLogs } from "@/db/schema";

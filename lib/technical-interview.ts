@@ -82,20 +82,20 @@ ${jobTitle}
 ## Job Description
 ${jobDescription.slice(0, 4000)}
 
-## Distribution Requirements (Exactly 10 questions):
-- DSA (Data Structures & Algorithms): 1 question (worth 10 marks)
-- OS (Operating Systems): 3 questions (worth 10 marks each)
-- DBMS (Database Management Systems): 3 questions (worth 10 marks each)
-- OOPS (Object-Oriented Programming Systems): 3 questions (worth 10 marks each)
+## Distribution Requirements (STRICTLY REQUIRED: Exactly 10 questions total):
+- Question 1: category "DSA" (worth 10 marks)
+- Questions 2, 3, 4: category "OS" (worth 10 marks each)
+- Questions 5, 6, 7: category "DBMS" (worth 10 marks each)
+- Questions 8, 9, 10: category "OOPS" (worth 10 marks each)
 
-Total Max Marks = 100.
+Total Max Marks = 100. You MUST include all 10 questions in the array.
 
 Return ONLY a JSON object matching this schema:
 {
   "questions": [
     {
       "id": 1,
-      "category": "DSA|OS|DBMS|OOPS",
+      "category": "DSA",
       "question": "Question text",
       "expectedAnswer": "Detailed expected answer for grading",
       "maxMarks": 10
