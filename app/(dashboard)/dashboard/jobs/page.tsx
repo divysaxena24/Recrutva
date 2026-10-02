@@ -181,6 +181,7 @@ export default function JobsPage() {
                   <div className="flex flex-wrap items-center gap-4 mt-2 text-slate-500 text-xs font-semibold uppercase tracking-wider">
                     <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {job.location}</div>
                     <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {new Date(job.createdAt).toLocaleDateString()}</div>
+                    <div className="flex items-center gap-1.5 text-indigo-600 font-bold"><Users className="w-3.5 h-3.5" /> {(job as { applicantCount?: number }).applicantCount ?? 0} {((job as { applicantCount?: number }).applicantCount ?? 0) === 1 ? "Applicant" : "Applicants"}</div>
                   </div>
                 </div>
 

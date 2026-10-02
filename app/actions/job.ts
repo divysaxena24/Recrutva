@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { jobs, pipelines, pipelineRounds, candidateRounds, applicants, PUBLIC_JOB_STATUSES } from "@/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, count } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheDelete, cacheDeletePattern, CACHE_KEYS, CACHE_TTL } from "@/lib/cache";
 import { CreateJobSchema } from "@/lib/schemas/actions";
 
@@ -92,25 +92,26 @@ export async function getJobs() {
   }
 
   try {
-    // Check cache first
-    const cacheKey = CACHE_KEYS.jobList(userId);
-    const cached = await cacheGet(cacheKey);
-    if (cached && Array.isArray(cached)) return cached;
+    const result = await db
+      .select({
+        id: jobs.id,
+        userId: jobs.userId,
+        title: jobs.title,
+        description: jobs.description,
+        location: jobs.location,
+        status: jobs.status,
+        createdAt: jobs.createdAt,
+        applicantCount: count(applicants.id),
+      })
+      .from(jobs)
+      .leftJoin(applicants, eq(jobs.id, applicants.targetJobId))
+      .where(eq(jobs.userId, userId))
+      .groupBy(jobs.id);
 
-    const result = await db.select({
-      id: jobs.id,
-      userId: jobs.userId,
-      title: jobs.title,
-      description: jobs.description,
-      location: jobs.location,
-      status: jobs.status,
-      createdAt: jobs.createdAt,
-    }).from(jobs).where(eq(jobs.userId, userId));
-
-    // Cache the result
-    await cacheSet(cacheKey, result, CACHE_TTL.jobList);
-
-    return result;
+    return result.map((j) => ({
+      ...j,
+      location: j.location || "Remote",
+    }));
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return [];
@@ -221,9 +222,12 @@ export async function getAllJobs() {
         salaryRange: jobs.salaryRange,
         requiredSkills: jobs.requiredSkills,
         createdAt: jobs.createdAt,
+        applicantCount: count(applicants.id),
       })
       .from(jobs)
+      .leftJoin(applicants, eq(jobs.id, applicants.targetJobId))
       .where(inArray(jobs.status, [...PUBLIC_JOB_STATUSES]))
+      .groupBy(jobs.id)
       .limit(200);
 
     // Cache the result
@@ -264,9 +268,12 @@ export async function getJobById(id: number) {
         status: jobs.status,
         createdAt: jobs.createdAt,
         userId: jobs.userId,
+        applicantCount: count(applicants.id),
       })
       .from(jobs)
+      .leftJoin(applicants, eq(jobs.id, applicants.targetJobId))
       .where(eq(jobs.id, id))
+      .groupBy(jobs.id)
       .limit(1);
     const job = data[0];
 
@@ -297,6 +304,7 @@ function toPublicJob(
     status: string;
     createdAt: Date | null;
     userId: string;
+    applicantCount?: number;
   } | null,
   viewerUserId: string | null,
 ) {
@@ -311,5 +319,6 @@ function toPublicJob(
     location: job.location,
     status: job.status,
     createdAt: job.createdAt,
+    applicantCount: job.applicantCount ?? 0,
   };
 }

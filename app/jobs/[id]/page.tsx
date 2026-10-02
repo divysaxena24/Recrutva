@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, Loader2, Bot, AlertCircle } from "lucide-react";
+import { Briefcase, MapPin, Clock, Sparkles, ArrowRight, ShieldCheck, Upload, CheckCircle2, Loader2, Bot, AlertCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -204,9 +204,10 @@ export default function JobApplyPage() {
           <div className="space-y-4">
              <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest">{job.location}</Badge>
              <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight">{job.title}</h1>
-             <div className="flex items-center gap-6 text-slate-500 font-bold uppercase text-[11px] tracking-widest">
+             <div className="flex flex-wrap items-center gap-6 text-slate-500 font-bold uppercase text-[11px] tracking-widest">
                 <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-indigo-600" /> Full-time</div>
                 <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-indigo-600" /> {job.location}</div>
+                <div className="flex items-center gap-2 text-indigo-600"><Users className="w-4 h-4 text-indigo-600" /> {job.applicantCount ?? 0} {(job.applicantCount ?? 0) === 1 ? "Applicant" : "Applicants"}</div>
              </div>
           </div>
 

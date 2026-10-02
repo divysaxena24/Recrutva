@@ -13,6 +13,7 @@ import {
   Clock,
   DollarSign,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -40,6 +41,7 @@ interface JobItem {
   workMode?: string | null;
   salaryRange?: string | null;
   requiredSkills?: string[] | null;
+  applicantCount?: number;
 }
 
 export default function PublicJobsPage() {
@@ -546,6 +548,10 @@ export default function PublicJobsPage() {
                     <div className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />{" "}
                       {new Date(job.createdAt).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center gap-1 text-indigo-600 font-semibold">
+                      <Users className="w-3.5 h-3.5 text-indigo-600" />{" "}
+                      {job.applicantCount ?? 0} {(job.applicantCount ?? 0) === 1 ? "applicant" : "applicants"}
                     </div>
                   </div>
 
